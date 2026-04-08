@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { gold: '#D4AF37', dark: '#121212' }
+        }
+      }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body { background-color: #000; color: #fff; font-family: sans-serif; }
+    .gold-border { border-color: #D4AF37; }
+    .gold-text { color: #D4AF37; }
+    .gold-bg { background-color: #D4AF37; color: #000; }
+    input, select { background-color: #1a1a1a; color: #fff; border: 1px solid #333; outline: none; }
+    input:focus, select:focus { border-color: #D4AF37; }
+    select option { background-color: #1a1a1a; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
+    .prod-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 4px; background: #1a1a1a; }
+    .prod-img-fallback { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; background: #1a1a1a; border-radius: 4px; }
+    .shipping-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 9999px; border: 1px solid #D4AF37; color: #D4AF37; display: inline-block; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- ============================================================
+     CONFIGURAZIONE — modifica solo questi due URL
+     Punta ai file RAW del tuo repository GitHub
+     ============================================================ -->
+<script>
+  window.GITHUB_PRODUCTS_URL = "https://raw.githubusercontent.com/TUO_UTENTE/TUO_REPO/main/products.json";
+  window.GITHUB_SHIPPING_URL = "https://raw.githubusercontent.com/TUO_UTENTE/TUO_REPO/main/shipping.json";
+  window.GITHUB_RAW_BASE    = "https://raw.githubusercontent.com/TUO_UTENTE/TUO_REPO/main/";
+  window.WHATSAPP_NUMBER    = "393357655171";
+</script>
+
+<script type="text/babel">
+  const { useState, useEffect, useCallback } = React;
+
+  // ── Paesi ────────────────────────────────────────────────────
+  const COUNTRIES = [
+    { name:'AUSTRALIA',      code:'AU', prefix:'+61',  flag:'🇦🇺' },
+    { name:'AUSTRIA',        code:'AT', prefix:'+43',  flag:'🇦🇹' },
+    { name:'BELGIUM',        code:'BE', prefix:'+32',  flag:'🇧🇪' },
+    { name:'BULGARIA',       code:'BG', prefix:'+359', flag:'🇧🇬' },
+    { name:'CANADA',         code:'CA', prefix:'+1',   flag:'🇨🇦' },
+    { name:'CROATIA',        code:'HR', prefix:'+385', flag:'🇭🇷' },
+    { name:'CYPRUS',         code:'CY', prefix:'+357', flag:'🇨🇾' },
+    { name:'CZECH REPUBLIC', code:'CZ', prefix:'+420', flag:'🇨🇿' },
+    { name:'DENMARK',        code:'DK', prefix:'+45',  flag:'🇩🇰' },
+    { name:'ESTONIA',        code:'EE', prefix:'+372', flag:'🇪🇪' },
+    { name:'FINLAND',        code:'FI', prefix:'+358', flag:'🇫🇮' },
+    { name:'FRANCE',         code:'FR', prefix:'+33',  flag:'🇫🇷' },
+    { name:'GERMANY',        code:'DE', prefix:'+49',  flag:'🇩🇪' },
+    { name:'GREECE',         code:'GR', prefix:'+30',  flag:'🇬🇷' },
+    { name:'HUNGARY',        code:'HU', prefix:'+36',  flag:'🇭🇺' },
+    { name:'IRELAND',        code:'IE', prefix:'+353', flag:'🇮🇪' },
+    { name:'ITALY',          code:'IT', prefix:'+39',  flag:'🇮🇹' },
+    { name:'LATVIA',         code:'LV', prefix:'+371', flag:'🇱🇻' },
+    { name:'LITHUANIA',      code:'LT', prefix:'+370', flag:'🇱🇹' },
+    { name:'LUXEMBOURG',     code:'LU', prefix:'+352', flag:'🇱🇺' },
+    { name:'MALTA',          code:'MT', prefix:'+356', flag:'🇲🇹' },
+    { name:'NETHERLANDS',    code:'NL', prefix:'+31',  flag:'🇳🇱' },
+    { name:'NORWAY',         code:'NO', prefix:'+47',  flag:'🇳🇴' },
+    { name:'POLAND',         code:'PL', prefix:'+48',  flag:'🇵🇱' },
+    { name:'PORTUGAL',       code:'PT', prefix:'+351', flag:'🇵🇹' },
+    { name:'ROMANIA',        code:'RO', prefix:'+40',  flag:'🇷🇴' },
+    { name:'SLOVAKIA',       code:'SK', prefix:'+421', flag:'🇸🇰' },
+    { name:'SLOVENIA',       code:'SI', prefix:'+386', flag:'🇸🇮' },
+    { name:'SPAIN',          code:'ES', prefix:'+34',  flag:'🇪🇸' },
+    { name:'SWEDEN',         code:'SE', prefix:'+46',  flag:'🇸🇪' },
+    { name:'SWITZERLAND',    code:'CH', prefix:'+41',  flag:'🇨🇭' },
+    { name:'UNITED KINGDOM', code:'GB', prefix:'+44',  flag:'🇬🇧' },
+    { name:'UNITED STATES',  code:'US', prefix:'+1',   flag:'🇺🇸' },
+  ];
+
+  // ── Mappa paese → listino spedizione ─────────────────────────
+  const USA_SPECIAL_STATES = ['HI','AK','PR','AL','AR','UT','MS','VI'];
+
+  const COUNTRY_TO_SHIPPING_ZONE = {
+    'GB':'UK', 'CH':'SWITZERLAND', 'NO':'NORWAY',
+    'DE':'EU_ZONE_1','BE':'EU_ZONE_1','NL':'EU_ZONE_1','LU':'EU_ZONE_1',
+    'FR':'EU_ZONE_2','DK':'EU_ZONE_2','AT':'EU_ZONE_2',
+    'ES':'EU_ZONE_3',
+    'SE':'EU_ZONE_4','PT':'EU_ZONE_4',
+    'IE':'EU_ZONE_5','SI':'EU_ZONE_5',
+    'FI':'EU_ZONE_6','HR':'EU_ZONE_6','GR':'EU_ZONE_6',
+    'CY':'EU_ZONE_7','MT':'EU_ZONE_7',
+    'PL':'EU_ZONE_8','CZ':'EU_ZONE_8','SK':'EU_ZONE_8','HU':'EU_ZONE_8',
+    'BG':'EU_ZONE_9','EE':'EU_ZONE_9','LV':'EU_ZONE_9','LT':'EU_ZONE_9','RO':'EU_ZONE_9',
+  };
+
+  const QTY_TIERS = [3,6,12,18,24,30,36];
+
+  // Restituisce la tariffa più vicina (tier ≤ quantità, oppure il minimo)
+  function getShippingRate(rateObj, qty) {
+    if(!rateObj) return 0;
+    const rates = rateObj.rates;
+    const applicable = QTY_TIERS.filter(t => qty >= t);
+    if(applicable.length === 0) return parseFloat(rates[QTY_TIERS[0]]) || 0;
+    const tier = applicable[applicable.length - 1];
+    return parseFloat(rates[String(tier)]) || 0;
+  }
+
+  // ── App principale ───────────────────────────────────────────
+  function App() {
+    const [step, setStep] = useState(1);
+    const [formData, setFormData] = useState({
+      nationality:'', natCode:'', usState:'',
+      name:'', surname:'', address:'', zip:'', city:'', province:'', state:'',
+      mobile:'', emailUser:'', emailDomain:''
+    });
+    const [cart, setCart] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [shippingData, setShippingData] = useState(null);
+    const [shippingType, setShippingType] = useState('STANDARD'); // STANDARD | EXPRESS
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+
+    useEffect(() => {
+      Promise.all([
+        fetch(window.GITHUB_PRODUCTS_URL).then(r => r.json()),
+        fetch(window.GITHUB_SHIPPING_URL).then(r => r.json()),
+      ]).then(([prods, ship]) => {
+        setProducts(prods);
+        setShippingData(ship);
+        setLoading(false);
+      }).catch(err => {
+        setLoadError('Unable to load data from GitHub. Check the URLs in the configuration.');
+        setLoading(false);
+        console.error(err);
+      });
+    }, []);
+
+    const cartQuantity = cart.reduce((sum, i) => sum + i.qty, 0);
+    const productsTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    const hasWine = cart.some(i => i.category === 'WINE');
+
+    // ── Determina listino attivo ──────────────────────────────
+    function getActiveRateKey() {
+      const { natCode, usState } = formData;
+      if(natCode === 'US') {
+        // Controlla se stato speciale
+        if(usState && USA_SPECIAL_STATES.includes(usState.toUpperCase())) {
+          return 'USA_SPECIAL_STANDARD';
+        }
+        if(hasWine) return shippingType === 'EXPRESS' ? 'USA_WINE_EXPRESS' : 'USA_WINE_STANDARD';
+        return shippingType === 'EXPRESS' ? 'USA_EXTRA_EXPRESS' : 'USA_EXTRA_STANDARD';
+      }
+      if(natCode === 'CA') return shippingType === 'EXPRESS' ? 'CANADA_EXPRESS' : 'CANADA_STANDARD';
+      return COUNTRY_TO_SHIPPING_ZONE[natCode] || null;
+    }
+
+    const activeRateKey = getActiveRateKey();
+    const activeRate = shippingData && activeRateKey ? shippingData[activeRateKey] : null;
+    const shippingCost = cartQuantity > 0 && activeRate ? getShippingRate(activeRate, cartQuantity) : 0;
+    const taxes = productsTotal * 0.10;
+    const finalTotal = productsTotal + shippingCost + taxes;
+
+    // ── Mostra selettore Standard/Express ────────────────────
+    const showSpeedSelector = ['US','CA'].includes(formData.natCode) &&
+      !(formData.natCode === 'US' && formData.usState &&
+        USA_SPECIAL_STATES.includes(formData.usState.toUpperCase()));
+
+    // ── WhatsApp ─────────────────────────────────────────────
+    const sendWhatsApp = () => {
+      const email = `${formData.emailUser}@${formData.emailDomain}`;
+      const rateName = activeRate ? activeRate.label : 'N/A';
+      let msg = `*NEW ORDER*%0A%0A`;
+      msg += `*CUSTOMER:*%0A${formData.name} ${formData.surname}%0A`;
+      msg += `Nationality: ${formData.nationality}%0A`;
+      msg += `Email: ${email}%0APhone: ${formData.mobile}%0A`;
+      msg += `Address: ${formData.address}, ${formData.zip} ${formData.city} (${formData.province}), ${formData.state}%0A`;
+      if(formData.usState) msg += `US State: ${formData.usState}%0A`;
+      msg += `%0A*PRODUCTS:*%0A`;
+      cart.forEach(c => { msg += `- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`; });
+      msg += `%0AProducts Total: €${productsTotal.toFixed(2)}`;
+      msg += `%0AImport Duties (10%): €${taxes.toFixed(2)}`;
+      msg += `%0AShipping (${rateName}): €${shippingCost.toFixed(2)}`;
+      msg += `%0A*FINAL TOTAL: €${finalTotal.toFixed(2)}*`;
+      window.open(`https://wa.me/${window.WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+    };
+
+    if(loading) return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-pulse">🍷</div>
+          <p className="gold-text tracking-widest text-sm uppercase">Loading catalog…</p>
+        </div>
+      </div>
+    );
+
+    if(loadError) return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-8">
+        <div className="text-center max-w-md">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="gold-text text-lg mb-2">Configuration Error</p>
+          <p className="text-gray-400 text-sm">{loadError}</p>
+          <p className="text-gray-600 text-xs mt-4">Edit the URLs at the top of index.html</p>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="min-h-screen bg-black text-white p-4 md:p-8 flex justify-center pb-24">
+        <div className="w-full max-w-3xl">
+          <div className="text-center mb-8 flex flex-col items-center">
+            <img src="ciliegio_trasparente.png" alt="Company Logo"
+              className="h-24 object-contain mb-2"
+              onError={(e) => { e.target.style.display='none'; document.getElementById('alt-logo').style.display='block'; }} />
+            <h1 id="alt-logo" className="text-3xl font-bold gold-text hidden tracking-widest">COMPANY LOGO</h1>
+          </div>
+
+          {step === 1 && <FormStep formData={formData} setFormData={setFormData} onNext={() => setStep(2)} />}
+          {step === 2 && <SummaryStep formData={formData} onEdit={() => setStep(1)} onConfirm={() => setStep(3)} />}
+          {step === 3 && (
+            <CatalogStep
+              products={products}
+              cart={cart} setCart={setCart}
+              shippingType={shippingType} setShippingType={setShippingType}
+              showSpeedSelector={showSpeedSelector}
+              activeRate={activeRate}
+              totals={{ qty: cartQuantity, prod: productsTotal, tax: taxes, ship: shippingCost, final: finalTotal }}
+              onSend={sendWhatsApp}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── FormStep ─────────────────────────────────────────────────
+  function FormStep({ formData, setFormData, onNext }) {
+    const [searchNat, setSearchNat] = useState('');
+    const [showNatList, setShowNatList] = useState(false);
+
+    const filteredNations = COUNTRIES.filter(c =>
+      c.name.startsWith(searchNat.toUpperCase())
+    );
+
+    const selectNation = (country) => {
+      setFormData(prev => ({
+        ...prev,
+        nationality: country.name,
+        natCode: country.code,
+        mobile: prev.mobile.startsWith('+') ? prev.mobile : country.prefix + ' '
+      }));
+      setSearchNat(country.name);
+      setShowNatList(false);
+    };
+
+    const handleZipBlur = async (e) => {
+      const z = e.target.value;
+      if(z && formData.natCode) {
+        try {
+          const res = await fetch(`https://api.zippopotam.us/${formData.natCode.toLowerCase()}/${z}`);
+          if(res.ok) {
+            const data = await res.json();
+            const place = data.places[0];
+            setFormData(prev => ({
+              ...prev,
+              city: (prev.city || place['place name']).toUpperCase(),
+              state: (prev.state || place['state']).toUpperCase(),
+              province: (prev.province || place['state abbreviation']).toUpperCase()
+            }));
+          }
+        } catch(err) { console.log("Zip API not found"); }
+      }
+    };
+
+    const isFormValid = formData.nationality && formData.name && formData.surname &&
+      formData.address && formData.zip && formData.city &&
+      formData.province && formData.state &&
+      formData.mobile && formData.emailUser && formData.emailDomain;
+
+    return (
+      <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+        <h2 className="text-xl gold-text mb-6 border-b border-[#D4AF37] pb-2">Customer Registration</h2>
+
+        <div className="space-y-4">
+          {/* Nationality */}
+          <div className="relative">
+            <label className="block text-xs text-gray-400 mb-1">Nationality</label>
+            <input type="text" className="w-full p-3 rounded uppercase"
+              placeholder="Start typing country name (e.g., U)..."
+              value={searchNat || formData.nationality}
+              onChange={(e) => {
+                setSearchNat(e.target.value.toUpperCase());
+                if(formData.nationality) setFormData(prev => ({...prev, nationality:'', natCode:'', usState:''}));
+              }}
+              onFocus={() => setShowNatList(true)} />
+            {showNatList && searchNat && !formData.nationality && (
+              <div className="absolute z-10 w-full mt-1 bg-[#1a1a1a] border gold-border rounded max-h-48 overflow-y-auto">
+                {filteredNations.length > 0 ? filteredNations.map(c => (
+                  <div key={c.code} className="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase"
+                    onClick={() => selectNation(c)}>
+                    <span>{c.flag}</span> {c.name} ({c.code})
+                  </div>
+                )) : <div className="p-3 text-gray-500">No country found…</div>}
+              </div>
+            )}
+          </div>
+
+          {/* US State (solo se USA) */}
+          {formData.natCode === 'US' && (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">
+                US State / Territory <span className="text-yellow-600">(required for correct shipping)</span>
+              </label>
+              <input type="text" className="w-full p-3 rounded uppercase"
+                placeholder="e.g. CA, NY, HI, AK, PR …"
+                value={formData.usState}
+                onChange={(e) => setFormData({...formData, usState: e.target.value.toUpperCase().trim()})} />
+              {USA_SPECIAL_STATES.includes(formData.usState.toUpperCase()) && (
+                <p className="text-xs text-yellow-500 mt-1">
+                  ⚠️ This destination uses the <strong>USA Special Standard</strong> rate.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Name / Surname */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">First Name</label>
+              <input type="text" value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value.toUpperCase()})}
+                className="w-full p-3 rounded uppercase" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Last Name</label>
+              <input type="text" value={formData.surname}
+                onChange={(e) => setFormData({...formData, surname: e.target.value.toUpperCase()})}
+                className="w-full p-3 rounded uppercase" />
+            </div>
+          </div>
+
+          {/* Address / ZIP */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <label className="block text-xs text-gray-400 mb-1">Full Address</label>
+              <input type="text" value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value.toUpperCase()})}
+                className="w-full p-3 rounded uppercase" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">ZIP Code</label>
+              <input type="text" value={formData.zip}
+                onChange={(e) => setFormData({...formData, zip: e.target.value.toUpperCase()})}
+                onBlur={handleZipBlur}
+                className="w-full p-3 rounded uppercase" />
+            </div>
+          </div>
+
+          {/* City / Province / State */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">City</label>
+              <input type="text" value={formData.city}
+                onChange={(e) => setFormData({...formData, city: e.target.value.toUpperCase()})}
+                className="w-full p-3 rounded uppercase" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Province / County</label>
+              <input type="text" value={formData.province}
+                onChange={(e) => setFormData({...formData, province: e.target.value.toUpperCase()})}
+                className="w-full p-3 rounded uppercase" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">State / Region</label>
+              <input type="text" value={formData.state}
+                onChange={(e) => setFormData({...formData, state: e.target.value.toUpperCase()})}
+                className="w-full p-3 rounded uppercase" />
+            </div>
+          </div>
+
+          {/* Mobile */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
+            <input type="text" value={formData.mobile}
+              onChange={(e) => setFormData({...formData, mobile: e.target.value.replace(/[^\d+\s]/g,'')})}
+              className="w-full p-3 rounded" placeholder="+1 234 567 8900" />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Email Address</label>
+            <div className="flex w-full items-center gap-2">
+              <input type="text" value={formData.emailUser}
+                onChange={(e) => setFormData({...formData, emailUser: e.target.value.replace(/\s/g,'').toLowerCase()})}
+                placeholder="username" className="min-w-0 flex-1 p-3 rounded text-right lowercase" />
+              <span className="gold-text font-bold text-xl shrink-0">@</span>
+              <input type="text" value={formData.emailDomain}
+                onChange={(e) => setFormData({...formData, emailDomain: e.target.value.replace(/\s/g,'').toLowerCase()})}
+                placeholder="provider.com" className="min-w-0 flex-1 p-3 rounded lowercase" />
+            </div>
+          </div>
+        </div>
+
+        <button onClick={onNext} disabled={!isFormValid}
+          className={`w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all
+            ${isFormValid ? 'gold-bg hover:bg-yellow-600' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+          Continue to Summary
+        </button>
+      </div>
+    );
+  }
+
+  // ── SummaryStep ──────────────────────────────────────────────
+  function SummaryStep({ formData, onEdit, onConfirm }) {
+    return (
+      <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+        <h2 className="text-xl gold-text mb-6 border-b border-[#D4AF37] pb-2 text-center">Data Summary</h2>
+        <div className="space-y-3 text-sm">
+          {[
+            ['Customer', `${formData.name} ${formData.surname}`],
+            ['Nationality', formData.nationality],
+            ['Email', `${formData.emailUser}@${formData.emailDomain}`],
+            ['Phone', formData.mobile],
+            ['Address', <>{formData.address}<br/>{formData.zip} {formData.city} ({formData.province})<br/>{formData.state}</>],
+            ...(formData.usState ? [['US State', formData.usState]] : []),
+          ].map(([label, val], i) => (
+            <div key={i} className="flex justify-between border-b border-gray-800 pb-2">
+              <span className="text-gray-400">{label}:</span>
+              <span className="font-bold text-right">{val}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-4 mt-8">
+          <button onClick={onEdit}
+            className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">
+            Edit
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 p-4 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">
+            Confirm & Go to Catalog
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ProductCard ──────────────────────────────────────────────
+  function ProductCard({ p, onAdd }) {
+    const [imgError, setImgError] = useState(false);
+    const imgSrc = p.img ? window.GITHUB_RAW_BASE + p.img : null;
+
+    return (
+      <div className="bg-dark p-3 rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col items-center justify-between gap-2 transition-all">
+        {imgSrc && !imgError
+          ? <img src={imgSrc} alt={p.name} className="prod-img" onError={() => setImgError(true)} />
+          : <div className="prod-img-fallback">{p.img && p.img.length <= 2 ? p.img : '🍷'}</div>
+        }
+        <h3 className="font-bold text-xs leading-tight">{p.name}</h3>
+        <p className="gold-text font-bold">€ {p.price.toFixed(2)}</p>
+        <button onClick={() => onAdd(p)}
+          className="w-full py-2 border gold-border gold-text rounded text-xs uppercase hover:bg-[#D4AF37] hover:text-black transition">
+          Add
+        </button>
+      </div>
+    );
+  }
+
+  // ── CatalogStep ──────────────────────────────────────────────
+  const CATEGORIES = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
+
+  function CatalogStep({ products, cart, setCart, shippingType, setShippingType, showSpeedSelector, activeRate, totals, onSend }) {
+    const [activeTab, setActiveTab] = useState('ALL');
+
+    const addToCart = (prod) => {
+      setCart(prev => {
+        const exists = prev.find(p => p.id === prod.id);
+        if(exists) return prev.map(p => p.id === prod.id ? {...p, qty: p.qty+1} : p);
+        return [...prev, {...prod, qty:1}];
+      });
+    };
+
+    const removeFromCart = (id) => {
+      setCart(prev => prev.map(p => p.id === id ? {...p, qty: p.qty-1} : p).filter(p => p.qty > 0));
+    };
+
+    const tabs = ['ALL', ...CATEGORIES];
+    const filtered = activeTab === 'ALL' ? products : products.filter(p => p.category === activeTab);
+
+    const displayCategories = activeTab === 'ALL'
+      ? CATEGORIES.filter(c => products.some(p => p.category === c))
+      : [activeTab];
+
+    return (
+      <div className="flex flex-col gap-6 mb-10">
+
+        {/* Selettore Standard / Express (solo US e CA non-special) */}
+        {showSpeedSelector && (
+          <div className="bg-[#111] border gold-border rounded p-4">
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Shipping Speed</p>
+            <div className="flex gap-3">
+              {['STANDARD','EXPRESS'].map(opt => (
+                <button key={opt}
+                  onClick={() => setShippingType(opt)}
+                  className={`flex-1 py-3 rounded border font-bold text-xs uppercase tracking-widest transition
+                    ${shippingType===opt ? 'gold-bg border-[#D4AF37]' : 'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
+                  {opt}
+                </button>
+              ))}
+            </div>
+            {activeRate && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Active rate: <span className="gold-text">{activeRate.label}</span>
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Catalog */}
+          <div className="flex-1">
+            {/* Tab bar */}
+            <div className="flex gap-2 flex-wrap mb-6">
+              {tabs.map(t => (
+                <button key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wider border transition
+                    ${activeTab===t ? 'gold-bg border-[#D4AF37]' : 'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {displayCategories.map(cat => {
+              const catProds = filtered.filter(p => p.category === cat);
+              if(catProds.length === 0) return null;
+              return (
+                <div key={cat} className="mb-8">
+                  <h2 className="text-lg font-bold gold-text mb-4 border-b border-gray-800 pb-2">{cat}</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {catProds.map(p => <ProductCard key={p.id} p={p} onAdd={addToCart} />)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Cart */}
+          <div className="w-full md:w-80 bg-[#111] p-4 rounded border gold-border h-fit sticky top-4">
+            <h2 className="text-lg gold-text mb-4 border-b border-gray-800 pb-2">Your Cart</h2>
+            {cart.length === 0
+              ? <p className="text-gray-500 text-sm italic mb-4">Cart is empty</p>
+              : (
+                <div className="space-y-3 mb-6 max-h-48 overflow-y-auto pr-2">
+                  {cart.map(c => (
+                    <div key={c.id} className="flex justify-between items-center bg-black p-2 rounded text-sm">
+                      <div className="flex-1">
+                        <p className="font-bold text-xs leading-tight">{c.name}</p>
+                        <p className="text-gray-400 text-xs">€{c.price.toFixed(2)} × {c.qty}</p>
+                      </div>
+                      <div className="flex gap-2 ml-2 shrink-0">
+                        <button onClick={() => removeFromCart(c.id)} className="w-6 h-6 bg-gray-800 rounded hover:bg-red-600 text-xs">−</button>
+                        <button onClick={() => addToCart(c)} className="w-6 h-6 gold-bg rounded font-bold text-xs">+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+
+            <div className="border-t border-gray-800 pt-4 space-y-2 text-sm">
+              <div className="flex justify-between text-gray-400">
+                <span>Products ({totals.qty}):</span><span>€ {totals.prod.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-gray-400">
+                <span>Duties (10%):</span><span>€ {totals.tax.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-gray-400">
+                <span>Shipping:</span>
+                <span>€ {totals.ship.toFixed(2)}</span>
+              </div>
+              {activeRate && totals.qty > 0 && (
+                <p className="text-xs text-gray-600 text-right">{activeRate.label}</p>
+              )}
+              {totals.qty > 0 && !activeRate && (
+                <p className="text-xs text-yellow-600 text-right">⚠️ No rate for this country</p>
+              )}
+              <div className="flex justify-between text-lg font-bold gold-text mt-2 border-t border-gray-800 pt-2">
+                <span>Total Order:</span><span>€ {totals.final.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <button onClick={onSend} disabled={cart.length === 0}
+              className={`w-full mt-6 p-3 rounded font-bold uppercase text-sm transition
+                ${cart.length > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+              📲 Send Order via WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<App />);
+</script>
+</body>
+</html>

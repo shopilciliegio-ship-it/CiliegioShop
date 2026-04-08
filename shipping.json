@@ -1,0 +1,280 @@
+{
+  "_note": "Shipping costs by rate list. Quantities: 3 / 6 / 12 / 18 / 24 / 30 / 36 items. Add your prices for each tier.",
+  "_qty_tiers": [3, 6, 12, 18, 24, 30, 36],
+
+  "USA_WINE_STANDARD": {
+    "label": "USA Wine Standard",
+    "applies_to": "USA destinations (excluding special states) when at least 1 WINE item is in cart",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "USA_WINE_EXPRESS": {
+    "label": "USA Wine Express",
+    "applies_to": "USA destinations (excluding special states) when at least 1 WINE item is in cart – express delivery",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "USA_EXTRA_STANDARD": {
+    "label": "USA Extra Standard",
+    "applies_to": "USA destinations (excluding special states) when NO WINE items are in cart",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "USA_EXTRA_EXPRESS": {
+    "label": "USA Extra Express",
+    "applies_to": "USA destinations (excluding special states) when NO WINE items are in cart – express delivery",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "USA_SPECIAL_STANDARD": {
+    "label": "USA Special Standard",
+    "applies_to": "Hawaii, Alaska, Puerto Rico, Alabama, Arkansas, Utah, Mississippi, Virgin Island",
+    "states": ["HI","AK","PR","AL","AR","UT","MS","VI"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "CANADA_STANDARD": {
+    "label": "Canada Standard",
+    "applies_to": "All Canadian destinations – standard delivery",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "CANADA_EXPRESS": {
+    "label": "Canada Express",
+    "applies_to": "All Canadian destinations – express delivery",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "UK": {
+    "label": "United Kingdom",
+    "applies_to": "United Kingdom",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "SWITZERLAND": {
+    "label": "Switzerland",
+    "applies_to": "Switzerland",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "NORWAY": {
+    "label": "Norway",
+    "applies_to": "Norway",
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_1": {
+    "label": "EU Zone 1",
+    "applies_to": "Germany, Belgium, Netherlands, Luxembourg",
+    "countries": ["DE","BE","NL","LU"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_2": {
+    "label": "EU Zone 2",
+    "applies_to": "France, Denmark, Austria",
+    "countries": ["FR","DK","AT"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_3": {
+    "label": "EU Zone 3",
+    "applies_to": "Spain",
+    "countries": ["ES"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_4": {
+    "label": "EU Zone 4",
+    "applies_to": "Sweden, Portugal",
+    "countries": ["SE","PT"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_5": {
+    "label": "EU Zone 5",
+    "applies_to": "Ireland, Slovenia",
+    "countries": ["IE","SI"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_6": {
+    "label": "EU Zone 6",
+    "applies_to": "Finland, Croatia, Greece",
+    "countries": ["FI","HR","GR"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_7": {
+    "label": "EU Zone 7",
+    "applies_to": "Cyprus, Malta",
+    "countries": ["CY","MT"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_8": {
+    "label": "EU Zone 8",
+    "applies_to": "Poland, Czech Republic, Slovakia, Hungary",
+    "countries": ["PL","CZ","SK","HU"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  },
+
+  "EU_ZONE_9": {
+    "label": "EU Zone 9",
+    "applies_to": "Bulgaria, Estonia, Latvia, Lithuania, Romania",
+    "countries": ["BG","EE","LV","LT","RO"],
+    "rates": {
+      "3":  0.00,
+      "6":  0.00,
+      "12": 0.00,
+      "18": 0.00,
+      "24": 0.00,
+      "30": 0.00,
+      "36": 0.00
+    }
+  }
+}
