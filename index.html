@@ -14,21 +14,41 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    body { background:#000; color:#fff; font-family:sans-serif; }
+    * { box-sizing: border-box; }
+    body { background:#000; color:#fff; font-family:sans-serif; margin:0; padding:0; }
     .gold-border { border-color:#D4AF37; }
     .gold-text   { color:#D4AF37; }
     .gold-bg     { background-color:#D4AF37; color:#000; }
     input, select { background:#1a1a1a; color:#fff; border:1px solid #333; outline:none; }
-    input:focus, select:focus { border-color:#D4AF37; }
-    input.field-err { border-color:#ef4444 !important; }
-    ::-webkit-scrollbar { width:6px; }
+    input:focus   { border-color:#D4AF37; }
+    input.err-field { border-color:#ef4444 !important; }
+    ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:#000; }
     ::-webkit-scrollbar-thumb { background:#D4AF37; border-radius:4px; }
-    /* product card compact on mobile */
-    .prod-img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:4px; background:#1a1a1a; }
-    .prod-img-fallback { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background:#1a1a1a; border-radius:4px; }
-    /* sticky cart panel on desktop */
-    @media(min-width:768px) { .cart-sticky { position:sticky; top:16px; } }
+    .prod-img          { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:3px; background:#1a1a1a; }
+    .prod-img-fallback { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:1.4rem; background:#1a1a1a; border-radius:3px; }
+    /* Product grid: small on mobile, larger on desktop */
+    .prod-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+    @media (min-width: 768px) {
+      .prod-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    }
+
+    /* ── Catalog page layout ── */
+    /* Desktop (≥768px): side-by-side, catalog scrolls freely */
+    @media (min-width: 768px) {
+      .catalog-layout  { display:flex; flex-direction:row; gap:16px; align-items:flex-start; }
+      .catalog-col     { flex:1; min-width:0; }
+      .cart-col        { width:288px; flex-shrink:0; position:sticky; top:12px; }
+    }
+
+    /* Mobile (<768px): viewport split ~62/38 */
+    @media (max-width: 767px) {
+      /* Full page takes exactly 100dvh, no outer scroll */
+      .catalog-page    { height: calc(var(--vh, 1vh) * 100 - 90px); display:flex; flex-direction:column; gap:0; }
+      .catalog-layout  { flex:1; display:flex; flex-direction:column; min-height:0; gap:0; }
+      .catalog-col     { flex:1; min-height:0; overflow-y:auto; padding-bottom:4px; }
+      .cart-col        { flex:0 0 38vh; border-top:1px solid #D4AF37; overflow-y:auto; padding-top:8px; }
+    }
   </style>
 </head>
 <body>
@@ -41,6 +61,11 @@
     imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
     whatsapp : "393357655171"
   };
+  // Fix iOS Safari: imposta --vh come 1% dell'altezza visibile reale
+  function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01+'px'); }
+  setVh();
+  window.addEventListener('resize', setVh);
+  window.addEventListener('orientationchange', ()=>setTimeout(setVh,200));
 </script>
 
 <script type="text/babel">
@@ -84,11 +109,10 @@ const COUNTRIES = [
 ];
 
 const ZONE_MAP = {
-  GB:'UK', CH:'SWITZERLAND', NO:'NORWAY',
+  GB:'UK',CH:'SWITZERLAND',NO:'NORWAY',
   DE:'EU_ZONE_1',BE:'EU_ZONE_1',NL:'EU_ZONE_1',LU:'EU_ZONE_1',
   FR:'EU_ZONE_2',DK:'EU_ZONE_2',AT:'EU_ZONE_2',
-  ES:'EU_ZONE_3',
-  SE:'EU_ZONE_4',PT:'EU_ZONE_4',
+  ES:'EU_ZONE_3',SE:'EU_ZONE_4',PT:'EU_ZONE_4',
   IE:'EU_ZONE_5',SI:'EU_ZONE_5',
   FI:'EU_ZONE_6',HR:'EU_ZONE_6',GR:'EU_ZONE_6',
   CY:'EU_ZONE_7',MT:'EU_ZONE_7',
@@ -96,115 +120,74 @@ const ZONE_MAP = {
   BG:'EU_ZONE_9',EE:'EU_ZONE_9',LV:'EU_ZONE_9',LT:'EU_ZONE_9',RO:'EU_ZONE_9',
 };
 
-const USA_SPECIAL  = ['HI','AK','PR','AL','AR','UT','MS','VI'];
-const CA_NO_WINE   = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
+const USA_SPECIAL = ['HI','AK','PR','AL','AR','UT','MS','VI'];
+const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
   'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
-const QTY_TIERS    = [3,6,12,18,24,30,36];
-const CATEGORIES   = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
-const US_CA_BLOCK  = [24,25];
-const BLANK        = {nationality:'',natCode:'',name:'',surname:'',address:'',
+const QTY_TIERS   = [3,6,12,18,24,30,36];
+const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
+const US_CA_BLOCK = [24,25];
+const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
   zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
 
 /* ── Helpers ───────────────────────────────────────────────── */
-function shipRate(rateObj, qty) {
-  if (!rateObj) return 0;
-  const tier = QTY_TIERS.find(t => qty <= t) || QTY_TIERS[QTY_TIERS.length-1];
-  return parseFloat(rateObj.rates[String(tier)]) || 0;
+function shipRate(obj,qty){
+  if(!obj) return 0;
+  const t=QTY_TIERS.find(t=>qty<=t)||QTY_TIERS[QTY_TIERS.length-1];
+  return parseFloat(obj.rates[String(t)])||0;
 }
-
-function dlabel(key, speed) {
-  if (!key) return '';
-  if (key.startsWith('EU_') || ['UK','SWITZERLAND','NORWAY'].includes(key))
-    return 'Delivery within 7 working days';
-  if (speed === 'EXPRESS' || key.includes('EXPRESS'))
-    return 'Delivery within 9 working days';
+function dLabel(key,speed){
+  if(!key) return '';
+  if(key.startsWith('EU_')||['UK','SWITZERLAND','NORWAY'].includes(key)) return 'Delivery within 7 working days';
+  if(speed==='EXPRESS'||key.includes('EXPRESS')) return 'Delivery within 9 working days';
   return 'Delivery within 20 working days';
 }
-
-function rateKey(code, speed, wine) {
-  if (code === 'US') {
-    if (wine) return speed==='EXPRESS' ? 'USA_WINE_EXPRESS'  : 'USA_WINE_STANDARD';
-    return           speed==='EXPRESS' ? 'USA_EXTRA_EXPRESS' : 'USA_EXTRA_STANDARD';
+function rateKey(code,speed,wine){
+  if(code==='US'){
+    if(wine) return speed==='EXPRESS'?'USA_WINE_EXPRESS':'USA_WINE_STANDARD';
+    return speed==='EXPRESS'?'USA_EXTRA_EXPRESS':'USA_EXTRA_STANDARD';
   }
-  if (code === 'CA') return speed==='EXPRESS' ? 'CANADA_EXPRESS' : 'CANADA_STANDARD';
-  return ZONE_MAP[code] || null;
+  if(code==='CA') return speed==='EXPRESS'?'CANADA_EXPRESS':'CANADA_STANDARD';
+  return ZONE_MAP[code]||null;
 }
-
-function validDomain(d) { return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
-
-/* Country code → ISO alpha-2 for Nominatim */
-const CODE_TO_ISO = {AU:'AU',AT:'AT',BE:'BE',BG:'BG',CA:'CA',HR:'HR',CY:'CY',
-  CZ:'CZ',DK:'DK',EE:'EE',FI:'FI',FR:'FR',DE:'DE',GR:'GR',HU:'HU',IE:'IE',
-  IT:'IT',LV:'LV',LT:'LT',LU:'LU',MT:'MT',NL:'NL',NO:'NO',PL:'PL',PT:'PT',
-  RO:'RO',SK:'SK',SI:'SI',ES:'ES',SE:'SE',CH:'CH',GB:'GB',US:'US'};
-
-/* Search city via Nominatim (OpenStreetMap) — returns [{zip,city,province,state}] */
-async function searchCityNominatim(cityName, natCode) {
-  const iso = CODE_TO_ISO[natCode];
-  if (!iso) return [];
-  const url = `https://nominatim.openstreetmap.org/search?` +
-    `q=${encodeURIComponent(cityName)}&countrycodes=${iso.toLowerCase()}&` +
-    `addressdetails=1&format=json&limit=8`;
-  const res = await fetch(url, { headers: {'Accept-Language':'en'} });
-  if (!res.ok) return [];
-  const data = await res.json();
-  const seen = new Set();
-  const results = [];
-  for (const item of data) {
-    const a = item.address || {};
-    const city     = (a.city || a.town || a.village || a.municipality || '').toUpperCase();
-    const zip      = (a.postcode || '').replace(/\s/g,'').toUpperCase();
-    const province = (a.county || a.state_district || a.region || '').toUpperCase();
-    const state    = (a.state || '').toUpperCase();
-    if (!city || !zip) continue;
-    const key = `${zip}|${city}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    results.push({ zip, city, province, state });
-  }
-  return results;
-}
+function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 
 /* ── App ───────────────────────────────────────────────────── */
-function App() {
-  const [step,setStep]       = useState(1);
-  const [speed,setSpeed]     = useState('STANDARD');
-  const [cart,setCart]       = useState([]);
-  const [products,setProds]  = useState([]);
-  const [shipping,setShip]   = useState(null);
-  const [loading,setLoading] = useState(true);
-  const [loadErr,setLoadErr] = useState('');
-  const [form,setForm]       = useState({...BLANK});
-  const [natTxt,setNatTxt]   = useState(''); // visible text in nationality field
+function App(){
+  const [step,setStep]    = useState(1);
+  const [speed,setSpeed]  = useState('STANDARD');
+  const [cart,setCart]    = useState([]);
+  const [prods,setProds]  = useState([]);
+  const [ship,setShip]    = useState(null);
+  const [loading,setLoad] = useState(true);
+  const [err,setErr]      = useState('');
+  const [form,setForm]    = useState({...BLANK});
+  const [natTxt,setNat]   = useState('');
 
-  useEffect(() => {
+  useEffect(()=>{
     Promise.all([
       fetch(window.CFG.products).then(r=>{if(!r.ok)throw 0;return r.json();}),
       fetch(window.CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
-    ]).then(([p,s])=>{setProds(p);setShip(s);setLoading(false);})
-      .catch(()=>{setLoadErr('Unable to load data from GitHub. Check the URLs in window.CFG.');setLoading(false);});
+    ]).then(([p,s])=>{setProds(p);setShip(s);setLoad(false);})
+      .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
   },[]);
 
-  const reset = () => {
-    setStep(1); setCart([]); setSpeed('STANDARD');
-    setForm({...BLANK}); setNatTxt('');
-  };
+  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat(''); };
 
-  const qty    = cart.reduce((s,i)=>s+i.qty,0);
-  const prod   = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const wine   = cart.some(i=>i.category==='WINE');
-  const aKey   = rateKey(form.natCode,speed,wine);
-  const aRate  = shipping && aKey ? shipping[aKey] : null;
-  const ship   = qty>0&&aRate ? shipRate(aRate,qty) : 0;
-  const duty   = aKey&&aKey.startsWith('USA_WINE') ? prod*0.1 : 0;
-  const total  = prod+ship+duty;
-  const dlab   = dlabel(aKey,speed);
-  const spSel  = ['US','CA'].includes(form.natCode);
-  const totals = {qty,prod,ship,duty,final:total};
+  const qty   = cart.reduce((s,i)=>s+i.qty,0);
+  const prod  = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  // Vino O Sparkling → listino USA_WINE (con dazi)
+  const wine  = cart.some(i=>i.category==='WINE'||i.category==='SPARKLING');
+  const aKey  = rateKey(form.natCode,speed,wine);
+  const aRate = ship&&aKey?ship[aKey]:null;
+  const sc    = qty>0&&aRate?shipRate(aRate,qty):0;
+  const duty  = aKey&&aKey.startsWith('USA_WINE')?prod*0.1:0;
+  const total = prod+sc+duty;
+  const dl    = dLabel(aKey,speed);
+  const spSel = ['US','CA'].includes(form.natCode);
+  const totals= {qty,prod,ship:sc,duty,final:total};
 
-  const sendWA = () => {
-    const em = `${form.emailUser}@${form.emailDomain}`;
-    const rn = aRate?aRate.label:'N/A';
+  const sendWA=()=>{
+    const em=`${form.emailUser}@${form.emailDomain}`;
     let m=`*NEW ORDER*%0A%0A*CUSTOMER:*%0A${form.name} ${form.surname}%0A`;
     m+=`Nationality: ${form.nationality}%0AEmail: ${em}%0APhone: ${form.mobile}%0A`;
     m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}%0A`;
@@ -212,48 +195,43 @@ function App() {
     cart.forEach(c=>{m+=`- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`;});
     m+=`%0AProducts Total: €${prod.toFixed(2)}`;
     if(duty>0) m+=`%0AImport Duties (10%): €${duty.toFixed(2)}`;
-    m+=`%0AShipping (${rn}): €${ship.toFixed(2)}%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
+    m+=`%0AShipping (${aRate?aRate.label:'N/A'}): €${sc.toFixed(2)}%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
     window.open(`https://wa.me/${window.CFG.whatsapp}?text=${m}`,'_blank');
   };
 
   if(loading) return(
     <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-center">
-        <div className="text-5xl mb-4 animate-pulse">🍷</div>
-        <p className="gold-text tracking-widest text-sm uppercase">Loading catalog…</p>
-      </div>
-    </div>
-  );
-  if(loadErr) return(
+      <div className="text-center"><div className="text-5xl mb-4 animate-pulse">🍷</div>
+      <p className="gold-text tracking-widest text-sm uppercase">Loading catalog…</p></div>
+    </div>);
+  if(err) return(
     <div className="min-h-screen bg-black flex items-center justify-center p-8">
-      <div className="text-center max-w-md">
-        <div className="text-4xl mb-4">⚠️</div>
-        <p className="gold-text text-lg mb-2">Configuration Error</p>
-        <p className="text-gray-400 text-sm">{loadErr}</p>
-      </div>
-    </div>
-  );
+      <div className="text-center"><div className="text-4xl mb-4">⚠️</div>
+      <p className="gold-text text-lg mb-2">Configuration Error</p>
+      <p className="text-gray-400 text-sm">{err}</p></div>
+    </div>);
 
   return(
-    <div className="min-h-screen bg-black text-white p-4 md:p-8 flex justify-center">
-      <div className="w-full max-w-4xl">
+    <div className="min-h-screen bg-black text-white" style={{padding: step===3?'8px':'16px 16px 32px'}}>
+      <div className="w-full" style={{maxWidth: step===3?'100%':'768px', margin:'0 auto'}}>
+
         {/* Header */}
-        <div className="relative text-center mb-6 flex flex-col items-center">
+        <div className="relative text-center mb-4 flex flex-col items-center">
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
           </button>
-          <img id="logo-img" src="ciliegio_trasparente.png" alt="Il Ciliegio" className="h-24 object-contain mb-2"
+          <img id="logo-img" src="ciliegio_trasparente.png" alt="Il Ciliegio" className="h-16 object-contain"
             onLoad={()=>{const t=document.getElementById('logo-txt');if(t)t.style.display='none';}}
             onError={()=>{const i=document.getElementById('logo-img');if(i)i.style.display='none';const t=document.getElementById('logo-txt');if(t)t.style.display='block';}}/>
-          <h1 id="logo-txt" className="text-3xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
+          <h1 id="logo-txt" className="text-2xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
         </div>
 
-        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNatTxt={setNatTxt} onNext={()=>setStep(2)}/>}
+        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} onNext={()=>setStep(2)}/>}
         {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onConfirm={()=>setStep(3)}/>}
-        {step===3 && <CatalogStep products={products} cart={cart} setCart={setCart}
+        {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
-          aRate={aRate} aKey={aKey} duty={duty>0} dlab={dlab}
+          aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
           totals={totals} onSend={sendWA} natCode={form.natCode} province={form.province}/>}
       </div>
     </div>
@@ -261,30 +239,17 @@ function App() {
 }
 
 /* ── FormStep ──────────────────────────────────────────────── */
-function FormStep({form,setForm,natTxt,setNatTxt,onNext}) {
-  const [showNat,setShowNat]   = useState(false);
-  const [cityTxt,setCityTxt]   = useState(form.city||'');
-  const [searching,setSearching]= useState(false);
-  const [citySugg,setCitySugg] = useState([]);
-  const [showSugg,setShowSugg] = useState(false);
-  const [domErr,setDomErr]     = useState(false);
-  const timer = useRef(null);
-
-  /* keep cityTxt in sync when form.city changes externally (e.g. ZIP→city fill) */
-  useEffect(()=>{ setCityTxt(form.city||''); },[form.city]);
-
+function FormStep({form,setForm,natTxt,setNat,onNext}){
+  const [showNat,setShowNat] = useState(false);
+  const [domErr,setDomErr]   = useState(false);
   const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
 
-  const pickCountry = (c) => {
-    setForm({...BLANK, nationality:c.name, natCode:c.code, mobile:c.prefix+' '});
-    setNatTxt(c.name);
-    setShowNat(false);
-    setCityTxt('');
-    setCitySugg([]);
+  const pickCountry=(c)=>{
+    setForm({...BLANK,nationality:c.name,natCode:c.code,mobile:c.prefix+' '});
+    setNat(c.name); setShowNat(false);
   };
 
-  /* ZIP → autofill */
-  const onZipBlur = async (e) => {
+  const onZipBlur=async(e)=>{
     const z=e.target.value.trim();
     if(!z||!form.natCode) return;
     const code=form.natCode==='GB'?'gb':form.natCode.toLowerCase();
@@ -301,36 +266,7 @@ function FormStep({form,setForm,natTxt,setNatTxt,onNext}) {
     }catch(_){}
   };
 
-  /* City → search ZIPs via Nominatim */
-  const onCityChange = (e) => {
-    const v=e.target.value.toUpperCase();
-    setCityTxt(v);
-    setForm(f=>({...f,city:v}));
-    setShowSugg(false);
-    if(timer.current) clearTimeout(timer.current);
-    if(v.length<3||!form.natCode){setCitySugg([]);return;}
-    timer.current=setTimeout(async()=>{
-      setSearching(true);
-      const results=await searchCityNominatim(v,form.natCode);
-      setCitySugg(results);
-      if(results.length>0) setShowSugg(true);
-      setSearching(false);
-    },700);
-  };
-
-  const pickCity = (s) => {
-    setForm(f=>({...f,zip:s.zip,city:s.city,province:s.province,state:s.state}));
-    setCityTxt(s.city);
-    setShowSugg(false);
-    setCitySugg([]);
-  };
-
-  const onDomBlur = (e) => {
-    const v=e.target.value.trim();
-    setDomErr(v!==''&&!validDomain(v));
-  };
-
-  const ok = form.nationality&&form.name&&form.surname&&form.address&&
+  const ok=form.nationality&&form.name&&form.surname&&form.address&&
     form.zip&&form.city&&form.province&&form.state&&
     form.mobile&&form.emailUser&&form.emailDomain&&validDomain(form.emailDomain);
 
@@ -338,9 +274,8 @@ function FormStep({form,setForm,natTxt,setNatTxt,onNext}) {
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
       <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between border-b border-[#D4AF37] pb-2 mb-5 gap-1">
         <h2 className="text-xl gold-text">Customer Registration</h2>
-        <span className="text-xs gold-text opacity-70 italic">all fields are required for correct shipping and delivery</span>
+        <span className="text-xs gold-text opacity-70 italic">all fields are required</span>
       </div>
-
       <div className="space-y-4">
 
         {/* Nationality */}
@@ -350,29 +285,25 @@ function FormStep({form,setForm,natTxt,setNatTxt,onNext}) {
             placeholder="Start typing country name…" value={natTxt}
             onFocus={()=>setShowNat(true)}
             onChange={e=>{
-              const v=e.target.value.toUpperCase(); setNatTxt(v);
-              if(form.nationality&&v!==form.nationality)
-                setForm(f=>({...f,nationality:'',natCode:''}));
+              const v=e.target.value.toUpperCase(); setNat(v);
+              if(form.nationality&&v!==form.nationality) setForm(f=>({...f,nationality:'',natCode:''}));
             }}/>
           {showNat&&natTxt&&!form.nationality&&(
             <div className="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded max-h-44 overflow-y-auto">
-              {nations.length>0
-                ? nations.map(c=>(
-                    <div key={c.code} className="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase text-sm"
-                      onClick={()=>pickCountry(c)}>
-                      {c.flag} {c.name} ({c.code})
-                    </div>))
-                : <div className="p-3 text-gray-500 text-sm">No country found…</div>
-              }
-            </div>
-          )}
+              {nations.length>0?nations.map(c=>(
+                <div key={c.code} className="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase text-sm"
+                  onClick={()=>pickCountry(c)}>{c.flag} {c.name} ({c.code})</div>
+              )):<div className="p-3 text-gray-500 text-sm">No country found…</div>}
+            </div>)}
         </div>
 
-        {/* ZIP */}
+        {/* ZIP — auto-fills city/province/state on blur */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1">ZIP Code</label>
+          <label className="block text-xs text-gray-400 mb-1">ZIP Code
+            <span className="ml-2 text-gray-600 italic text-xs">(auto-fills city & region on blur)</span>
+          </label>
           <input className="w-full p-3 rounded uppercase" type="text"
-            placeholder={form.natCode?"Enter ZIP to auto-fill city & region":"Select nationality first"}
+            placeholder={form.natCode?"Enter ZIP…":"Select nationality first"}
             value={form.zip}
             onChange={e=>setForm(f=>({...f,zip:e.target.value.toUpperCase()}))}
             onBlur={onZipBlur}/>
@@ -380,91 +311,57 @@ function FormStep({form,setForm,natTxt,setNatTxt,onNext}) {
 
         {/* Name / Surname */}
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">First Name</label>
+          <div><label className="block text-xs text-gray-400 mb-1">First Name</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.name}
               onChange={e=>setForm(f=>({...f,name:e.target.value.toUpperCase()}))}/>
           </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Last Name</label>
+          <div><label className="block text-xs text-gray-400 mb-1">Last Name</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.surname}
               onChange={e=>setForm(f=>({...f,surname:e.target.value.toUpperCase()}))}/>
           </div>
         </div>
 
         {/* Address */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Full Address</label>
+        <div><label className="block text-xs text-gray-400 mb-1">Full Address</label>
           <input className="w-full p-3 rounded uppercase" type="text" placeholder="Street, number…"
             value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value.toUpperCase()}))}/>
         </div>
 
-        {/* City with reverse ZIP search */}
-        <div className="relative">
-          <label className="block text-xs text-gray-400 mb-1">
-            City
-            {searching&&<span className="ml-2 text-yellow-500 text-xs animate-pulse">searching…</span>}
-          </label>
+        {/* City */}
+        <div><label className="block text-xs text-gray-400 mb-1">City</label>
           <input className="w-full p-3 rounded uppercase" type="text"
-            placeholder={form.natCode?"Type city to search ZIP":"Select nationality first"}
-            value={cityTxt}
-            onChange={onCityChange}
-            onBlur={()=>setTimeout(()=>setShowSugg(false),250)}/>
-          {showSugg&&citySugg.length>0&&(
-            <div className="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded max-h-52 overflow-y-auto">
-              <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-800">
-                {citySugg.length===1?'1 result found':`${citySugg.length} results — select the correct ZIP:`}
-              </div>
-              {citySugg.map((s,i)=>(
-                <div key={i} className="p-3 hover:bg-[#333] cursor-pointer text-sm flex items-center gap-3"
-                  onMouseDown={()=>pickCity(s)}>
-                  <span className="gold-text font-bold text-sm w-20 shrink-0">{s.zip}</span>
-                  <span className="text-gray-200 truncate">{s.city}</span>
-                  {s.province&&<span className="text-gray-500 text-xs shrink-0">({s.province})</span>}
-                </div>
-              ))}
-            </div>
-          )}
-          {showSugg&&citySugg.length===0&&!searching&&cityTxt.length>=3&&(
-            <div className="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded p-3 text-xs text-gray-500">
-              No results — try a different spelling or enter ZIP manually
-            </div>
-          )}
+            value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value.toUpperCase()}))}/>
         </div>
 
-        {/* Province / State/Region */}
+        {/* Province / State */}
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Province / County</label>
+          <div><label className="block text-xs text-gray-400 mb-1">Province / County</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.province}
               onChange={e=>setForm(f=>({...f,province:e.target.value.toUpperCase()}))}/>
           </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">State / Region</label>
+          <div><label className="block text-xs text-gray-400 mb-1">State / Region</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.state}
               onChange={e=>setForm(f=>({...f,state:e.target.value.toUpperCase()}))}/>
           </div>
         </div>
 
         {/* Mobile */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
+        <div><label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
           <input className="w-full p-3 rounded" type="text" placeholder="+1 234 567 8900"
             value={form.mobile} onChange={e=>setForm(f=>({...f,mobile:e.target.value.replace(/[^\d+\s]/g,'')}))}/>
         </div>
 
         {/* Email */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Email Address</label>
+        <div><label className="block text-xs text-gray-400 mb-1">Email Address</label>
           <div className="flex w-full items-center gap-2">
             <input type="text" className="min-w-0 flex-1 p-3 rounded text-right lowercase"
               placeholder="username" value={form.emailUser}
               onChange={e=>setForm(f=>({...f,emailUser:e.target.value.replace(/\s/g,'').toLowerCase()}))}/>
             <span className="gold-text font-bold text-xl shrink-0">@</span>
-            <input type="text" className={`min-w-0 flex-1 p-3 rounded lowercase${domErr?' field-err':''}`}
+            <input type="text" className={`min-w-0 flex-1 p-3 rounded lowercase${domErr?' err-field':''}`}
               placeholder="provider.com" value={form.emailDomain}
               onChange={e=>{setDomErr(false);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
-              onBlur={onDomBlur}/>
+              onBlur={e=>{const v=e.target.value.trim();setDomErr(v!==''&&!validDomain(v));}}/>
           </div>
           {domErr&&<p className="text-xs text-red-400 mt-1">⚠️ Use format: gmail.com or provider.it</p>}
         </div>
@@ -480,13 +377,12 @@ function FormStep({form,setForm,natTxt,setNatTxt,onNext}) {
 }
 
 /* ── SummaryStep ───────────────────────────────────────────── */
-function SummaryStep({form,onEdit,onConfirm}) {
+function SummaryStep({form,onEdit,onConfirm}){
   return(
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
       <h2 className="text-xl gold-text mb-5 border-b border-[#D4AF37] pb-2 text-center">Data Summary</h2>
       <div className="space-y-3 text-sm">
-        {[
-          ['Customer',`${form.name} ${form.surname}`],
+        {[['Customer',`${form.name} ${form.surname}`],
           ['Nationality',form.nationality],
           ['Email',`${form.emailUser}@${form.emailDomain}`],
           ['Phone',form.mobile],
@@ -495,8 +391,7 @@ function SummaryStep({form,onEdit,onConfirm}) {
           <div key={i} className="flex justify-between border-b border-gray-800 pb-2">
             <span className="text-gray-400">{l}:</span>
             <span className="font-bold text-right">{v}</span>
-          </div>
-        ))}
+          </div>))}
       </div>
       <div className="flex gap-4 mt-8">
         <button onClick={onEdit} className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">Edit</button>
@@ -507,103 +402,87 @@ function SummaryStep({form,onEdit,onConfirm}) {
 }
 
 /* ── ProductCard ───────────────────────────────────────────── */
-function ProductCard({p,onAdd}) {
-  const [err,setErr]=useState(false);
+function ProductCard({p,onAdd}){
+  const [imgErr,setImgErr]=useState(false);
   const src=p.img?window.CFG.imgBase+p.img:null;
   return(
-    <div className="bg-dark p-2 rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col items-center gap-1 transition-all">
-      {src&&!err
-        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setErr(true)}/>
+    <div className="bg-dark rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col gap-1 transition-all overflow-hidden" style={{padding:'6px'}}>
+      {src&&!imgErr
+        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setImgErr(true)}/>
         :<div className="prod-img-fallback">🍷</div>}
-      <h3 className="font-bold leading-tight text-xs">{p.name}</h3>
-      <p className="gold-text font-bold text-xs">€ {p.price.toFixed(2)}</p>
+      <p className="font-bold leading-tight text-gray-200" style={{fontSize:'10px',lineHeight:'1.2'}}>{p.name}</p>
+      <p className="gold-text font-bold" style={{fontSize:'11px'}}>€{p.price.toFixed(2)}</p>
       <button onClick={()=>onAdd(p)}
-        className="w-full py-1 border gold-border gold-text rounded text-xs uppercase hover:bg-[#D4AF37] hover:text-black transition">
+        className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
+        style={{fontSize:'10px',padding:'3px 0'}}>
         + Add
       </button>
     </div>
   );
 }
 
-/* ── CartPanel (shared desktop + mobile) ───────────────────── */
-function CartPanel({cart,totals,aRate,duty,dlab,addItem,removeItem,onSend,speed,setSpeed,spSel}) {
+/* ── CartPanel ─────────────────────────────────────────────── */
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel}){
   return(
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2" style={{height:'100%'}}>
 
-      {/* Speed selector inside cart */}
+      {/* Speed selector — tutto su un rigo compatto */}
       {spSel&&(
-        <div className="border border-gray-700 rounded p-3">
-          <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Shipping Speed</p>
-          <div className="flex gap-2">
-            {['STANDARD','EXPRESS'].map(opt=>(
-              <button key={opt} onClick={()=>setSpeed(opt)}
-                className={`flex-1 py-2 rounded border font-bold text-xs uppercase tracking-wider transition
-                  ${speed===opt?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
-                {opt}
-              </button>
-            ))}
+        <div className="border border-gray-700 rounded px-2 py-1 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-gray-500 uppercase shrink-0" style={{fontSize:'9px',letterSpacing:'0.05em'}}>Ship:</span>
+            {['STANDARD','EXPRESS'].map(o=>(
+              <button key={o} onClick={()=>setSpeed(o)}
+                className={`px-2 rounded border font-bold uppercase transition shrink-0
+                  ${speed===o?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}
+                style={{fontSize:'10px',padding:'2px 6px'}}>
+                {o}
+              </button>))}
+            {dl&&<span className="gold-text font-bold" style={{fontSize:'10px'}}>{dl}</span>}
           </div>
-          {aRate&&(
-            <div className="mt-2 text-center">
-              <p className="text-xs text-gray-500">{aRate.label}</p>
-              {dlab&&<p className="text-xs gold-text italic">{dlab}</p>}
-            </div>
-          )}
-        </div>
-      )}
+        </div>)}
 
-      {/* Delivery label no speed selector */}
-      {!spSel&&aRate&&dlab&&(
-        <div className="border border-gray-700 rounded p-2 text-center">
-          <p className="text-xs text-gray-500">{aRate.label}</p>
-          <p className="text-xs gold-text italic">{dlab}</p>
-        </div>
-      )}
+      {/* No speed — solo delivery label in oro */}
+      {!spSel&&dl&&(
+        <div className="shrink-0">
+          <span className="gold-text font-bold" style={{fontSize:'10px'}}>⏱ {dl}</span>
+        </div>)}
 
-      {/* Items */}
-      {cart.length===0
-        ?<p className="text-gray-500 text-sm italic py-3 text-center">Cart is empty</p>
-        :(
-          <div className="space-y-2 overflow-y-auto pr-1" style={{maxHeight:'260px'}}>
-            {cart.map(c=>(
-              <div key={c.id} className="flex justify-between items-center bg-black p-2 rounded">
-                <div className="flex-1 min-w-0 mr-2">
-                  <p className="font-bold text-xs leading-tight truncate">{c.name}</p>
-                  <p className="text-gray-400 text-xs">€{c.price.toFixed(2)} × {c.qty} = <span className="text-gray-300">€{(c.price*c.qty).toFixed(2)}</span></p>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={()=>removeItem(c.id)} className="w-7 h-7 bg-gray-800 rounded hover:bg-red-700 font-bold">−</button>
-                  <button onClick={()=>addItem(c)} className="w-7 h-7 gold-bg rounded font-bold">+</button>
-                </div>
+      {/* Items list — takes remaining height */}
+      <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+        {cart.length===0
+          ?<p className="text-gray-500 italic text-center py-4" style={{fontSize:'12px'}}>Cart is empty</p>
+          :cart.map(c=>(
+            <div key={c.id} className="flex items-center bg-black rounded px-2 py-1 gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-200 truncate" style={{fontSize:'10px'}}>{c.name}</p>
+                <p className="text-gray-400" style={{fontSize:'10px'}}>
+                  €{c.price.toFixed(2)} ×{c.qty} = <span className="text-gray-300">€{(c.price*c.qty).toFixed(2)}</span>
+                </p>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="flex gap-1 shrink-0">
+                <button onClick={()=>removeItem(c.id)} className="w-6 h-6 bg-gray-800 rounded hover:bg-red-700 font-bold text-sm">−</button>
+                <button onClick={()=>addItem(c)} className="w-6 h-6 gold-bg rounded font-bold text-sm">+</button>
+              </div>
+            </div>))}
+      </div>
 
       {/* Totals */}
-      <div className="border-t border-gray-800 pt-3 space-y-1 text-sm">
-        <div className="flex justify-between text-gray-400">
-          <span>Products ({totals.qty}):</span><span>€ {totals.prod.toFixed(2)}</span>
-        </div>
-        {duty&&(
-          <div className="flex justify-between text-gray-400">
-            <span>Duties (10%):</span><span>€ {totals.duty.toFixed(2)}</span>
-          </div>
-        )}
-        <div className="flex justify-between text-gray-400">
-          <span>Shipping:</span><span>€ {totals.ship.toFixed(2)}</span>
-        </div>
-        {totals.qty>0&&!aRate&&(
-          <p className="text-xs text-yellow-600 text-right">⚠️ No rate for this country</p>
-        )}
-        <div className="flex justify-between text-base font-bold gold-text border-t border-gray-800 pt-2">
-          <span>TOTAL:</span><span>€ {totals.final.toFixed(2)}</span>
+      <div className="border-t border-gray-800 pt-2 shrink-0" style={{fontSize:'11px'}}>
+        <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prod.toFixed(2)}</span></div>
+        {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
+        <div className="flex justify-between text-gray-400"><span>Shipping:</span><span>€{totals.ship.toFixed(2)}</span></div>
+        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No rate for this country</p>}
+        <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
+          <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
         </div>
       </div>
 
+      {/* Send */}
       <button onClick={onSend} disabled={cart.length===0}
-        className={`w-full p-3 rounded font-bold uppercase text-sm transition
-          ${cart.length>0?'bg-green-600 hover:bg-green-500 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+        className={`w-full rounded font-bold uppercase transition shrink-0
+          ${cart.length>0?'bg-green-600 hover:bg-green-500 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+        style={{fontSize:'12px',padding:'8px 0'}}>
         📲 Send Order via WhatsApp
       </button>
     </div>
@@ -612,33 +491,41 @@ function CartPanel({cart,totals,aRate,duty,dlab,addItem,removeItem,onSend,speed,
 
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
-  aRate,aKey,duty,dlab,totals,onSend,natCode,province}) {
+  aRate,aKey,hasDuty,dl,totals,onSend,natCode,province}){
 
-  const [tab,setTab]       = useState('ALL');
-  const [cartErr,setCartErr]= useState('');
+  const [tab,setTab]         = useState('ALL');
+  const [cartErr,setCartErr] = useState('');
 
   const isUSCA = ['US','CA'].includes(natCode);
   const isCA   = natCode==='CA';
   const caBlock = isCA&&province&&CA_NO_WINE.some(p=>province.toUpperCase().includes(p));
 
-  const avail = isUSCA
-    ? products.filter(p=>p.category!=='DISTILLATES'&&!US_CA_BLOCK.includes(p.id))
-    : products;
-
+  const avail   = isUSCA?products.filter(p=>p.category!=='DISTILLATES'&&!US_CA_BLOCK.includes(p.id)):products;
   const visCats = isUSCA?CATEGORIES.filter(c=>c!=='DISTILLATES'):CATEGORIES;
   const tabs    = ['ALL',...visCats];
   const filtered= tab==='ALL'?avail:avail.filter(p=>p.category===tab);
   const dCats   = tab==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tab];
 
-  const addItem = (prod) => {
+  const addItem=(prod)=>{
     setCartErr('');
     if(isCA){
-      const isW=prod.category==='WINE';
-      const hasW=cart.some(i=>i.category==='WINE');
-      const hasO=cart.some(i=>i.category!=='WINE');
-      if(isW&&hasO){setCartErr('🍷 In Canada wine cannot be shipped with other products.');return;}
-      if(!isW&&hasW){setCartErr('🍷 In Canada wine cannot be shipped with other products.');return;}
-      if(isW&&caBlock){setCartErr(`🚫 Wine cannot be shipped to ${province}.`);return;}
+      // WINE e SPARKLING sono "alcolici": possono stare assieme ma non con altre categorie
+      const isAlc  = c => c==='WINE'||c==='SPARKLING';
+      const iA     = isAlc(prod.category);
+      const hasAlc = cart.some(i=>isAlc(i.category));
+      const hasOth = cart.some(i=>!isAlc(i.category));
+      if(iA&&hasOth){
+        setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.');
+        return;
+      }
+      if(!iA&&hasAlc){
+        setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.');
+        return;
+      }
+      if(iA&&caBlock){
+        setCartErr(`🚫 Wine/Sparkling cannot be shipped to ${province}.`);
+        return;
+      }
     }
     setCart(prev=>{
       const ex=prev.find(p=>p.id===prod.id);
@@ -646,60 +533,49 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
       return [...prev,{...prod,qty:1}];
     });
   };
+  const removeItem=(id)=>{setCartErr('');setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));};
 
-  const removeItem = (id) => {
-    setCartErr('');
-    setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));
-  };
-
-  const panelProps = {cart,totals,aRate,duty,dlab,addItem,removeItem,onSend,speed,setSpeed,spSel};
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel};
 
   return(
-    <div className="flex flex-col gap-3">
-      {cartErr&&(
-        <div className="bg-red-950 border border-red-700 rounded p-3 text-xs text-red-300">{cartErr}</div>
-      )}
+    <div className="catalog-page">
+      {cartErr&&<div className="bg-red-950 border border-red-700 rounded p-2 text-xs text-red-300 shrink-0 mb-1">{cartErr}</div>}
 
-      {/* On mobile: stacked. On desktop: side by side */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="catalog-layout">
 
-        {/* ── Catalog ── */}
-        <div className="flex-1 min-w-0">
+        {/* ── Catalog column ── */}
+        <div className="catalog-col">
           {/* Category tabs */}
-          <div className="flex gap-1 flex-wrap mb-3">
+          <div className="flex gap-1 flex-wrap mb-2">
             {tabs.map(t=>(
               <button key={t} onClick={()=>setTab(t)}
-                className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border transition
-                  ${tab===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
+                className={`px-2 py-1 rounded font-bold uppercase border transition
+                  ${tab===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}
+                style={{fontSize:'10px'}}>
                 {t}
-              </button>
-            ))}
+              </button>))}
           </div>
 
           {dCats.map(cat=>{
-            const prods=filtered.filter(p=>p.category===cat);
-            if(!prods.length) return null;
+            const ps=filtered.filter(p=>p.category===cat);
+            if(!ps.length) return null;
             return(
-              <div key={cat} className="mb-6">
-                <h2 className="text-base font-bold gold-text mb-2 border-b border-gray-800 pb-1">{cat}</h2>
-                {isUSCA&&cat==='EVO OIL'&&(
-                  <p className="text-xs text-yellow-600 mb-2">⚠️ Large formats (3L / 5L) not available for US/Canada.</p>
-                )}
-                {/* 3 cols on all screens — compact cards */}
-                <div className="grid grid-cols-3 gap-2">
-                  {prods.map(p=><ProductCard key={p.id} p={p} onAdd={addItem}/>)}
+              <div key={cat} className="mb-4">
+                <h2 className="font-bold gold-text border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>{cat}</h2>
+                {isUSCA&&cat==='EVO OIL'&&<p className="text-yellow-600 mb-1" style={{fontSize:'10px'}}>⚠️ Large formats (3L/5L) not available for US/Canada.</p>}
+                {/* auto-fill: ~4 cols on mobile (80px min), ~3-4 cols on desktop (120px min) */}
+                <div className="grid gap-2 prod-grid">
+                  {ps.map(p=><ProductCard key={p.id} p={p} onAdd={addItem}/>)}
                 </div>
-              </div>
-            );
+              </div>);
           })}
         </div>
 
-        {/* ── Cart ── always visible, below catalog on mobile, sidebar on desktop ── */}
-        <div className="w-full md:w-72 bg-[#111] p-3 rounded border gold-border cart-sticky self-start">
-          <h2 className="text-base gold-text font-bold mb-3 border-b border-gray-800 pb-2">🛒 Your Cart</h2>
+        {/* ── Cart column ── */}
+        <div className="cart-col bg-[#111] rounded border gold-border" style={{padding:'8px'}}>
+          <h2 className="gold-text font-bold border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>🛒 Cart</h2>
           <CartPanel {...panelProps}/>
         </div>
-
       </div>
     </div>
   );
