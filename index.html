@@ -32,6 +32,13 @@
     .prod-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 4px; background: #1a1a1a; }
     .prod-img-fallback { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; background: #1a1a1a; border-radius: 4px; }
     .shipping-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 9999px; border: 1px solid #D4AF37; color: #D4AF37; display: inline-block; margin-top: 4px; }
+    /* Barra carrello fissa mobile */
+    .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #111; border-top: 1px solid #D4AF37; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .cart-drawer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 49; background: #111; border-top: 2px solid #D4AF37; padding: 16px; max-height: 75vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s ease; }
+    .cart-drawer.open { transform: translateY(0); }
+    .cart-drawer-backdrop { position: fixed; inset: 0; z-index: 48; background: rgba(0,0,0,0.6); display: none; }
+    .cart-drawer-backdrop.open { display: block; }
+    @media (min-width: 768px) { .cart-bar, .cart-drawer, .cart-drawer-backdrop { display: none !important; } }
   </style>
 </head>
 <body>
@@ -167,7 +174,9 @@
     const activeRateKey = getActiveRateKey();
     const activeRate = shippingData && activeRateKey ? shippingData[activeRateKey] : null;
     const shippingCost = cartQuantity > 0 && activeRate ? getShippingRate(activeRate, cartQuantity) : 0;
-    const taxes = productsTotal * 0.10;
+    // Dazi 10% solo per USA con vino (listini USA_WINE_*). Per USA_EXTRA e tutti gli altri: 0
+    const applyDuties = activeRateKey && activeRateKey.startsWith('USA_WINE');
+    const taxes = applyDuties ? productsTotal * 0.10 : 0;
     const finalTotal = productsTotal + shippingCost + taxes;
 
     // ── Mostra selettore Standard/Express ────────────────────
@@ -188,7 +197,7 @@
       msg += `%0A*PRODUCTS:*%0A`;
       cart.forEach(c => { msg += `- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`; });
       msg += `%0AProducts Total: €${productsTotal.toFixed(2)}`;
-      msg += `%0AImport Duties (10%): €${taxes.toFixed(2)}`;
+      if(applyDuties) msg += `%0AImport Duties (10%): €${taxes.toFixed(2)}`;
       msg += `%0AShipping (${rateName}): €${shippingCost.toFixed(2)}`;
       msg += `%0A*FINAL TOTAL: €${finalTotal.toFixed(2)}*`;
       window.open(`https://wa.me/${window.WHATSAPP_NUMBER}?text=${msg}`, '_blank');
@@ -229,16 +238,16 @@
       <div className="min-h-screen bg-black text-white p-4 md:p-8 flex justify-center pb-24">
         <div className="w-full max-w-3xl">
           <div className="relative text-center mb-8 flex flex-col items-center">
-            {step > 1 && (
-              <button onClick={resetAll}
-                className="absolute left-0 top-0 flex items-center gap-2 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
-                ⌂ Home
-              </button>
-            )}
+            <button onClick={resetAll}
+              className="absolute left-0 top-0 flex items-center gap-2 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
+              ⌂ Home
+            </button>
             <img src="ciliegio_trasparente.png" alt="Company Logo"
               className="h-24 object-contain mb-2"
-              onError={(e) => { e.target.style.display='none'; document.getElementById('alt-logo').style.display='block'; }} />
-            <h1 id="alt-logo" className="text-3xl font-bold gold-text hidden tracking-widest">COMPANY LOGO</h1>
+              loading="eager"
+              onError={(e) => { e.target.style.display='none'; const alt = document.getElementById('alt-logo'); if(alt) alt.style.display='block'; }}
+              onLoad={(e) => { const alt = document.getElementById('alt-logo'); if(alt) alt.style.display='none'; }} />
+            <h1 id="alt-logo" className="text-3xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
           </div>
 
           {step === 1 && <FormStep formData={formData} setFormData={setFormData} onNext={() => setStep(2)} />}
@@ -255,6 +264,7 @@
               onSend={sendWhatsApp}
               natCode={formData.natCode}
               province={formData.province}
+              applyDuties={applyDuties}
             />
           )}
         </div>
@@ -324,7 +334,7 @@
               value={searchNat || formData.nationality}
               onChange={(e) => {
                 setSearchNat(e.target.value.toUpperCase());
-                if(formData.nationality) setFormData(prev => ({...prev, nationality:'', natCode:'', usState:'', zip:'', city:'', province:'', state:''}));
+                if(formData.nationality) setFormData(prev => ({...prev, nationality:'', natCode:'', usState:'', zip:'', city:'', province:'', state:'', mobile:'', emailUser:'', emailDomain:''}));
               }}
               onFocus={() => setShowNatList(true)} />
             {showNatList && searchNat && !formData.nationality && (
@@ -501,13 +511,68 @@
     return 'Delivery within 20 working days';
   }
 
+  // ── CartContents (riusabile desktop + drawer mobile) ─────────
+  function CartContents({ cart, totals, activeRate, applyDuties, addToCart, removeFromCart, onSend }) {
+    return (
+      <>
+        {cart.length === 0
+          ? <p className="text-gray-500 text-sm italic mb-4">Cart is empty</p>
+          : (
+            <div className="space-y-3 mb-6 max-h-56 overflow-y-auto pr-1">
+              {cart.map(c => (
+                <div key={c.id} className="flex justify-between items-center bg-black p-2 rounded text-sm">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-xs leading-tight truncate">{c.name}</p>
+                    <p className="text-gray-400 text-xs">€{c.price.toFixed(2)} × {c.qty}</p>
+                  </div>
+                  <div className="flex gap-2 ml-2 shrink-0">
+                    <button onClick={() => removeFromCart(c.id)} className="w-7 h-7 bg-gray-800 rounded hover:bg-red-600 text-sm">−</button>
+                    <button onClick={() => addToCart(c)} className="w-7 h-7 gold-bg rounded font-bold text-sm">+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        }
+        <div className="border-t border-gray-800 pt-4 space-y-2 text-sm">
+          <div className="flex justify-between text-gray-400">
+            <span>Products ({totals.qty}):</span><span>€ {totals.prod.toFixed(2)}</span>
+          </div>
+          {applyDuties && (
+            <div className="flex justify-between text-gray-400">
+              <span>Duties (10%):</span><span>€ {totals.tax.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-gray-400">
+            <span>Shipping:</span><span>€ {totals.ship.toFixed(2)}</span>
+          </div>
+          {activeRate && totals.qty > 0 && (
+            <p className="text-xs text-gray-600 text-right">{activeRate.label}</p>
+          )}
+          {totals.qty > 0 && !activeRate && (
+            <p className="text-xs text-yellow-600 text-right">⚠️ No rate for this country</p>
+          )}
+          <div className="flex justify-between text-lg font-bold gold-text mt-2 border-t border-gray-800 pt-2">
+            <span>Total Order:</span><span>€ {totals.final.toFixed(2)}</span>
+          </div>
+        </div>
+        <button onClick={onSend} disabled={cart.length === 0}
+          className={`w-full mt-6 p-3 rounded font-bold uppercase text-sm transition
+            ${cart.length > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+          📲 Send Order via WhatsApp
+        </button>
+      </>
+    );
+  }
+
   // ── CatalogStep ──────────────────────────────────────────────
   const CATEGORIES = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
   const US_CA_BLOCKED_IDS = [24, 25];
 
-  function CatalogStep({ products, cart, setCart, shippingType, setShippingType, showSpeedSelector, activeRate, activeRateKey, totals, onSend, natCode, province }) {
+  function CatalogStep({ products, cart, setCart, shippingType, setShippingType, showSpeedSelector, activeRate, activeRateKey, totals, onSend, natCode, province, applyDuties }) {
     const [activeTab, setActiveTab] = useState('ALL');
     const [cartError, setCartError] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     const isUsOrCa = ['US','CA'].includes(natCode);
     const isCa = natCode === 'CA';
@@ -609,7 +674,7 @@
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex flex-col md:flex-row gap-6 pb-24 md:pb-0">
           {/* Catalog */}
           <div className="flex-1">
             {/* Tab bar */}
@@ -641,61 +706,50 @@
             })}
           </div>
 
-          {/* Cart */}
-          <div className="w-full md:w-80 bg-[#111] p-4 rounded border gold-border h-fit sticky top-4">
-            <h2 className="text-lg gold-text mb-4 border-b border-gray-800 pb-2">Your Cart</h2>
-            {cart.length === 0
-              ? <p className="text-gray-500 text-sm italic mb-4">Cart is empty</p>
-              : (
-                <div className="space-y-3 mb-6 max-h-48 overflow-y-auto pr-2">
-                  {cart.map(c => (
-                    <div key={c.id} className="flex justify-between items-center bg-black p-2 rounded text-sm">
-                      <div className="flex-1">
-                        <p className="font-bold text-xs leading-tight">{c.name}</p>
-                        <p className="text-gray-400 text-xs">€{c.price.toFixed(2)} × {c.qty}</p>
-                      </div>
-                      <div className="flex gap-2 ml-2 shrink-0">
-                        <button onClick={() => removeFromCart(c.id)} className="w-6 h-6 bg-gray-800 rounded hover:bg-red-600 text-xs">−</button>
-                        <button onClick={() => addToCart(c)} className="w-6 h-6 gold-bg rounded font-bold text-xs">+</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            }
-
-            <div className="border-t border-gray-800 pt-4 space-y-2 text-sm">
-              <div className="flex justify-between text-gray-400">
-                <span>Products ({totals.qty}):</span><span>€ {totals.prod.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-400">
-                <span>Duties (10%):</span><span>€ {totals.tax.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-400">
-                <span>Shipping:</span>
-                <span>€ {totals.ship.toFixed(2)}</span>
-              </div>
-              {activeRate && totals.qty > 0 && (
-                <p className="text-xs text-gray-600 text-right">{activeRate.label}</p>
-              )}
-              {totals.qty > 0 && !activeRate && (
-                <p className="text-xs text-yellow-600 text-right">⚠️ No rate for this country</p>
-              )}
-              <div className="flex justify-between text-lg font-bold gold-text mt-2 border-t border-gray-800 pt-2">
-                <span>Total Order:</span><span>€ {totals.final.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <button onClick={onSend} disabled={cart.length === 0}
-              className={`w-full mt-6 p-3 rounded font-bold uppercase text-sm transition
-                ${cart.length > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-              📲 Send Order via WhatsApp
-            </button>
+          {/* ── Cart DESKTOP (md+) ── */}
+          <div className="hidden md:block w-80 bg-[#111] p-4 rounded border gold-border h-fit sticky top-4">
+            <CartContents
+              cart={cart} totals={totals} activeRate={activeRate}
+              applyDuties={applyDuties}
+              addToCart={addToCart} removeFromCart={removeFromCart}
+              onSend={onSend} />
           </div>
         </div>
-      </div>
-    );
-  }
+
+        {/* ── Cart MOBILE: backdrop ── */}
+        <div className={`cart-drawer-backdrop ${drawerOpen ? 'open' : ''}`} onClick={() => setDrawerOpen(false)} />
+
+        {/* ── Cart MOBILE: slide-up drawer ── */}
+        <div className={`cart-drawer ${drawerOpen ? 'open' : ''}`} style={{paddingBottom: '80px'}}>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg gold-text font-bold">Your Cart</h2>
+            <button onClick={() => setDrawerOpen(false)} className="text-gray-400 text-xl leading-none">✕</button>
+          </div>
+          <CartContents
+            cart={cart} totals={totals} activeRate={activeRate}
+            applyDuties={applyDuties}
+            addToCart={addToCart} removeFromCart={removeFromCart}
+            onSend={onSend} />
+        </div>
+
+        {/* ── Cart MOBILE: barra fissa in basso ── */}
+        <div className="cart-bar">
+          <div className="flex-1 min-w-0">
+            {totals.qty > 0 ? (
+              <p className="text-xs text-gray-400 truncate">
+                {totals.qty} item{totals.qty !== 1 ? 's' : ''} &nbsp;·&nbsp;
+                <span className="gold-text font-bold">€ {totals.final.toFixed(2)}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-gray-500 italic">Cart is empty</p>
+            )}
+            {activeRate && <p className="text-xs text-gray-600 truncate">{activeRate.label}{deliveryLabel ? ` · ${deliveryLabel}` : ''}</p>}
+          </div>
+          <button onClick={() => setDrawerOpen(d => !d)}
+            className="shrink-0 px-4 py-2 rounded border gold-border gold-text text-xs font-bold uppercase tracking-wider hover:bg-[#D4AF37] hover:text-black transition">
+            🛒 {drawerOpen ? 'Close' : `Cart${totals.qty > 0 ? ` (${totals.qty})` : ''}`}
+          </button>
+        </div>
 
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(<App />);
