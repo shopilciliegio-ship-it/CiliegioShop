@@ -233,9 +233,11 @@
               shippingType={shippingType} setShippingType={setShippingType}
               showSpeedSelector={showSpeedSelector}
               activeRate={activeRate}
+              activeRateKey={activeRateKey}
               totals={{ qty: cartQuantity, prod: productsTotal, tax: taxes, ship: shippingCost, final: finalTotal }}
               onSend={sendWhatsApp}
               natCode={formData.natCode}
+              province={formData.province}
             />
           )}
         </div>
@@ -289,7 +291,10 @@
 
     return (
       <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
-        <h2 className="text-xl gold-text mb-6 border-b border-[#D4AF37] pb-2">Customer Registration</h2>
+        <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between border-b border-[#D4AF37] pb-2 mb-6 gap-1">
+          <h2 className="text-xl gold-text">Customer Registration</h2>
+          <span className="text-xs gold-text opacity-70 italic">all fields are required for correct shipping and delivery</span>
+        </div>
 
         <div className="space-y-4">
           {/* Nationality */}
@@ -342,30 +347,6 @@
           </div>
 
           {/* Address */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Full Address</label>
-            <input type="text" value={formData.address}
-              onChange={(e) => setFormData({...formData, address: e.target.value.toUpperCase()})}
-              className="w-full p-3 rounded uppercase" />
-          </div>
-
-          {/* US State — visibile solo per USA, dopo l'indirizzo */}
-          {formData.natCode === 'US' && (
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">
-                US State / Territory <span className="text-yellow-600">(required for correct shipping)</span>
-              </label>
-              <input type="text" className="w-full p-3 rounded uppercase"
-                placeholder="e.g. CA, NY, HI, AK, PR …"
-                value={formData.usState}
-                onChange={(e) => setFormData({...formData, usState: e.target.value.toUpperCase().trim()})} />
-              {USA_SPECIAL_STATES.includes(formData.usState.toUpperCase()) && (
-                <p className="text-xs text-yellow-500 mt-1">
-                  ⚠️ This destination uses the <strong>USA Special Standard</strong> rate.
-                </p>
-              )}
-            </div>
-          )}
 
           {/* City / Province / State */}
           <div className="grid grid-cols-3 gap-4">
@@ -476,21 +457,66 @@
     );
   }
 
+  // ── Costanti Canada ──────────────────────────────────────────
+  const CA_NO_WINE_PROVINCES = [
+    'NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
+    'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'
+  ];
+
+  // Delivery time label per listino
+  function getDeliveryLabel(rateKey, shippingType) {
+    if(!rateKey) return '';
+    if(rateKey.startsWith('EU_') || rateKey === 'UK' || rateKey === 'SWITZERLAND' || rateKey === 'NORWAY') {
+      return 'Delivery within 7 working days';
+    }
+    if(shippingType === 'EXPRESS' || rateKey.includes('EXPRESS')) {
+      return 'Delivery within 9 working days';
+    }
+    return 'Delivery within 20 working days';
+  }
+
   // ── CatalogStep ──────────────────────────────────────────────
   const CATEGORIES = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
-  // ID prodotti non spedibili in USA/Canada
   const US_CA_BLOCKED_IDS = [24, 25];
 
-  function CatalogStep({ products, cart, setCart, shippingType, setShippingType, showSpeedSelector, activeRate, totals, onSend, natCode }) {
+  function CatalogStep({ products, cart, setCart, shippingType, setShippingType, showSpeedSelector, activeRate, activeRateKey, totals, onSend, natCode, province }) {
     const [activeTab, setActiveTab] = useState('ALL');
+    const [cartError, setCartError] = useState('');
 
-    // Filtra prodotti non disponibili per US/CA
     const isUsOrCa = ['US','CA'].includes(natCode);
+    const isCa = natCode === 'CA';
+
+    // Provincia canadese vietata al vino?
+    const caProvinceBlocksWine = isCa && province &&
+      CA_NO_WINE_PROVINCES.some(p => province.toUpperCase().includes(p));
+
+    // Prodotti disponibili per questo paese
     const availableProducts = isUsOrCa
       ? products.filter(p => p.category !== 'DISTILLATES' && !US_CA_BLOCKED_IDS.includes(p.id))
       : products;
 
+    const hasWineInCart = cart.some(i => i.category === 'WINE');
+    const hasNonWineInCart = cart.some(i => i.category !== 'WINE');
+
     const addToCart = (prod) => {
+      setCartError('');
+      // Regola Canada: vino e non-vino non si possono mescolare
+      if(isCa) {
+        const isWine = prod.category === 'WINE';
+        if(isWine && hasNonWineInCart) {
+          setCartError('🍷 In Canada, wine cannot be shipped together with other products. Please place a separate order.');
+          return;
+        }
+        if(!isWine && hasWineInCart) {
+          setCartError('🍷 In Canada, wine cannot be shipped together with other products. Please place a separate order.');
+          return;
+        }
+        // Regola Canada: province che non possono ricevere vino
+        if(isWine && caProvinceBlocksWine) {
+          setCartError('🚫 Wine cannot be shipped to ' + province + '. Please remove wine from your order.');
+          return;
+        }
+      }
       setCart(prev => {
         const exists = prev.find(p => p.id === prod.id);
         if(exists) return prev.map(p => p.id === prod.id ? {...p, qty: p.qty+1} : p);
@@ -499,10 +525,10 @@
     };
 
     const removeFromCart = (id) => {
+      setCartError('');
       setCart(prev => prev.map(p => p.id === id ? {...p, qty: p.qty-1} : p).filter(p => p.qty > 0));
     };
 
-    // Categorie visibili in base al paese
     const visibleCategories = isUsOrCa
       ? CATEGORIES.filter(c => c !== 'DISTILLATES')
       : CATEGORIES;
@@ -513,6 +539,8 @@
     const displayCategories = activeTab === 'ALL'
       ? visibleCategories.filter(c => availableProducts.some(p => p.category === c))
       : [activeTab];
+
+    const deliveryLabel = getDeliveryLabel(activeRateKey, shippingType);
 
     return (
       <div className="flex flex-col gap-6 mb-10">
@@ -532,10 +560,26 @@
               ))}
             </div>
             {activeRate && (
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Active rate: <span className="gold-text">{activeRate.label}</span>
-              </p>
+              <div className="mt-2 text-center">
+                <p className="text-xs text-gray-500">{activeRate.label}</p>
+                {deliveryLabel && <p className="text-xs gold-text mt-1 italic">{deliveryLabel}</p>}
+              </div>
             )}
+          </div>
+        )}
+
+        {/* Delivery label per paesi senza selettore Standard/Express */}
+        {!showSpeedSelector && activeRate && deliveryLabel && (
+          <div className="bg-[#111] border gold-border rounded p-3 text-center">
+            <p className="text-xs text-gray-500">{activeRate.label}</p>
+            <p className="text-xs gold-text mt-1 italic">{deliveryLabel}</p>
+          </div>
+        )}
+
+        {/* Avviso errore carrello Canada */}
+        {cartError && (
+          <div className="bg-red-950 border border-red-700 rounded p-3 text-xs text-red-300">
+            {cartError}
           </div>
         )}
 
