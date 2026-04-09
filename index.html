@@ -151,6 +151,16 @@ function rateKey(code,speed,wine){
 }
 function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 
+// Restituisce la label dello scaglione applicato — es. "(4–6 pieces)"
+function tierLabel(qty){
+  if(qty<=0) return '';
+  const steps = [[1,3],[4,6],[7,12],[13,18],[19,24],[25,30],[31,36]];
+  for(const [lo,hi] of steps){
+    if(qty>=lo&&qty<=hi) return `(${lo}–${hi} pieces)`;
+  }
+  return '(31–36 pieces)'; // oltre 36 usa lo stesso scaglione massimo
+}
+
 /* ── App ───────────────────────────────────────────────────── */
 function App(){
   const [step,setStep]    = useState(1);
@@ -221,7 +231,7 @@ function App(){
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
           </button>
-          <img id="logo-img" src="ciliegio_trasparente.png" alt="Il Ciliegio" className="h-16 object-contain"
+          <img id="logo-img" src="https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/ciliegio_trasparente.png" alt="Il Ciliegio" className="h-16 object-contain"
             onLoad={()=>{const t=document.getElementById('logo-txt');if(t)t.style.display='none';}}
             onError={()=>{const i=document.getElementById('logo-img');if(i)i.style.display='none';const t=document.getElementById('logo-txt');if(t)t.style.display='block';}}/>
           <h1 id="logo-txt" className="text-2xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
@@ -422,9 +432,16 @@ function ProductCard({p,onAdd}){
 }
 
 /* ── CartPanel ─────────────────────────────────────────────── */
-function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel}){
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate}){
   return(
     <div className="flex flex-col gap-2" style={{height:'100%'}}>
+
+      {/* Avviso paese non coperto */}
+      {noRate&&(
+        <div className="bg-yellow-950 border border-yellow-700 rounded p-2 shrink-0">
+          <p className="text-yellow-300 font-bold" style={{fontSize:'10px'}}>⚠️ We are not sure we can ship to your country.</p>
+          <p className="text-yellow-500 mt-1" style={{fontSize:'9px'}}>Please complete your order anyway. We will contact you via email as soon as possible with a shipping quote.</p>
+        </div>)}
 
       {/* Speed selector — tutto su un rigo compatto */}
       {spSel&&(
@@ -471,8 +488,8 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
       <div className="border-t border-gray-800 pt-2 shrink-0" style={{fontSize:'11px'}}>
         <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prod.toFixed(2)}</span></div>
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
-        <div className="flex justify-between text-gray-400"><span>Shipping:</span><span>€{totals.ship.toFixed(2)}</span></div>
-        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No rate for this country</p>}
+        <div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span></div>
+        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate for this country — you will be contacted via email.</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
         </div>
@@ -508,6 +525,12 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
 
   const addItem=(prod)=>{
     setCartErr('');
+    // Max 36 articoli totali
+    const currentQty=cart.reduce((s,i)=>s+i.qty,0);
+    if(currentQty>=36){
+      setCartErr('⚠️ Maximum 36 items per order. Cannot add more.');
+      return;
+    }
     if(isCA){
       // WINE e SPARKLING sono "alcolici": possono stare assieme ma non con altre categorie
       const isAlc  = c => c==='WINE'||c==='SPARKLING';
@@ -535,7 +558,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   };
   const removeItem=(id)=>{setCartErr('');setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));};
 
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel};
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate};
 
   return(
     <div className="catalog-page">
