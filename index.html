@@ -3,756 +3,709 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Store App</title>
+  <title>Il Ciliegio — Shop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          colors: { gold: '#D4AF37', dark: '#121212' }
-        }
-      }
+      theme: { extend: { colors: { gold: '#D4AF37', dark: '#121212' } } }
     }
   </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
   <style>
-    body { background-color: #000; color: #fff; font-family: sans-serif; }
-    .gold-border { border-color: #D4AF37; }
-    .gold-text { color: #D4AF37; }
-    .gold-bg { background-color: #D4AF37; color: #000; }
-    input, select { background-color: #1a1a1a; color: #fff; border: 1px solid #333; outline: none; }
-    input:focus, select:focus { border-color: #D4AF37; }
-    select option { background-color: #1a1a1a; }
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #000; }
-    ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
-    .prod-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 4px; background: #1a1a1a; }
-    .prod-img-fallback { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; background: #1a1a1a; border-radius: 4px; }
-    .shipping-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 9999px; border: 1px solid #D4AF37; color: #D4AF37; display: inline-block; margin-top: 4px; }
-    /* Barra carrello fissa mobile */
-    .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #111; border-top: 1px solid #D4AF37; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .cart-drawer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 49; background: #111; border-top: 2px solid #D4AF37; padding: 16px; max-height: 75vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s ease; }
-    .cart-drawer.open { transform: translateY(0); }
-    .cart-drawer-backdrop { position: fixed; inset: 0; z-index: 48; background: rgba(0,0,0,0.6); display: none; }
-    .cart-drawer-backdrop.open { display: block; }
-    @media (min-width: 768px) { .cart-bar, .cart-drawer, .cart-drawer-backdrop { display: none !important; } }
+    body { background:#000; color:#fff; font-family:sans-serif; }
+    .gold-border { border-color:#D4AF37; }
+    .gold-text   { color:#D4AF37; }
+    .gold-bg     { background-color:#D4AF37; color:#000; }
+    input, select { background:#1a1a1a; color:#fff; border:1px solid #333; outline:none; }
+    input:focus, select:focus { border-color:#D4AF37; }
+    input.field-err { border-color:#ef4444 !important; }
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:#000; }
+    ::-webkit-scrollbar-thumb { background:#D4AF37; border-radius:4px; }
+    /* product card compact on mobile */
+    .prod-img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:4px; background:#1a1a1a; }
+    .prod-img-fallback { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background:#1a1a1a; border-radius:4px; }
+    /* sticky cart panel on desktop */
+    @media(min-width:768px) { .cart-sticky { position:sticky; top:16px; } }
   </style>
 </head>
 <body>
 <div id="root"></div>
 
-<!-- ============================================================
-     CONFIGURAZIONE — modifica solo questi due URL
-     Punta ai file RAW del tuo repository GitHub
-     ============================================================ -->
 <script>
-  window.GITHUB_PRODUCTS_URL = "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/products.json";
-  window.GITHUB_SHIPPING_URL = "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json";
-  window.GITHUB_RAW_BASE    = "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/";
-  window.WHATSAPP_NUMBER    = "393357655171";
+  window.CFG = {
+    products : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/products.json",
+    shipping : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
+    imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
+    whatsapp : "393357655171"
+  };
 </script>
 
 <script type="text/babel">
-  const { useState, useEffect, useCallback } = React;
+const { useState, useEffect, useRef } = React;
 
-  // ── Paesi ────────────────────────────────────────────────────
-  const COUNTRIES = [
-    { name:'AUSTRALIA',      code:'AU', prefix:'+61',  flag:'🇦🇺' },
-    { name:'AUSTRIA',        code:'AT', prefix:'+43',  flag:'🇦🇹' },
-    { name:'BELGIUM',        code:'BE', prefix:'+32',  flag:'🇧🇪' },
-    { name:'BULGARIA',       code:'BG', prefix:'+359', flag:'🇧🇬' },
-    { name:'CANADA',         code:'CA', prefix:'+1',   flag:'🇨🇦' },
-    { name:'CROATIA',        code:'HR', prefix:'+385', flag:'🇭🇷' },
-    { name:'CYPRUS',         code:'CY', prefix:'+357', flag:'🇨🇾' },
-    { name:'CZECH REPUBLIC', code:'CZ', prefix:'+420', flag:'🇨🇿' },
-    { name:'DENMARK',        code:'DK', prefix:'+45',  flag:'🇩🇰' },
-    { name:'ESTONIA',        code:'EE', prefix:'+372', flag:'🇪🇪' },
-    { name:'FINLAND',        code:'FI', prefix:'+358', flag:'🇫🇮' },
-    { name:'FRANCE',         code:'FR', prefix:'+33',  flag:'🇫🇷' },
-    { name:'GERMANY',        code:'DE', prefix:'+49',  flag:'🇩🇪' },
-    { name:'GREECE',         code:'GR', prefix:'+30',  flag:'🇬🇷' },
-    { name:'HUNGARY',        code:'HU', prefix:'+36',  flag:'🇭🇺' },
-    { name:'IRELAND',        code:'IE', prefix:'+353', flag:'🇮🇪' },
-    { name:'ITALY',          code:'IT', prefix:'+39',  flag:'🇮🇹' },
-    { name:'LATVIA',         code:'LV', prefix:'+371', flag:'🇱🇻' },
-    { name:'LITHUANIA',      code:'LT', prefix:'+370', flag:'🇱🇹' },
-    { name:'LUXEMBOURG',     code:'LU', prefix:'+352', flag:'🇱🇺' },
-    { name:'MALTA',          code:'MT', prefix:'+356', flag:'🇲🇹' },
-    { name:'NETHERLANDS',    code:'NL', prefix:'+31',  flag:'🇳🇱' },
-    { name:'NORWAY',         code:'NO', prefix:'+47',  flag:'🇳🇴' },
-    { name:'POLAND',         code:'PL', prefix:'+48',  flag:'🇵🇱' },
-    { name:'PORTUGAL',       code:'PT', prefix:'+351', flag:'🇵🇹' },
-    { name:'ROMANIA',        code:'RO', prefix:'+40',  flag:'🇷🇴' },
-    { name:'SLOVAKIA',       code:'SK', prefix:'+421', flag:'🇸🇰' },
-    { name:'SLOVENIA',       code:'SI', prefix:'+386', flag:'🇸🇮' },
-    { name:'SPAIN',          code:'ES', prefix:'+34',  flag:'🇪🇸' },
-    { name:'SWEDEN',         code:'SE', prefix:'+46',  flag:'🇸🇪' },
-    { name:'SWITZERLAND',    code:'CH', prefix:'+41',  flag:'🇨🇭' },
-    { name:'UNITED KINGDOM', code:'GB', prefix:'+44',  flag:'🇬🇧' },
-    { name:'UNITED STATES',  code:'US', prefix:'+1',   flag:'🇺🇸' },
-  ];
+/* ── Constants ─────────────────────────────────────────────── */
+const COUNTRIES = [
+  {name:'AUSTRALIA',      code:'AU', prefix:'+61',  flag:'🇦🇺'},
+  {name:'AUSTRIA',        code:'AT', prefix:'+43',  flag:'🇦🇹'},
+  {name:'BELGIUM',        code:'BE', prefix:'+32',  flag:'🇧🇪'},
+  {name:'BULGARIA',       code:'BG', prefix:'+359', flag:'🇧🇬'},
+  {name:'CANADA',         code:'CA', prefix:'+1',   flag:'🇨🇦'},
+  {name:'CROATIA',        code:'HR', prefix:'+385', flag:'🇭🇷'},
+  {name:'CYPRUS',         code:'CY', prefix:'+357', flag:'🇨🇾'},
+  {name:'CZECH REPUBLIC', code:'CZ', prefix:'+420', flag:'🇨🇿'},
+  {name:'DENMARK',        code:'DK', prefix:'+45',  flag:'🇩🇰'},
+  {name:'ESTONIA',        code:'EE', prefix:'+372', flag:'🇪🇪'},
+  {name:'FINLAND',        code:'FI', prefix:'+358', flag:'🇫🇮'},
+  {name:'FRANCE',         code:'FR', prefix:'+33',  flag:'🇫🇷'},
+  {name:'GERMANY',        code:'DE', prefix:'+49',  flag:'🇩🇪'},
+  {name:'GREECE',         code:'GR', prefix:'+30',  flag:'🇬🇷'},
+  {name:'HUNGARY',        code:'HU', prefix:'+36',  flag:'🇭🇺'},
+  {name:'IRELAND',        code:'IE', prefix:'+353', flag:'🇮🇪'},
+  {name:'ITALY',          code:'IT', prefix:'+39',  flag:'🇮🇹'},
+  {name:'LATVIA',         code:'LV', prefix:'+371', flag:'🇱🇻'},
+  {name:'LITHUANIA',      code:'LT', prefix:'+370', flag:'🇱🇹'},
+  {name:'LUXEMBOURG',     code:'LU', prefix:'+352', flag:'🇱🇺'},
+  {name:'MALTA',          code:'MT', prefix:'+356', flag:'🇲🇹'},
+  {name:'NETHERLANDS',    code:'NL', prefix:'+31',  flag:'🇳🇱'},
+  {name:'NORWAY',         code:'NO', prefix:'+47',  flag:'🇳🇴'},
+  {name:'POLAND',         code:'PL', prefix:'+48',  flag:'🇵🇱'},
+  {name:'PORTUGAL',       code:'PT', prefix:'+351', flag:'🇵🇹'},
+  {name:'ROMANIA',        code:'RO', prefix:'+40',  flag:'🇷🇴'},
+  {name:'SLOVAKIA',       code:'SK', prefix:'+421', flag:'🇸🇰'},
+  {name:'SLOVENIA',       code:'SI', prefix:'+386', flag:'🇸🇮'},
+  {name:'SPAIN',          code:'ES', prefix:'+34',  flag:'🇪🇸'},
+  {name:'SWEDEN',         code:'SE', prefix:'+46',  flag:'🇸🇪'},
+  {name:'SWITZERLAND',    code:'CH', prefix:'+41',  flag:'🇨🇭'},
+  {name:'UNITED KINGDOM', code:'GB', prefix:'+44',  flag:'🇬🇧'},
+  {name:'UNITED STATES',  code:'US', prefix:'+1',   flag:'🇺🇸'},
+];
 
-  // ── Mappa paese → listino spedizione ─────────────────────────
-  const USA_SPECIAL_STATES = ['HI','AK','PR','AL','AR','UT','MS','VI'];
+const ZONE_MAP = {
+  GB:'UK', CH:'SWITZERLAND', NO:'NORWAY',
+  DE:'EU_ZONE_1',BE:'EU_ZONE_1',NL:'EU_ZONE_1',LU:'EU_ZONE_1',
+  FR:'EU_ZONE_2',DK:'EU_ZONE_2',AT:'EU_ZONE_2',
+  ES:'EU_ZONE_3',
+  SE:'EU_ZONE_4',PT:'EU_ZONE_4',
+  IE:'EU_ZONE_5',SI:'EU_ZONE_5',
+  FI:'EU_ZONE_6',HR:'EU_ZONE_6',GR:'EU_ZONE_6',
+  CY:'EU_ZONE_7',MT:'EU_ZONE_7',
+  PL:'EU_ZONE_8',CZ:'EU_ZONE_8',SK:'EU_ZONE_8',HU:'EU_ZONE_8',
+  BG:'EU_ZONE_9',EE:'EU_ZONE_9',LV:'EU_ZONE_9',LT:'EU_ZONE_9',RO:'EU_ZONE_9',
+};
 
-  const COUNTRY_TO_SHIPPING_ZONE = {
-    'GB':'UK', 'CH':'SWITZERLAND', 'NO':'NORWAY',
-    'DE':'EU_ZONE_1','BE':'EU_ZONE_1','NL':'EU_ZONE_1','LU':'EU_ZONE_1',
-    'FR':'EU_ZONE_2','DK':'EU_ZONE_2','AT':'EU_ZONE_2',
-    'ES':'EU_ZONE_3',
-    'SE':'EU_ZONE_4','PT':'EU_ZONE_4',
-    'IE':'EU_ZONE_5','SI':'EU_ZONE_5',
-    'FI':'EU_ZONE_6','HR':'EU_ZONE_6','GR':'EU_ZONE_6',
-    'CY':'EU_ZONE_7','MT':'EU_ZONE_7',
-    'PL':'EU_ZONE_8','CZ':'EU_ZONE_8','SK':'EU_ZONE_8','HU':'EU_ZONE_8',
-    'BG':'EU_ZONE_9','EE':'EU_ZONE_9','LV':'EU_ZONE_9','LT':'EU_ZONE_9','RO':'EU_ZONE_9',
+const USA_SPECIAL  = ['HI','AK','PR','AL','AR','UT','MS','VI'];
+const CA_NO_WINE   = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
+  'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
+const QTY_TIERS    = [3,6,12,18,24,30,36];
+const CATEGORIES   = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
+const US_CA_BLOCK  = [24,25];
+const BLANK        = {nationality:'',natCode:'',name:'',surname:'',address:'',
+  zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
+
+/* ── Helpers ───────────────────────────────────────────────── */
+function shipRate(rateObj, qty) {
+  if (!rateObj) return 0;
+  const tier = QTY_TIERS.find(t => qty <= t) || QTY_TIERS[QTY_TIERS.length-1];
+  return parseFloat(rateObj.rates[String(tier)]) || 0;
+}
+
+function dlabel(key, speed) {
+  if (!key) return '';
+  if (key.startsWith('EU_') || ['UK','SWITZERLAND','NORWAY'].includes(key))
+    return 'Delivery within 7 working days';
+  if (speed === 'EXPRESS' || key.includes('EXPRESS'))
+    return 'Delivery within 9 working days';
+  return 'Delivery within 20 working days';
+}
+
+function rateKey(code, speed, wine) {
+  if (code === 'US') {
+    if (wine) return speed==='EXPRESS' ? 'USA_WINE_EXPRESS'  : 'USA_WINE_STANDARD';
+    return           speed==='EXPRESS' ? 'USA_EXTRA_EXPRESS' : 'USA_EXTRA_STANDARD';
+  }
+  if (code === 'CA') return speed==='EXPRESS' ? 'CANADA_EXPRESS' : 'CANADA_STANDARD';
+  return ZONE_MAP[code] || null;
+}
+
+function validDomain(d) { return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
+
+/* Country code → ISO alpha-2 for Nominatim */
+const CODE_TO_ISO = {AU:'AU',AT:'AT',BE:'BE',BG:'BG',CA:'CA',HR:'HR',CY:'CY',
+  CZ:'CZ',DK:'DK',EE:'EE',FI:'FI',FR:'FR',DE:'DE',GR:'GR',HU:'HU',IE:'IE',
+  IT:'IT',LV:'LV',LT:'LT',LU:'LU',MT:'MT',NL:'NL',NO:'NO',PL:'PL',PT:'PT',
+  RO:'RO',SK:'SK',SI:'SI',ES:'ES',SE:'SE',CH:'CH',GB:'GB',US:'US'};
+
+/* Search city via Nominatim (OpenStreetMap) — returns [{zip,city,province,state}] */
+async function searchCityNominatim(cityName, natCode) {
+  const iso = CODE_TO_ISO[natCode];
+  if (!iso) return [];
+  const url = `https://nominatim.openstreetmap.org/search?` +
+    `q=${encodeURIComponent(cityName)}&countrycodes=${iso.toLowerCase()}&` +
+    `addressdetails=1&format=json&limit=8`;
+  const res = await fetch(url, { headers: {'Accept-Language':'en'} });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const seen = new Set();
+  const results = [];
+  for (const item of data) {
+    const a = item.address || {};
+    const city     = (a.city || a.town || a.village || a.municipality || '').toUpperCase();
+    const zip      = (a.postcode || '').replace(/\s/g,'').toUpperCase();
+    const province = (a.county || a.state_district || a.region || '').toUpperCase();
+    const state    = (a.state || '').toUpperCase();
+    if (!city || !zip) continue;
+    const key = `${zip}|${city}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push({ zip, city, province, state });
+  }
+  return results;
+}
+
+/* ── App ───────────────────────────────────────────────────── */
+function App() {
+  const [step,setStep]       = useState(1);
+  const [speed,setSpeed]     = useState('STANDARD');
+  const [cart,setCart]       = useState([]);
+  const [products,setProds]  = useState([]);
+  const [shipping,setShip]   = useState(null);
+  const [loading,setLoading] = useState(true);
+  const [loadErr,setLoadErr] = useState('');
+  const [form,setForm]       = useState({...BLANK});
+  const [natTxt,setNatTxt]   = useState(''); // visible text in nationality field
+
+  useEffect(() => {
+    Promise.all([
+      fetch(window.CFG.products).then(r=>{if(!r.ok)throw 0;return r.json();}),
+      fetch(window.CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
+    ]).then(([p,s])=>{setProds(p);setShip(s);setLoading(false);})
+      .catch(()=>{setLoadErr('Unable to load data from GitHub. Check the URLs in window.CFG.');setLoading(false);});
+  },[]);
+
+  const reset = () => {
+    setStep(1); setCart([]); setSpeed('STANDARD');
+    setForm({...BLANK}); setNatTxt('');
   };
 
-  const QTY_TIERS = [3,6,12,18,24,30,36];
+  const qty    = cart.reduce((s,i)=>s+i.qty,0);
+  const prod   = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const wine   = cart.some(i=>i.category==='WINE');
+  const aKey   = rateKey(form.natCode,speed,wine);
+  const aRate  = shipping && aKey ? shipping[aKey] : null;
+  const ship   = qty>0&&aRate ? shipRate(aRate,qty) : 0;
+  const duty   = aKey&&aKey.startsWith('USA_WINE') ? prod*0.1 : 0;
+  const total  = prod+ship+duty;
+  const dlab   = dlabel(aKey,speed);
+  const spSel  = ['US','CA'].includes(form.natCode);
+  const totals = {qty,prod,ship,duty,final:total};
 
-  // Restituisce la tariffa dello scaglione superiore (ceiling):
-  // 8 pezzi → tier 12 | 3 pezzi → tier 3 | 37+ pezzi → tier 36
-  function getShippingRate(rateObj, qty) {
-    if(!rateObj) return 0;
-    const rates = rateObj.rates;
-    const tier = QTY_TIERS.find(t => qty <= t) || QTY_TIERS[QTY_TIERS.length - 1];
-    return parseFloat(rates[String(tier)]) || 0;
-  }
+  const sendWA = () => {
+    const em = `${form.emailUser}@${form.emailDomain}`;
+    const rn = aRate?aRate.label:'N/A';
+    let m=`*NEW ORDER*%0A%0A*CUSTOMER:*%0A${form.name} ${form.surname}%0A`;
+    m+=`Nationality: ${form.nationality}%0AEmail: ${em}%0APhone: ${form.mobile}%0A`;
+    m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}%0A`;
+    m+=`%0A*PRODUCTS:*%0A`;
+    cart.forEach(c=>{m+=`- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`;});
+    m+=`%0AProducts Total: €${prod.toFixed(2)}`;
+    if(duty>0) m+=`%0AImport Duties (10%): €${duty.toFixed(2)}`;
+    m+=`%0AShipping (${rn}): €${ship.toFixed(2)}%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
+    window.open(`https://wa.me/${window.CFG.whatsapp}?text=${m}`,'_blank');
+  };
 
-  // ── App principale ───────────────────────────────────────────
-  function App() {
-    const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState({
-      nationality:'', natCode:'', usState:'',
-      name:'', surname:'', address:'', zip:'', city:'', province:'', state:'',
-      mobile:'', emailUser:'', emailDomain:''
+  if(loading) return(
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-5xl mb-4 animate-pulse">🍷</div>
+        <p className="gold-text tracking-widest text-sm uppercase">Loading catalog…</p>
+      </div>
+    </div>
+  );
+  if(loadErr) return(
+    <div className="min-h-screen bg-black flex items-center justify-center p-8">
+      <div className="text-center max-w-md">
+        <div className="text-4xl mb-4">⚠️</div>
+        <p className="gold-text text-lg mb-2">Configuration Error</p>
+        <p className="text-gray-400 text-sm">{loadErr}</p>
+      </div>
+    </div>
+  );
+
+  return(
+    <div className="min-h-screen bg-black text-white p-4 md:p-8 flex justify-center">
+      <div className="w-full max-w-4xl">
+        {/* Header */}
+        <div className="relative text-center mb-6 flex flex-col items-center">
+          <button onClick={reset}
+            className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
+            ⌂ Home
+          </button>
+          <img id="logo-img" src="ciliegio_trasparente.png" alt="Il Ciliegio" className="h-24 object-contain mb-2"
+            onLoad={()=>{const t=document.getElementById('logo-txt');if(t)t.style.display='none';}}
+            onError={()=>{const i=document.getElementById('logo-img');if(i)i.style.display='none';const t=document.getElementById('logo-txt');if(t)t.style.display='block';}}/>
+          <h1 id="logo-txt" className="text-3xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
+        </div>
+
+        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNatTxt={setNatTxt} onNext={()=>setStep(2)}/>}
+        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onConfirm={()=>setStep(3)}/>}
+        {step===3 && <CatalogStep products={products} cart={cart} setCart={setCart}
+          speed={speed} setSpeed={setSpeed} spSel={spSel}
+          aRate={aRate} aKey={aKey} duty={duty>0} dlab={dlab}
+          totals={totals} onSend={sendWA} natCode={form.natCode} province={form.province}/>}
+      </div>
+    </div>
+  );
+}
+
+/* ── FormStep ──────────────────────────────────────────────── */
+function FormStep({form,setForm,natTxt,setNatTxt,onNext}) {
+  const [showNat,setShowNat]   = useState(false);
+  const [cityTxt,setCityTxt]   = useState(form.city||'');
+  const [searching,setSearching]= useState(false);
+  const [citySugg,setCitySugg] = useState([]);
+  const [showSugg,setShowSugg] = useState(false);
+  const [domErr,setDomErr]     = useState(false);
+  const timer = useRef(null);
+
+  /* keep cityTxt in sync when form.city changes externally (e.g. ZIP→city fill) */
+  useEffect(()=>{ setCityTxt(form.city||''); },[form.city]);
+
+  const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
+
+  const pickCountry = (c) => {
+    setForm({...BLANK, nationality:c.name, natCode:c.code, mobile:c.prefix+' '});
+    setNatTxt(c.name);
+    setShowNat(false);
+    setCityTxt('');
+    setCitySugg([]);
+  };
+
+  /* ZIP → autofill */
+  const onZipBlur = async (e) => {
+    const z=e.target.value.trim();
+    if(!z||!form.natCode) return;
+    const code=form.natCode==='GB'?'gb':form.natCode.toLowerCase();
+    try{
+      const r=await fetch(`https://api.zippopotam.us/${code}/${z}`);
+      if(r.ok){
+        const d=await r.json(); const p=d.places[0];
+        setForm(f=>({...f,
+          city:p['place name'].toUpperCase(),
+          state:p['state'].toUpperCase(),
+          province:p['state abbreviation'].toUpperCase()
+        }));
+      }
+    }catch(_){}
+  };
+
+  /* City → search ZIPs via Nominatim */
+  const onCityChange = (e) => {
+    const v=e.target.value.toUpperCase();
+    setCityTxt(v);
+    setForm(f=>({...f,city:v}));
+    setShowSugg(false);
+    if(timer.current) clearTimeout(timer.current);
+    if(v.length<3||!form.natCode){setCitySugg([]);return;}
+    timer.current=setTimeout(async()=>{
+      setSearching(true);
+      const results=await searchCityNominatim(v,form.natCode);
+      setCitySugg(results);
+      if(results.length>0) setShowSugg(true);
+      setSearching(false);
+    },700);
+  };
+
+  const pickCity = (s) => {
+    setForm(f=>({...f,zip:s.zip,city:s.city,province:s.province,state:s.state}));
+    setCityTxt(s.city);
+    setShowSugg(false);
+    setCitySugg([]);
+  };
+
+  const onDomBlur = (e) => {
+    const v=e.target.value.trim();
+    setDomErr(v!==''&&!validDomain(v));
+  };
+
+  const ok = form.nationality&&form.name&&form.surname&&form.address&&
+    form.zip&&form.city&&form.province&&form.state&&
+    form.mobile&&form.emailUser&&form.emailDomain&&validDomain(form.emailDomain);
+
+  return(
+    <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between border-b border-[#D4AF37] pb-2 mb-5 gap-1">
+        <h2 className="text-xl gold-text">Customer Registration</h2>
+        <span className="text-xs gold-text opacity-70 italic">all fields are required for correct shipping and delivery</span>
+      </div>
+
+      <div className="space-y-4">
+
+        {/* Nationality */}
+        <div className="relative">
+          <label className="block text-xs text-gray-400 mb-1">Nationality</label>
+          <input className="w-full p-3 rounded uppercase" type="text"
+            placeholder="Start typing country name…" value={natTxt}
+            onFocus={()=>setShowNat(true)}
+            onChange={e=>{
+              const v=e.target.value.toUpperCase(); setNatTxt(v);
+              if(form.nationality&&v!==form.nationality)
+                setForm(f=>({...f,nationality:'',natCode:''}));
+            }}/>
+          {showNat&&natTxt&&!form.nationality&&(
+            <div className="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded max-h-44 overflow-y-auto">
+              {nations.length>0
+                ? nations.map(c=>(
+                    <div key={c.code} className="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase text-sm"
+                      onClick={()=>pickCountry(c)}>
+                      {c.flag} {c.name} ({c.code})
+                    </div>))
+                : <div className="p-3 text-gray-500 text-sm">No country found…</div>
+              }
+            </div>
+          )}
+        </div>
+
+        {/* ZIP */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">ZIP Code</label>
+          <input className="w-full p-3 rounded uppercase" type="text"
+            placeholder={form.natCode?"Enter ZIP to auto-fill city & region":"Select nationality first"}
+            value={form.zip}
+            onChange={e=>setForm(f=>({...f,zip:e.target.value.toUpperCase()}))}
+            onBlur={onZipBlur}/>
+        </div>
+
+        {/* Name / Surname */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">First Name</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.name}
+              onChange={e=>setForm(f=>({...f,name:e.target.value.toUpperCase()}))}/>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Last Name</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.surname}
+              onChange={e=>setForm(f=>({...f,surname:e.target.value.toUpperCase()}))}/>
+          </div>
+        </div>
+
+        {/* Address */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Full Address</label>
+          <input className="w-full p-3 rounded uppercase" type="text" placeholder="Street, number…"
+            value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value.toUpperCase()}))}/>
+        </div>
+
+        {/* City with reverse ZIP search */}
+        <div className="relative">
+          <label className="block text-xs text-gray-400 mb-1">
+            City
+            {searching&&<span className="ml-2 text-yellow-500 text-xs animate-pulse">searching…</span>}
+          </label>
+          <input className="w-full p-3 rounded uppercase" type="text"
+            placeholder={form.natCode?"Type city to search ZIP":"Select nationality first"}
+            value={cityTxt}
+            onChange={onCityChange}
+            onBlur={()=>setTimeout(()=>setShowSugg(false),250)}/>
+          {showSugg&&citySugg.length>0&&(
+            <div className="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded max-h-52 overflow-y-auto">
+              <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-800">
+                {citySugg.length===1?'1 result found':`${citySugg.length} results — select the correct ZIP:`}
+              </div>
+              {citySugg.map((s,i)=>(
+                <div key={i} className="p-3 hover:bg-[#333] cursor-pointer text-sm flex items-center gap-3"
+                  onMouseDown={()=>pickCity(s)}>
+                  <span className="gold-text font-bold text-sm w-20 shrink-0">{s.zip}</span>
+                  <span className="text-gray-200 truncate">{s.city}</span>
+                  {s.province&&<span className="text-gray-500 text-xs shrink-0">({s.province})</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {showSugg&&citySugg.length===0&&!searching&&cityTxt.length>=3&&(
+            <div className="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded p-3 text-xs text-gray-500">
+              No results — try a different spelling or enter ZIP manually
+            </div>
+          )}
+        </div>
+
+        {/* Province / State/Region */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Province / County</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.province}
+              onChange={e=>setForm(f=>({...f,province:e.target.value.toUpperCase()}))}/>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">State / Region</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.state}
+              onChange={e=>setForm(f=>({...f,state:e.target.value.toUpperCase()}))}/>
+          </div>
+        </div>
+
+        {/* Mobile */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
+          <input className="w-full p-3 rounded" type="text" placeholder="+1 234 567 8900"
+            value={form.mobile} onChange={e=>setForm(f=>({...f,mobile:e.target.value.replace(/[^\d+\s]/g,'')}))}/>
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Email Address</label>
+          <div className="flex w-full items-center gap-2">
+            <input type="text" className="min-w-0 flex-1 p-3 rounded text-right lowercase"
+              placeholder="username" value={form.emailUser}
+              onChange={e=>setForm(f=>({...f,emailUser:e.target.value.replace(/\s/g,'').toLowerCase()}))}/>
+            <span className="gold-text font-bold text-xl shrink-0">@</span>
+            <input type="text" className={`min-w-0 flex-1 p-3 rounded lowercase${domErr?' field-err':''}`}
+              placeholder="provider.com" value={form.emailDomain}
+              onChange={e=>{setDomErr(false);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
+              onBlur={onDomBlur}/>
+          </div>
+          {domErr&&<p className="text-xs text-red-400 mt-1">⚠️ Use format: gmail.com or provider.it</p>}
+        </div>
+      </div>
+
+      <button onClick={onNext} disabled={!ok}
+        className={`w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all
+          ${ok?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+        Continue to Summary
+      </button>
+    </div>
+  );
+}
+
+/* ── SummaryStep ───────────────────────────────────────────── */
+function SummaryStep({form,onEdit,onConfirm}) {
+  return(
+    <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+      <h2 className="text-xl gold-text mb-5 border-b border-[#D4AF37] pb-2 text-center">Data Summary</h2>
+      <div className="space-y-3 text-sm">
+        {[
+          ['Customer',`${form.name} ${form.surname}`],
+          ['Nationality',form.nationality],
+          ['Email',`${form.emailUser}@${form.emailDomain}`],
+          ['Phone',form.mobile],
+          ['Address',<>{form.address}<br/>{form.zip} {form.city} ({form.province})<br/>{form.state}</>],
+        ].map(([l,v],i)=>(
+          <div key={i} className="flex justify-between border-b border-gray-800 pb-2">
+            <span className="text-gray-400">{l}:</span>
+            <span className="font-bold text-right">{v}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-4 mt-8">
+        <button onClick={onEdit} className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">Edit</button>
+        <button onClick={onConfirm} className="flex-1 p-4 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">Confirm &amp; Go to Catalog</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── ProductCard ───────────────────────────────────────────── */
+function ProductCard({p,onAdd}) {
+  const [err,setErr]=useState(false);
+  const src=p.img?window.CFG.imgBase+p.img:null;
+  return(
+    <div className="bg-dark p-2 rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col items-center gap-1 transition-all">
+      {src&&!err
+        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setErr(true)}/>
+        :<div className="prod-img-fallback">🍷</div>}
+      <h3 className="font-bold leading-tight text-xs">{p.name}</h3>
+      <p className="gold-text font-bold text-xs">€ {p.price.toFixed(2)}</p>
+      <button onClick={()=>onAdd(p)}
+        className="w-full py-1 border gold-border gold-text rounded text-xs uppercase hover:bg-[#D4AF37] hover:text-black transition">
+        + Add
+      </button>
+    </div>
+  );
+}
+
+/* ── CartPanel (shared desktop + mobile) ───────────────────── */
+function CartPanel({cart,totals,aRate,duty,dlab,addItem,removeItem,onSend,speed,setSpeed,spSel}) {
+  return(
+    <div className="flex flex-col gap-3">
+
+      {/* Speed selector inside cart */}
+      {spSel&&(
+        <div className="border border-gray-700 rounded p-3">
+          <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Shipping Speed</p>
+          <div className="flex gap-2">
+            {['STANDARD','EXPRESS'].map(opt=>(
+              <button key={opt} onClick={()=>setSpeed(opt)}
+                className={`flex-1 py-2 rounded border font-bold text-xs uppercase tracking-wider transition
+                  ${speed===opt?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
+                {opt}
+              </button>
+            ))}
+          </div>
+          {aRate&&(
+            <div className="mt-2 text-center">
+              <p className="text-xs text-gray-500">{aRate.label}</p>
+              {dlab&&<p className="text-xs gold-text italic">{dlab}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Delivery label no speed selector */}
+      {!spSel&&aRate&&dlab&&(
+        <div className="border border-gray-700 rounded p-2 text-center">
+          <p className="text-xs text-gray-500">{aRate.label}</p>
+          <p className="text-xs gold-text italic">{dlab}</p>
+        </div>
+      )}
+
+      {/* Items */}
+      {cart.length===0
+        ?<p className="text-gray-500 text-sm italic py-3 text-center">Cart is empty</p>
+        :(
+          <div className="space-y-2 overflow-y-auto pr-1" style={{maxHeight:'260px'}}>
+            {cart.map(c=>(
+              <div key={c.id} className="flex justify-between items-center bg-black p-2 rounded">
+                <div className="flex-1 min-w-0 mr-2">
+                  <p className="font-bold text-xs leading-tight truncate">{c.name}</p>
+                  <p className="text-gray-400 text-xs">€{c.price.toFixed(2)} × {c.qty} = <span className="text-gray-300">€{(c.price*c.qty).toFixed(2)}</span></p>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <button onClick={()=>removeItem(c.id)} className="w-7 h-7 bg-gray-800 rounded hover:bg-red-700 font-bold">−</button>
+                  <button onClick={()=>addItem(c)} className="w-7 h-7 gold-bg rounded font-bold">+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+      {/* Totals */}
+      <div className="border-t border-gray-800 pt-3 space-y-1 text-sm">
+        <div className="flex justify-between text-gray-400">
+          <span>Products ({totals.qty}):</span><span>€ {totals.prod.toFixed(2)}</span>
+        </div>
+        {duty&&(
+          <div className="flex justify-between text-gray-400">
+            <span>Duties (10%):</span><span>€ {totals.duty.toFixed(2)}</span>
+          </div>
+        )}
+        <div className="flex justify-between text-gray-400">
+          <span>Shipping:</span><span>€ {totals.ship.toFixed(2)}</span>
+        </div>
+        {totals.qty>0&&!aRate&&(
+          <p className="text-xs text-yellow-600 text-right">⚠️ No rate for this country</p>
+        )}
+        <div className="flex justify-between text-base font-bold gold-text border-t border-gray-800 pt-2">
+          <span>TOTAL:</span><span>€ {totals.final.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <button onClick={onSend} disabled={cart.length===0}
+        className={`w-full p-3 rounded font-bold uppercase text-sm transition
+          ${cart.length>0?'bg-green-600 hover:bg-green-500 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+        📲 Send Order via WhatsApp
+      </button>
+    </div>
+  );
+}
+
+/* ── CatalogStep ───────────────────────────────────────────── */
+function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
+  aRate,aKey,duty,dlab,totals,onSend,natCode,province}) {
+
+  const [tab,setTab]       = useState('ALL');
+  const [cartErr,setCartErr]= useState('');
+
+  const isUSCA = ['US','CA'].includes(natCode);
+  const isCA   = natCode==='CA';
+  const caBlock = isCA&&province&&CA_NO_WINE.some(p=>province.toUpperCase().includes(p));
+
+  const avail = isUSCA
+    ? products.filter(p=>p.category!=='DISTILLATES'&&!US_CA_BLOCK.includes(p.id))
+    : products;
+
+  const visCats = isUSCA?CATEGORIES.filter(c=>c!=='DISTILLATES'):CATEGORIES;
+  const tabs    = ['ALL',...visCats];
+  const filtered= tab==='ALL'?avail:avail.filter(p=>p.category===tab);
+  const dCats   = tab==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tab];
+
+  const addItem = (prod) => {
+    setCartErr('');
+    if(isCA){
+      const isW=prod.category==='WINE';
+      const hasW=cart.some(i=>i.category==='WINE');
+      const hasO=cart.some(i=>i.category!=='WINE');
+      if(isW&&hasO){setCartErr('🍷 In Canada wine cannot be shipped with other products.');return;}
+      if(!isW&&hasW){setCartErr('🍷 In Canada wine cannot be shipped with other products.');return;}
+      if(isW&&caBlock){setCartErr(`🚫 Wine cannot be shipped to ${province}.`);return;}
+    }
+    setCart(prev=>{
+      const ex=prev.find(p=>p.id===prod.id);
+      if(ex) return prev.map(p=>p.id===prod.id?{...p,qty:p.qty+1}:p);
+      return [...prev,{...prod,qty:1}];
     });
-    const [cart, setCart] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [shippingData, setShippingData] = useState(null);
-    const [shippingType, setShippingType] = useState('STANDARD'); // STANDARD | EXPRESS
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState('');
+  };
 
-    useEffect(() => {
-      Promise.all([
-        fetch(window.GITHUB_PRODUCTS_URL).then(r => r.json()),
-        fetch(window.GITHUB_SHIPPING_URL).then(r => r.json()),
-      ]).then(([prods, ship]) => {
-        setProducts(prods);
-        setShippingData(ship);
-        setLoading(false);
-      }).catch(err => {
-        setLoadError('Unable to load data from GitHub. Check the URLs in the configuration.');
-        setLoading(false);
-        console.error(err);
-      });
-    }, []);
+  const removeItem = (id) => {
+    setCartErr('');
+    setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));
+  };
 
-    const cartQuantity = cart.reduce((sum, i) => sum + i.qty, 0);
-    const productsTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    const hasWine = cart.some(i => i.category === 'WINE');
+  const panelProps = {cart,totals,aRate,duty,dlab,addItem,removeItem,onSend,speed,setSpeed,spSel};
 
-    // ── Determina listino attivo ──────────────────────────────
-    function getActiveRateKey() {
-      const { natCode, usState } = formData;
-      if(natCode === 'US') {
-        // Controlla se stato speciale
-        if(usState && USA_SPECIAL_STATES.includes(usState.toUpperCase())) {
-          return 'USA_SPECIAL_STANDARD';
-        }
-        if(hasWine) return shippingType === 'EXPRESS' ? 'USA_WINE_EXPRESS' : 'USA_WINE_STANDARD';
-        return shippingType === 'EXPRESS' ? 'USA_EXTRA_EXPRESS' : 'USA_EXTRA_STANDARD';
-      }
-      if(natCode === 'CA') return shippingType === 'EXPRESS' ? 'CANADA_EXPRESS' : 'CANADA_STANDARD';
-      return COUNTRY_TO_SHIPPING_ZONE[natCode] || null;
-    }
+  return(
+    <div className="flex flex-col gap-3">
+      {cartErr&&(
+        <div className="bg-red-950 border border-red-700 rounded p-3 text-xs text-red-300">{cartErr}</div>
+      )}
 
-    const activeRateKey = getActiveRateKey();
-    const activeRate = shippingData && activeRateKey ? shippingData[activeRateKey] : null;
-    const shippingCost = cartQuantity > 0 && activeRate ? getShippingRate(activeRate, cartQuantity) : 0;
-    // Dazi 10% solo per USA con vino (listini USA_WINE_*). Per USA_EXTRA e tutti gli altri: 0
-    const applyDuties = activeRateKey && activeRateKey.startsWith('USA_WINE');
-    const taxes = applyDuties ? productsTotal * 0.10 : 0;
-    const finalTotal = productsTotal + shippingCost + taxes;
+      {/* On mobile: stacked. On desktop: side by side */}
+      <div className="flex flex-col md:flex-row gap-4">
 
-    // ── Mostra selettore Standard/Express ────────────────────
-    const showSpeedSelector = ['US','CA'].includes(formData.natCode) &&
-      !(formData.natCode === 'US' && formData.usState &&
-        USA_SPECIAL_STATES.includes(formData.usState.toUpperCase()));
-
-    // ── WhatsApp ─────────────────────────────────────────────
-    const sendWhatsApp = () => {
-      const email = `${formData.emailUser}@${formData.emailDomain}`;
-      const rateName = activeRate ? activeRate.label : 'N/A';
-      let msg = `*NEW ORDER*%0A%0A`;
-      msg += `*CUSTOMER:*%0A${formData.name} ${formData.surname}%0A`;
-      msg += `Nationality: ${formData.nationality}%0A`;
-      msg += `Email: ${email}%0APhone: ${formData.mobile}%0A`;
-      msg += `Address: ${formData.address}, ${formData.zip} ${formData.city} (${formData.province}), ${formData.state}%0A`;
-      if(formData.usState) msg += `US State: ${formData.usState}%0A`;
-      msg += `%0A*PRODUCTS:*%0A`;
-      cart.forEach(c => { msg += `- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`; });
-      msg += `%0AProducts Total: €${productsTotal.toFixed(2)}`;
-      if(applyDuties) msg += `%0AImport Duties (10%): €${taxes.toFixed(2)}`;
-      msg += `%0AShipping (${rateName}): €${shippingCost.toFixed(2)}`;
-      msg += `%0A*FINAL TOTAL: €${finalTotal.toFixed(2)}*`;
-      window.open(`https://wa.me/${window.WHATSAPP_NUMBER}?text=${msg}`, '_blank');
-    };
-
-    if(loading) return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">🍷</div>
-          <p className="gold-text tracking-widest text-sm uppercase">Loading catalog…</p>
-        </div>
-      </div>
-    );
-
-    if(loadError) return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-8">
-        <div className="text-center max-w-md">
-          <div className="text-4xl mb-4">⚠️</div>
-          <p className="gold-text text-lg mb-2">Configuration Error</p>
-          <p className="text-gray-400 text-sm">{loadError}</p>
-          <p className="text-gray-600 text-xs mt-4">Edit the URLs at the top of index.html</p>
-        </div>
-      </div>
-    );
-
-    const resetAll = () => {
-      setStep(1);
-      setCart([]);
-      setShippingType('STANDARD');
-      setFormData({
-        nationality:'', natCode:'', usState:'',
-        name:'', surname:'', address:'', zip:'', city:'', province:'', state:'',
-        mobile:'', emailUser:'', emailDomain:''
-      });
-    };
-
-    return (
-      <div className="min-h-screen bg-black text-white p-4 md:p-8 flex justify-center pb-24">
-        <div className="w-full max-w-3xl">
-          <div className="relative text-center mb-8 flex flex-col items-center">
-            <button onClick={resetAll}
-              className="absolute left-0 top-0 flex items-center gap-2 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
-              ⌂ Home
-            </button>
-            <img src="ciliegio_trasparente.png" alt="Company Logo"
-              className="h-24 object-contain mb-2"
-              loading="eager"
-              onError={(e) => { e.target.style.display='none'; const alt = document.getElementById('alt-logo'); if(alt) alt.style.display='block'; }}
-              onLoad={(e) => { const alt = document.getElementById('alt-logo'); if(alt) alt.style.display='none'; }} />
-            <h1 id="alt-logo" className="text-3xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
+        {/* ── Catalog ── */}
+        <div className="flex-1 min-w-0">
+          {/* Category tabs */}
+          <div className="flex gap-1 flex-wrap mb-3">
+            {tabs.map(t=>(
+              <button key={t} onClick={()=>setTab(t)}
+                className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border transition
+                  ${tab===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
+                {t}
+              </button>
+            ))}
           </div>
 
-          {step === 1 && <FormStep formData={formData} setFormData={setFormData} onNext={() => setStep(2)} />}
-          {step === 2 && <SummaryStep formData={formData} onEdit={() => setStep(1)} onConfirm={() => setStep(3)} />}
-          {step === 3 && (
-            <CatalogStep
-              products={products}
-              cart={cart} setCart={setCart}
-              shippingType={shippingType} setShippingType={setShippingType}
-              showSpeedSelector={showSpeedSelector}
-              activeRate={activeRate}
-              activeRateKey={activeRateKey}
-              totals={{ qty: cartQuantity, prod: productsTotal, tax: taxes, ship: shippingCost, final: finalTotal }}
-              onSend={sendWhatsApp}
-              natCode={formData.natCode}
-              province={formData.province}
-              applyDuties={applyDuties}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── FormStep ─────────────────────────────────────────────────
-  function FormStep({ formData, setFormData, onNext }) {
-    const [searchNat, setSearchNat] = useState('');
-    const [showNatList, setShowNatList] = useState(false);
-
-    const filteredNations = COUNTRIES.filter(c =>
-      c.name.startsWith(searchNat.toUpperCase())
-    );
-
-    const selectNation = (country) => {
-      setFormData(prev => ({
-        ...prev,
-        nationality: country.name,
-        natCode: country.code,
-        mobile: prev.mobile.startsWith('+') ? prev.mobile : country.prefix + ' '
-      }));
-      setSearchNat(country.name);
-      setShowNatList(false);
-    };
-
-    const handleZipBlur = async (e) => {
-      const z = e.target.value;
-      if(z && formData.natCode) {
-        // zippopotam.us usa 'gb' per UK, non 'uk'
-        const apiCode = formData.natCode === 'GB' ? 'gb' : formData.natCode.toLowerCase();
-        try {
-          const res = await fetch(`https://api.zippopotam.us/${apiCode}/${z}`);
-          if(res.ok) {
-            const data = await res.json();
-            const place = data.places[0];
-            setFormData(prev => ({
-              ...prev,
-              city: place['place name'].toUpperCase(),
-              state: place['state'].toUpperCase(),
-              province: place['state abbreviation'].toUpperCase()
-            }));
-          }
-        } catch(err) { console.log("Zip API not found"); }
-      }
-    };
-
-    const isFormValid = formData.nationality && formData.name && formData.surname &&
-      formData.address && formData.zip && formData.city &&
-      formData.province && formData.state &&
-      formData.mobile && formData.emailUser && formData.emailDomain;
-
-    return (
-      <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
-        <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between border-b border-[#D4AF37] pb-2 mb-6 gap-1">
-          <h2 className="text-xl gold-text">Customer Registration</h2>
-          <span className="text-xs gold-text opacity-70 italic">all fields are required for correct shipping and delivery</span>
-        </div>
-
-        <div className="space-y-4">
-          {/* Nationality */}
-          <div className="relative">
-            <label className="block text-xs text-gray-400 mb-1">Nationality</label>
-            <input type="text" className="w-full p-3 rounded uppercase"
-              placeholder="Start typing country name (e.g., U)..."
-              value={searchNat || formData.nationality}
-              onChange={(e) => {
-                setSearchNat(e.target.value.toUpperCase());
-                if(formData.nationality) setFormData(prev => ({...prev, nationality:'', natCode:'', usState:'', zip:'', city:'', province:'', state:'', mobile:'', emailUser:'', emailDomain:''}));
-              }}
-              onFocus={() => setShowNatList(true)} />
-            {showNatList && searchNat && !formData.nationality && (
-              <div className="absolute z-10 w-full mt-1 bg-[#1a1a1a] border gold-border rounded max-h-48 overflow-y-auto">
-                {filteredNations.length > 0 ? filteredNations.map(c => (
-                  <div key={c.code} className="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase"
-                    onClick={() => selectNation(c)}>
-                    <span>{c.flag}</span> {c.name} ({c.code})
-                  </div>
-                )) : <div className="p-3 text-gray-500">No country found…</div>}
-              </div>
-            )}
-          </div>
-
-          {/* ZIP Code — subito dopo la nazionalità, popola city/province/state */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">ZIP Code</label>
-            <input type="text" value={formData.zip}
-              onChange={(e) => setFormData({...formData, zip: e.target.value.toUpperCase()})}
-              onBlur={handleZipBlur}
-              className="w-full p-3 rounded uppercase"
-              placeholder={formData.natCode ? "Enter ZIP to auto-fill city & state" : "Select nationality first"} />
-          </div>
-
-          {/* Name / Surname */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">First Name</label>
-              <input type="text" value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value.toUpperCase()})}
-                className="w-full p-3 rounded uppercase" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Last Name</label>
-              <input type="text" value={formData.surname}
-                onChange={(e) => setFormData({...formData, surname: e.target.value.toUpperCase()})}
-                className="w-full p-3 rounded uppercase" />
-            </div>
-          </div>
-
-          {/* Address */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Full Address</label>
-            <input type="text" value={formData.address}
-              onChange={(e) => setFormData({...formData, address: e.target.value.toUpperCase()})}
-              className="w-full p-3 rounded uppercase"
-              placeholder="Street, number…" />
-          </div>
-
-          {/* City / Province / State */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">City</label>
-              <input type="text" value={formData.city}
-                onChange={(e) => setFormData({...formData, city: e.target.value.toUpperCase()})}
-                className="w-full p-3 rounded uppercase" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Province / County</label>
-              <input type="text" value={formData.province}
-                onChange={(e) => setFormData({...formData, province: e.target.value.toUpperCase()})}
-                className="w-full p-3 rounded uppercase" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">State / Region</label>
-              <input type="text" value={formData.state}
-                onChange={(e) => setFormData({...formData, state: e.target.value.toUpperCase()})}
-                className="w-full p-3 rounded uppercase" />
-            </div>
-          </div>
-
-          {/* Mobile */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
-            <input type="text" value={formData.mobile}
-              onChange={(e) => setFormData({...formData, mobile: e.target.value.replace(/[^\d+\s]/g,'')})}
-              className="w-full p-3 rounded" placeholder="+1 234 567 8900" />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Email Address</label>
-            <div className="flex w-full items-center gap-2">
-              <input type="text" value={formData.emailUser}
-                onChange={(e) => setFormData({...formData, emailUser: e.target.value.replace(/\s/g,'').toLowerCase()})}
-                placeholder="username" className="min-w-0 flex-1 p-3 rounded text-right lowercase" />
-              <span className="gold-text font-bold text-xl shrink-0">@</span>
-              <input type="text" value={formData.emailDomain}
-                onChange={(e) => setFormData({...formData, emailDomain: e.target.value.replace(/\s/g,'').toLowerCase()})}
-                placeholder="provider.com" className="min-w-0 flex-1 p-3 rounded lowercase" />
-            </div>
-          </div>
-        </div>
-
-        <button onClick={onNext} disabled={!isFormValid}
-          className={`w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all
-            ${isFormValid ? 'gold-bg hover:bg-yellow-600' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-          Continue to Summary
-        </button>
-      </div>
-    );
-  }
-
-  // ── SummaryStep ──────────────────────────────────────────────
-  function SummaryStep({ formData, onEdit, onConfirm }) {
-    return (
-      <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
-        <h2 className="text-xl gold-text mb-6 border-b border-[#D4AF37] pb-2 text-center">Data Summary</h2>
-        <div className="space-y-3 text-sm">
-          {[
-            ['Customer', `${formData.name} ${formData.surname}`],
-            ['Nationality', formData.nationality],
-            ['Email', `${formData.emailUser}@${formData.emailDomain}`],
-            ['Phone', formData.mobile],
-            ['Address', <>{formData.address}<br/>{formData.zip} {formData.city} ({formData.province})<br/>{formData.state}</>],
-            ...(formData.usState ? [['US State', formData.usState]] : []),
-          ].map(([label, val], i) => (
-            <div key={i} className="flex justify-between border-b border-gray-800 pb-2">
-              <span className="text-gray-400">{label}:</span>
-              <span className="font-bold text-right">{val}</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-4 mt-8">
-          <button onClick={onEdit}
-            className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">
-            Edit
-          </button>
-          <button onClick={onConfirm}
-            className="flex-1 p-4 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">
-            Confirm & Go to Catalog
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── ProductCard ──────────────────────────────────────────────
-  function ProductCard({ p, onAdd }) {
-    const [imgError, setImgError] = useState(false);
-    const imgSrc = p.img ? window.GITHUB_RAW_BASE + p.img : null;
-
-    return (
-      <div className="bg-dark p-3 rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col items-center justify-between gap-2 transition-all">
-        {imgSrc && !imgError
-          ? <img src={imgSrc} alt={p.name} className="prod-img" onError={() => setImgError(true)} />
-          : <div className="prod-img-fallback">{p.img && p.img.length <= 2 ? p.img : '🍷'}</div>
-        }
-        <h3 className="font-bold text-xs leading-tight">{p.name}</h3>
-        <p className="gold-text font-bold">€ {p.price.toFixed(2)}</p>
-        <button onClick={() => onAdd(p)}
-          className="w-full py-2 border gold-border gold-text rounded text-xs uppercase hover:bg-[#D4AF37] hover:text-black transition">
-          Add
-        </button>
-      </div>
-    );
-  }
-
-  // ── Costanti Canada ──────────────────────────────────────────
-  const CA_NO_WINE_PROVINCES = [
-    'NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
-    'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'
-  ];
-
-  // Delivery time label per listino
-  function getDeliveryLabel(rateKey, shippingType) {
-    if(!rateKey) return '';
-    if(rateKey.startsWith('EU_') || rateKey === 'UK' || rateKey === 'SWITZERLAND' || rateKey === 'NORWAY') {
-      return 'Delivery within 7 working days';
-    }
-    if(shippingType === 'EXPRESS' || rateKey.includes('EXPRESS')) {
-      return 'Delivery within 9 working days';
-    }
-    return 'Delivery within 20 working days';
-  }
-
-  // ── CartContents (riusabile desktop + drawer mobile) ─────────
-  function CartContents({ cart, totals, activeRate, applyDuties, addToCart, removeFromCart, onSend }) {
-    return (
-      <>
-        {cart.length === 0
-          ? <p className="text-gray-500 text-sm italic mb-4">Cart is empty</p>
-          : (
-            <div className="space-y-3 mb-6 max-h-56 overflow-y-auto pr-1">
-              {cart.map(c => (
-                <div key={c.id} className="flex justify-between items-center bg-black p-2 rounded text-sm">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs leading-tight truncate">{c.name}</p>
-                    <p className="text-gray-400 text-xs">€{c.price.toFixed(2)} × {c.qty}</p>
-                  </div>
-                  <div className="flex gap-2 ml-2 shrink-0">
-                    <button onClick={() => removeFromCart(c.id)} className="w-7 h-7 bg-gray-800 rounded hover:bg-red-600 text-sm">−</button>
-                    <button onClick={() => addToCart(c)} className="w-7 h-7 gold-bg rounded font-bold text-sm">+</button>
-                  </div>
+          {dCats.map(cat=>{
+            const prods=filtered.filter(p=>p.category===cat);
+            if(!prods.length) return null;
+            return(
+              <div key={cat} className="mb-6">
+                <h2 className="text-base font-bold gold-text mb-2 border-b border-gray-800 pb-1">{cat}</h2>
+                {isUSCA&&cat==='EVO OIL'&&(
+                  <p className="text-xs text-yellow-600 mb-2">⚠️ Large formats (3L / 5L) not available for US/Canada.</p>
+                )}
+                {/* 3 cols on all screens — compact cards */}
+                <div className="grid grid-cols-3 gap-2">
+                  {prods.map(p=><ProductCard key={p.id} p={p} onAdd={addItem}/>)}
                 </div>
-              ))}
-            </div>
-          )
-        }
-        <div className="border-t border-gray-800 pt-4 space-y-2 text-sm">
-          <div className="flex justify-between text-gray-400">
-            <span>Products ({totals.qty}):</span><span>€ {totals.prod.toFixed(2)}</span>
-          </div>
-          {applyDuties && (
-            <div className="flex justify-between text-gray-400">
-              <span>Duties (10%):</span><span>€ {totals.tax.toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-gray-400">
-            <span>Shipping:</span><span>€ {totals.ship.toFixed(2)}</span>
-          </div>
-          {activeRate && totals.qty > 0 && (
-            <p className="text-xs text-gray-600 text-right">{activeRate.label}</p>
-          )}
-          {totals.qty > 0 && !activeRate && (
-            <p className="text-xs text-yellow-600 text-right">⚠️ No rate for this country</p>
-          )}
-          <div className="flex justify-between text-lg font-bold gold-text mt-2 border-t border-gray-800 pt-2">
-            <span>Total Order:</span><span>€ {totals.final.toFixed(2)}</span>
-          </div>
-        </div>
-        <button onClick={onSend} disabled={cart.length === 0}
-          className={`w-full mt-6 p-3 rounded font-bold uppercase text-sm transition
-            ${cart.length > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-          📲 Send Order via WhatsApp
-        </button>
-      </>
-    );
-  }
-
-  // ── CatalogStep ──────────────────────────────────────────────
-  const CATEGORIES = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
-  const US_CA_BLOCKED_IDS = [24, 25];
-
-  function CatalogStep({ products, cart, setCart, shippingType, setShippingType, showSpeedSelector, activeRate, activeRateKey, totals, onSend, natCode, province, applyDuties }) {
-    const [activeTab, setActiveTab] = useState('ALL');
-    const [cartError, setCartError] = useState('');
-    const [drawerOpen, setDrawerOpen] = useState(false);
-
-    const isUsOrCa = ['US','CA'].includes(natCode);
-    const isCa = natCode === 'CA';
-
-    // Provincia canadese vietata al vino?
-    const caProvinceBlocksWine = isCa && province &&
-      CA_NO_WINE_PROVINCES.some(p => province.toUpperCase().includes(p));
-
-    // Prodotti disponibili per questo paese
-    const availableProducts = isUsOrCa
-      ? products.filter(p => p.category !== 'DISTILLATES' && !US_CA_BLOCKED_IDS.includes(p.id))
-      : products;
-
-    const hasWineInCart = cart.some(i => i.category === 'WINE');
-    const hasNonWineInCart = cart.some(i => i.category !== 'WINE');
-
-    const addToCart = (prod) => {
-      setCartError('');
-      // Regola Canada: vino e non-vino non si possono mescolare
-      if(isCa) {
-        const isWine = prod.category === 'WINE';
-        if(isWine && hasNonWineInCart) {
-          setCartError('🍷 In Canada, wine cannot be shipped together with other products. Please place a separate order.');
-          return;
-        }
-        if(!isWine && hasWineInCart) {
-          setCartError('🍷 In Canada, wine cannot be shipped together with other products. Please place a separate order.');
-          return;
-        }
-        // Regola Canada: province che non possono ricevere vino
-        if(isWine && caProvinceBlocksWine) {
-          setCartError('🚫 Wine cannot be shipped to ' + province + '. Please remove wine from your order.');
-          return;
-        }
-      }
-      setCart(prev => {
-        const exists = prev.find(p => p.id === prod.id);
-        if(exists) return prev.map(p => p.id === prod.id ? {...p, qty: p.qty+1} : p);
-        return [...prev, {...prod, qty:1}];
-      });
-    };
-
-    const removeFromCart = (id) => {
-      setCartError('');
-      setCart(prev => prev.map(p => p.id === id ? {...p, qty: p.qty-1} : p).filter(p => p.qty > 0));
-    };
-
-    const visibleCategories = isUsOrCa
-      ? CATEGORIES.filter(c => c !== 'DISTILLATES')
-      : CATEGORIES;
-
-    const tabs = ['ALL', ...visibleCategories];
-    const filtered = activeTab === 'ALL' ? availableProducts : availableProducts.filter(p => p.category === activeTab);
-
-    const displayCategories = activeTab === 'ALL'
-      ? visibleCategories.filter(c => availableProducts.some(p => p.category === c))
-      : [activeTab];
-
-    const deliveryLabel = getDeliveryLabel(activeRateKey, shippingType);
-
-    return (
-      <div className="flex flex-col gap-6 mb-10">
-
-        {/* Selettore Standard / Express (solo US e CA non-special) */}
-        {showSpeedSelector && (
-          <div className="bg-[#111] border gold-border rounded p-4">
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Shipping Speed</p>
-            <div className="flex gap-3">
-              {['STANDARD','EXPRESS'].map(opt => (
-                <button key={opt}
-                  onClick={() => setShippingType(opt)}
-                  className={`flex-1 py-3 rounded border font-bold text-xs uppercase tracking-widest transition
-                    ${shippingType===opt ? 'gold-bg border-[#D4AF37]' : 'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
-                  {opt}
-                </button>
-              ))}
-            </div>
-            {activeRate && (
-              <div className="mt-2 text-center">
-                <p className="text-xs text-gray-500">{activeRate.label}</p>
-                {deliveryLabel && <p className="text-xs gold-text mt-1 italic">{deliveryLabel}</p>}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Delivery label per paesi senza selettore Standard/Express */}
-        {!showSpeedSelector && activeRate && deliveryLabel && (
-          <div className="bg-[#111] border gold-border rounded p-3 text-center">
-            <p className="text-xs text-gray-500">{activeRate.label}</p>
-            <p className="text-xs gold-text mt-1 italic">{deliveryLabel}</p>
-          </div>
-        )}
-
-        {/* Avviso errore carrello Canada */}
-        {cartError && (
-          <div className="bg-red-950 border border-red-700 rounded p-3 text-xs text-red-300">
-            {cartError}
-          </div>
-        )}
-
-        <div className="flex flex-col md:flex-row gap-6 pb-24 md:pb-0">
-          {/* Catalog */}
-          <div className="flex-1">
-            {/* Tab bar */}
-            <div className="flex gap-2 flex-wrap mb-6">
-              {tabs.map(t => (
-                <button key={t}
-                  onClick={() => setActiveTab(t)}
-                  className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wider border transition
-                    ${activeTab===t ? 'gold-bg border-[#D4AF37]' : 'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}>
-                  {t}
-                </button>
-              ))}
-            </div>
-
-            {displayCategories.map(cat => {
-              const catProds = filtered.filter(p => p.category === cat);
-              if(catProds.length === 0) return null;
-              return (
-                <div key={cat} className="mb-8">
-                  <h2 className="text-lg font-bold gold-text mb-4 border-b border-gray-800 pb-2">{cat}</h2>
-                  {isUsOrCa && cat === 'EVO OIL' && (
-                    <p className="text-xs text-yellow-600 mb-3">⚠️ Large formats (3L and 5L) are not available for US/Canada shipping.</p>
-                  )}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {catProds.map(p => <ProductCard key={p.id} p={p} onAdd={addToCart} />)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ── Cart DESKTOP (md+) ── */}
-          <div className="hidden md:block w-80 bg-[#111] p-4 rounded border gold-border h-fit sticky top-4">
-            <CartContents
-              cart={cart} totals={totals} activeRate={activeRate}
-              applyDuties={applyDuties}
-              addToCart={addToCart} removeFromCart={removeFromCart}
-              onSend={onSend} />
-          </div>
+            );
+          })}
         </div>
 
-        {/* ── Cart MOBILE: backdrop ── */}
-        <div className={`cart-drawer-backdrop ${drawerOpen ? 'open' : ''}`} onClick={() => setDrawerOpen(false)} />
-
-        {/* ── Cart MOBILE: slide-up drawer ── */}
-        <div className={`cart-drawer ${drawerOpen ? 'open' : ''}`} style={{paddingBottom: '80px'}}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg gold-text font-bold">Your Cart</h2>
-            <button onClick={() => setDrawerOpen(false)} className="text-gray-400 text-xl leading-none">✕</button>
-          </div>
-          <CartContents
-            cart={cart} totals={totals} activeRate={activeRate}
-            applyDuties={applyDuties}
-            addToCart={addToCart} removeFromCart={removeFromCart}
-            onSend={onSend} />
+        {/* ── Cart ── always visible, below catalog on mobile, sidebar on desktop ── */}
+        <div className="w-full md:w-72 bg-[#111] p-3 rounded border gold-border cart-sticky self-start">
+          <h2 className="text-base gold-text font-bold mb-3 border-b border-gray-800 pb-2">🛒 Your Cart</h2>
+          <CartPanel {...panelProps}/>
         </div>
 
-        {/* ── Cart MOBILE: barra fissa in basso ── */}
-        <div className="cart-bar">
-          <div className="flex-1 min-w-0">
-            {totals.qty > 0 ? (
-              <p className="text-xs text-gray-400 truncate">
-                {totals.qty} item{totals.qty !== 1 ? 's' : ''} &nbsp;·&nbsp;
-                <span className="gold-text font-bold">€ {totals.final.toFixed(2)}</span>
-              </p>
-            ) : (
-              <p className="text-xs text-gray-500 italic">Cart is empty</p>
-            )}
-            {activeRate && <p className="text-xs text-gray-600 truncate">{activeRate.label}{deliveryLabel ? ` · ${deliveryLabel}` : ''}</p>}
-          </div>
-          <button onClick={() => setDrawerOpen(d => !d)}
-            className="shrink-0 px-4 py-2 rounded border gold-border gold-text text-xs font-bold uppercase tracking-wider hover:bg-[#D4AF37] hover:text-black transition">
-            🛒 {drawerOpen ? 'Close' : `Cart${totals.qty > 0 ? ` (${totals.qty})` : ''}`}
-          </button>
-        </div>
+      </div>
+    </div>
+  );
+}
 
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
