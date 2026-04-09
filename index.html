@@ -214,10 +214,27 @@
       </div>
     );
 
+    const resetAll = () => {
+      setStep(1);
+      setCart([]);
+      setShippingType('STANDARD');
+      setFormData({
+        nationality:'', natCode:'', usState:'',
+        name:'', surname:'', address:'', zip:'', city:'', province:'', state:'',
+        mobile:'', emailUser:'', emailDomain:''
+      });
+    };
+
     return (
       <div className="min-h-screen bg-black text-white p-4 md:p-8 flex justify-center pb-24">
         <div className="w-full max-w-3xl">
-          <div className="text-center mb-8 flex flex-col items-center">
+          <div className="relative text-center mb-8 flex flex-col items-center">
+            {step > 1 && (
+              <button onClick={resetAll}
+                className="absolute left-0 top-0 flex items-center gap-2 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
+                ⌂ Home
+              </button>
+            )}
             <img src="ciliegio_trasparente.png" alt="Company Logo"
               className="h-24 object-contain mb-2"
               onError={(e) => { e.target.style.display='none'; document.getElementById('alt-logo').style.display='block'; }} />
@@ -268,16 +285,18 @@
     const handleZipBlur = async (e) => {
       const z = e.target.value;
       if(z && formData.natCode) {
+        // zippopotam.us usa 'gb' per UK, non 'uk'
+        const apiCode = formData.natCode === 'GB' ? 'gb' : formData.natCode.toLowerCase();
         try {
-          const res = await fetch(`https://api.zippopotam.us/${formData.natCode.toLowerCase()}/${z}`);
+          const res = await fetch(`https://api.zippopotam.us/${apiCode}/${z}`);
           if(res.ok) {
             const data = await res.json();
             const place = data.places[0];
             setFormData(prev => ({
               ...prev,
-              city: (prev.city || place['place name']).toUpperCase(),
-              state: (prev.state || place['state']).toUpperCase(),
-              province: (prev.province || place['state abbreviation']).toUpperCase()
+              city: place['place name'].toUpperCase(),
+              state: place['state'].toUpperCase(),
+              province: place['state abbreviation'].toUpperCase()
             }));
           }
         } catch(err) { console.log("Zip API not found"); }
@@ -347,6 +366,13 @@
           </div>
 
           {/* Address */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Full Address</label>
+            <input type="text" value={formData.address}
+              onChange={(e) => setFormData({...formData, address: e.target.value.toUpperCase()})}
+              className="w-full p-3 rounded uppercase"
+              placeholder="Street, number…" />
+          </div>
 
           {/* City / Province / State */}
           <div className="grid grid-cols-3 gap-4">
