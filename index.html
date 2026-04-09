@@ -17,7 +17,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+ 
   <style>
     body { background-color: #000; color: #fff; font-family: sans-serif; }
     .gold-border { border-color: #D4AF37; }
@@ -36,7 +36,7 @@
 </head>
 <body>
 <div id="root"></div>
-
+ 
 <!-- ============================================================
      CONFIGURAZIONE — modifica solo questi due URL
      Punta ai file RAW del tuo repository GitHub
@@ -47,10 +47,10 @@
   window.GITHUB_RAW_BASE    = "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/";
   window.WHATSAPP_NUMBER    = "393357655171";
 </script>
-
+ 
 <script type="text/babel">
   const { useState, useEffect, useCallback } = React;
-
+ 
   // ── Paesi ────────────────────────────────────────────────────
   const COUNTRIES = [
     { name:'AUSTRALIA',      code:'AU', prefix:'+61',  flag:'🇦🇺' },
@@ -87,10 +87,10 @@
     { name:'UNITED KINGDOM', code:'GB', prefix:'+44',  flag:'🇬🇧' },
     { name:'UNITED STATES',  code:'US', prefix:'+1',   flag:'🇺🇸' },
   ];
-
+ 
   // ── Mappa paese → listino spedizione ─────────────────────────
   const USA_SPECIAL_STATES = ['HI','AK','PR','AL','AR','UT','MS','VI'];
-
+ 
   const COUNTRY_TO_SHIPPING_ZONE = {
     'GB':'UK', 'CH':'SWITZERLAND', 'NO':'NORWAY',
     'DE':'EU_ZONE_1','BE':'EU_ZONE_1','NL':'EU_ZONE_1','LU':'EU_ZONE_1',
@@ -103,19 +103,18 @@
     'PL':'EU_ZONE_8','CZ':'EU_ZONE_8','SK':'EU_ZONE_8','HU':'EU_ZONE_8',
     'BG':'EU_ZONE_9','EE':'EU_ZONE_9','LV':'EU_ZONE_9','LT':'EU_ZONE_9','RO':'EU_ZONE_9',
   };
-
+ 
   const QTY_TIERS = [3,6,12,18,24,30,36];
-
-  // Restituisce la tariffa più vicina (tier ≤ quantità, oppure il minimo)
+ 
+  // Restituisce la tariffa dello scaglione superiore (ceiling):
+  // 8 pezzi → tier 12 | 3 pezzi → tier 3 | 37+ pezzi → tier 36
   function getShippingRate(rateObj, qty) {
     if(!rateObj) return 0;
     const rates = rateObj.rates;
-    const applicable = QTY_TIERS.filter(t => qty >= t);
-    if(applicable.length === 0) return parseFloat(rates[QTY_TIERS[0]]) || 0;
-    const tier = applicable[applicable.length - 1];
+    const tier = QTY_TIERS.find(t => qty <= t) || QTY_TIERS[QTY_TIERS.length - 1];
     return parseFloat(rates[String(tier)]) || 0;
   }
-
+ 
   // ── App principale ───────────────────────────────────────────
   function App() {
     const [step, setStep] = useState(1);
@@ -130,7 +129,7 @@
     const [shippingType, setShippingType] = useState('STANDARD'); // STANDARD | EXPRESS
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
-
+ 
     useEffect(() => {
       Promise.all([
         fetch(window.GITHUB_PRODUCTS_URL).then(r => r.json()),
@@ -145,11 +144,11 @@
         console.error(err);
       });
     }, []);
-
+ 
     const cartQuantity = cart.reduce((sum, i) => sum + i.qty, 0);
     const productsTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
     const hasWine = cart.some(i => i.category === 'WINE');
-
+ 
     // ── Determina listino attivo ──────────────────────────────
     function getActiveRateKey() {
       const { natCode, usState } = formData;
@@ -164,18 +163,18 @@
       if(natCode === 'CA') return shippingType === 'EXPRESS' ? 'CANADA_EXPRESS' : 'CANADA_STANDARD';
       return COUNTRY_TO_SHIPPING_ZONE[natCode] || null;
     }
-
+ 
     const activeRateKey = getActiveRateKey();
     const activeRate = shippingData && activeRateKey ? shippingData[activeRateKey] : null;
     const shippingCost = cartQuantity > 0 && activeRate ? getShippingRate(activeRate, cartQuantity) : 0;
     const taxes = productsTotal * 0.10;
     const finalTotal = productsTotal + shippingCost + taxes;
-
+ 
     // ── Mostra selettore Standard/Express ────────────────────
     const showSpeedSelector = ['US','CA'].includes(formData.natCode) &&
       !(formData.natCode === 'US' && formData.usState &&
         USA_SPECIAL_STATES.includes(formData.usState.toUpperCase()));
-
+ 
     // ── WhatsApp ─────────────────────────────────────────────
     const sendWhatsApp = () => {
       const email = `${formData.emailUser}@${formData.emailDomain}`;
@@ -194,7 +193,7 @@
       msg += `%0A*FINAL TOTAL: €${finalTotal.toFixed(2)}*`;
       window.open(`https://wa.me/${window.WHATSAPP_NUMBER}?text=${msg}`, '_blank');
     };
-
+ 
     if(loading) return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
@@ -203,7 +202,7 @@
         </div>
       </div>
     );
-
+ 
     if(loadError) return (
       <div className="min-h-screen bg-black flex items-center justify-center p-8">
         <div className="text-center max-w-md">
@@ -214,7 +213,7 @@
         </div>
       </div>
     );
-
+ 
     return (
       <div className="min-h-screen bg-black text-white p-4 md:p-8 flex justify-center pb-24">
         <div className="w-full max-w-3xl">
@@ -224,7 +223,7 @@
               onError={(e) => { e.target.style.display='none'; document.getElementById('alt-logo').style.display='block'; }} />
             <h1 id="alt-logo" className="text-3xl font-bold gold-text hidden tracking-widest">COMPANY LOGO</h1>
           </div>
-
+ 
           {step === 1 && <FormStep formData={formData} setFormData={setFormData} onNext={() => setStep(2)} />}
           {step === 2 && <SummaryStep formData={formData} onEdit={() => setStep(1)} onConfirm={() => setStep(3)} />}
           {step === 3 && (
@@ -242,16 +241,16 @@
       </div>
     );
   }
-
+ 
   // ── FormStep ─────────────────────────────────────────────────
   function FormStep({ formData, setFormData, onNext }) {
     const [searchNat, setSearchNat] = useState('');
     const [showNatList, setShowNatList] = useState(false);
-
+ 
     const filteredNations = COUNTRIES.filter(c =>
       c.name.startsWith(searchNat.toUpperCase())
     );
-
+ 
     const selectNation = (country) => {
       setFormData(prev => ({
         ...prev,
@@ -262,7 +261,7 @@
       setSearchNat(country.name);
       setShowNatList(false);
     };
-
+ 
     const handleZipBlur = async (e) => {
       const z = e.target.value;
       if(z && formData.natCode) {
@@ -281,16 +280,16 @@
         } catch(err) { console.log("Zip API not found"); }
       }
     };
-
+ 
     const isFormValid = formData.nationality && formData.name && formData.surname &&
       formData.address && formData.zip && formData.city &&
       formData.province && formData.state &&
       formData.mobile && formData.emailUser && formData.emailDomain;
-
+ 
     return (
       <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
         <h2 className="text-xl gold-text mb-6 border-b border-[#D4AF37] pb-2">Customer Registration</h2>
-
+ 
         <div className="space-y-4">
           {/* Nationality */}
           <div className="relative">
@@ -314,7 +313,7 @@
               </div>
             )}
           </div>
-
+ 
           {/* US State (solo se USA) */}
           {formData.natCode === 'US' && (
             <div>
@@ -332,7 +331,7 @@
               )}
             </div>
           )}
-
+ 
           {/* Name / Surname */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -348,7 +347,7 @@
                 className="w-full p-3 rounded uppercase" />
             </div>
           </div>
-
+ 
           {/* Address / ZIP */}
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
@@ -365,7 +364,7 @@
                 className="w-full p-3 rounded uppercase" />
             </div>
           </div>
-
+ 
           {/* City / Province / State */}
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -387,7 +386,7 @@
                 className="w-full p-3 rounded uppercase" />
             </div>
           </div>
-
+ 
           {/* Mobile */}
           <div>
             <label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
@@ -395,7 +394,7 @@
               onChange={(e) => setFormData({...formData, mobile: e.target.value.replace(/[^\d+\s]/g,'')})}
               className="w-full p-3 rounded" placeholder="+1 234 567 8900" />
           </div>
-
+ 
           {/* Email */}
           <div>
             <label className="block text-xs text-gray-400 mb-1">Email Address</label>
@@ -410,7 +409,7 @@
             </div>
           </div>
         </div>
-
+ 
         <button onClick={onNext} disabled={!isFormValid}
           className={`w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all
             ${isFormValid ? 'gold-bg hover:bg-yellow-600' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
@@ -419,7 +418,7 @@
       </div>
     );
   }
-
+ 
   // ── SummaryStep ──────────────────────────────────────────────
   function SummaryStep({ formData, onEdit, onConfirm }) {
     return (
@@ -453,12 +452,12 @@
       </div>
     );
   }
-
+ 
   // ── ProductCard ──────────────────────────────────────────────
   function ProductCard({ p, onAdd }) {
     const [imgError, setImgError] = useState(false);
     const imgSrc = p.img ? window.GITHUB_RAW_BASE + p.img : null;
-
+ 
     return (
       <div className="bg-dark p-3 rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col items-center justify-between gap-2 transition-all">
         {imgSrc && !imgError
@@ -474,13 +473,13 @@
       </div>
     );
   }
-
+ 
   // ── CatalogStep ──────────────────────────────────────────────
   const CATEGORIES = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
-
+ 
   function CatalogStep({ products, cart, setCart, shippingType, setShippingType, showSpeedSelector, activeRate, totals, onSend }) {
     const [activeTab, setActiveTab] = useState('ALL');
-
+ 
     const addToCart = (prod) => {
       setCart(prev => {
         const exists = prev.find(p => p.id === prod.id);
@@ -488,21 +487,21 @@
         return [...prev, {...prod, qty:1}];
       });
     };
-
+ 
     const removeFromCart = (id) => {
       setCart(prev => prev.map(p => p.id === id ? {...p, qty: p.qty-1} : p).filter(p => p.qty > 0));
     };
-
+ 
     const tabs = ['ALL', ...CATEGORIES];
     const filtered = activeTab === 'ALL' ? products : products.filter(p => p.category === activeTab);
-
+ 
     const displayCategories = activeTab === 'ALL'
       ? CATEGORIES.filter(c => products.some(p => p.category === c))
       : [activeTab];
-
+ 
     return (
       <div className="flex flex-col gap-6 mb-10">
-
+ 
         {/* Selettore Standard / Express (solo US e CA non-special) */}
         {showSpeedSelector && (
           <div className="bg-[#111] border gold-border rounded p-4">
@@ -524,7 +523,7 @@
             )}
           </div>
         )}
-
+ 
         <div className="flex flex-col md:flex-row gap-6">
           {/* Catalog */}
           <div className="flex-1">
@@ -539,7 +538,7 @@
                 </button>
               ))}
             </div>
-
+ 
             {displayCategories.map(cat => {
               const catProds = filtered.filter(p => p.category === cat);
               if(catProds.length === 0) return null;
@@ -553,7 +552,7 @@
               );
             })}
           </div>
-
+ 
           {/* Cart */}
           <div className="w-full md:w-80 bg-[#111] p-4 rounded border gold-border h-fit sticky top-4">
             <h2 className="text-lg gold-text mb-4 border-b border-gray-800 pb-2">Your Cart</h2>
@@ -576,7 +575,7 @@
                 </div>
               )
             }
-
+ 
             <div className="border-t border-gray-800 pt-4 space-y-2 text-sm">
               <div className="flex justify-between text-gray-400">
                 <span>Products ({totals.qty}):</span><span>€ {totals.prod.toFixed(2)}</span>
@@ -598,7 +597,7 @@
                 <span>Total Order:</span><span>€ {totals.final.toFixed(2)}</span>
               </div>
             </div>
-
+ 
             <button onClick={onSend} disabled={cart.length === 0}
               className={`w-full mt-6 p-3 rounded font-bold uppercase text-sm transition
                 ${cart.length > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
@@ -609,7 +608,7 @@
       </div>
     );
   }
-
+ 
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(<App />);
 </script>
