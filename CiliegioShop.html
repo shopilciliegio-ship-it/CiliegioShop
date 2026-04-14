@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Il Ciliegio — Shop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { gold: '#D4AF37', dark: '#121212' } } }
+    }
+  </script>
+  <!-- React without JSX: no Babel needed, works on all browsers including iOS Safari -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- htm: JSX-like syntax via tagged template literals, no compilation -->
+  <script src="https://unpkg.com/htm@3/dist/htm.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background:#000; color:#fff; font-family:sans-serif; margin:0; padding:0; }
+    .gold-border { border-color:#D4AF37; }
+    .gold-text   { color:#D4AF37; }
+    .gold-bg     { background-color:#D4AF37; color:#000; }
+    input, select { background:#1a1a1a; color:#fff; border:1px solid #333; outline:none; }
+    input:focus   { border-color:#D4AF37; }
+    input.err-field { border-color:#ef4444 !important; }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:#000; }
+    ::-webkit-scrollbar-thumb { background:#D4AF37; border-radius:4px; }
+    .prod-img          { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:3px; background:#1a1a1a; }
+    .prod-img-fallback { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:1.4rem; background:#1a1a1a; border-radius:3px; }
+    .prod-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+    @media (min-width: 768px) {
+      .prod-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    }
+    @media (min-width: 768px) {
+      .catalog-layout { display:flex; flex-direction:row; gap:16px; align-items:flex-start; }
+      .catalog-col    { flex:1; min-width:0; }
+      .cart-col       { width:288px; flex-shrink:0; position:sticky; top:12px; }
+    }
+    @media (max-width: 767px) {
+      .catalog-page   { height: calc(var(--vh,1vh)*100 - 84px); display:flex; flex-direction:column; }
+      .catalog-layout { flex:1; display:flex; flex-direction:column; min-height:0; }
+      .catalog-col    { flex:1; min-height:0; overflow-y:auto; padding-bottom:4px; }
+      .cart-col       { flex:0 0 38vh; border-top:2px solid #D4AF37; overflow-y:auto; padding-top:6px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  window.CFG = {
+    products: "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/products.json",
+    shipping: "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
+    imgBase:  "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
+    logo:     "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/ciliegio_trasparente.png",
+    whatsapp: "393357655171"
+  };
+  function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01+'px'); }
+  setVh();
+  window.addEventListener('resize', setVh);
+  window.addEventListener('orientationchange', ()=>setTimeout(setVh,200));
+</script>
+<script>
+(function(){
+  const { useState, useEffect, useRef } = React;
+  const html = htm.bind(React.createElement);
+
+  /* ── Constants ── */
+  const COUNTRIES = [
+    {name:'AUSTRALIA',      code:'AU', prefix:'+61',  flag:'🇦🇺'},
+    {name:'AUSTRIA',        code:'AT', prefix:'+43',  flag:'🇦🇹'},
+    {name:'BELGIUM',        code:'BE', prefix:'+32',  flag:'🇧🇪'},
+    {name:'BULGARIA',       code:'BG', prefix:'+359', flag:'🇧🇬'},
+    {name:'CANADA',         code:'CA', prefix:'+1',   flag:'🇨🇦'},
+    {name:'CROATIA',        code:'HR', prefix:'+385', flag:'🇭🇷'},
+    {name:'CYPRUS',         code:'CY', prefix:'+357', flag:'🇨🇾'},
+    {name:'CZECH REPUBLIC', code:'CZ', prefix:'+420', flag:'🇨🇿'},
+    {name:'DENMARK',        code:'DK', prefix:'+45',  flag:'🇩🇰'},
+    {name:'ESTONIA',        code:'EE', prefix:'+372', flag:'🇪🇪'},
+    {name:'FINLAND',        code:'FI', prefix:'+358', flag:'🇫🇮'},
+    {name:'FRANCE',         code:'FR', prefix:'+33',  flag:'🇫🇷'},
+    {name:'GERMANY',        code:'DE', prefix:'+49',  flag:'🇩🇪'},
+    {name:'GREECE',         code:'GR', prefix:'+30',  flag:'🇬🇷'},
+    {name:'HUNGARY',        code:'HU', prefix:'+36',  flag:'🇭🇺'},
+    {name:'IRELAND',        code:'IE', prefix:'+353', flag:'🇮🇪'},
+    {name:'ITALY',          code:'IT', prefix:'+39',  flag:'🇮🇹'},
+    {name:'LATVIA',         code:'LV', prefix:'+371', flag:'🇱🇻'},
+    {name:'LITHUANIA',      code:'LT', prefix:'+370', flag:'🇱🇹'},
+    {name:'LUXEMBOURG',     code:'LU', prefix:'+352', flag:'🇱🇺'},
+    {name:'MALTA',          code:'MT', prefix:'+356', flag:'🇲🇹'},
+    {name:'NETHERLANDS',    code:'NL', prefix:'+31',  flag:'🇳🇱'},
+    {name:'NORWAY',         code:'NO', prefix:'+47',  flag:'🇳🇴'},
+    {name:'POLAND',         code:'PL', prefix:'+48',  flag:'🇵🇱'},
+    {name:'PORTUGAL',       code:'PT', prefix:'+351', flag:'🇵🇹'},
+    {name:'ROMANIA',        code:'RO', prefix:'+40',  flag:'🇷🇴'},
+    {name:'SLOVAKIA',       code:'SK', prefix:'+421', flag:'🇸🇰'},
+    {name:'SLOVENIA',       code:'SI', prefix:'+386', flag:'🇸🇮'},
+    {name:'SPAIN',          code:'ES', prefix:'+34',  flag:'🇪🇸'},
+    {name:'SWEDEN',         code:'SE', prefix:'+46',  flag:'🇸🇪'},
+    {name:'SWITZERLAND',    code:'CH', prefix:'+41',  flag:'🇨🇭'},
+    {name:'UNITED KINGDOM', code:'GB', prefix:'+44',  flag:'🇬🇧'},
+    {name:'UNITED STATES',  code:'US', prefix:'+1',   flag:'🇺🇸'},
+  ];
+  const ZONE_MAP = {
+    GB:'UK',CH:'SWITZERLAND',NO:'NORWAY',
+    DE:'EU_ZONE_1',BE:'EU_ZONE_1',NL:'EU_ZONE_1',LU:'EU_ZONE_1',
+    FR:'EU_ZONE_2',DK:'EU_ZONE_2',AT:'EU_ZONE_2',
+    ES:'EU_ZONE_3',SE:'EU_ZONE_4',PT:'EU_ZONE_4',
+    IE:'EU_ZONE_5',SI:'EU_ZONE_5',
+    FI:'EU_ZONE_6',HR:'EU_ZONE_6',GR:'EU_ZONE_6',
+    CY:'EU_ZONE_7',MT:'EU_ZONE_7',
+    PL:'EU_ZONE_8',CZ:'EU_ZONE_8',SK:'EU_ZONE_8',HU:'EU_ZONE_8',
+    BG:'EU_ZONE_9',EE:'EU_ZONE_9',LV:'EU_ZONE_9',LT:'EU_ZONE_9',RO:'EU_ZONE_9',
+  };
+  const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES','NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
+  const QTY_TIERS   = [3,6,12,18,24,30,36];
+  const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
+  const US_CA_BLOCK = [24,25];
+  const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
+
+  /* ── Helpers ── */
+  function shipRate(obj,qty){
+    if(!obj) return 0;
+    const t=QTY_TIERS.find(t=>qty<=t)||QTY_TIERS[QTY_TIERS.length-1];
+    return parseFloat(obj.rates[String(t)])||0;
+  }
+  function dLabel(key,speed){
+    if(!key) return '';
+    if(key.startsWith('EU_')||['UK','SWITZERLAND','NORWAY'].includes(key)) return 'Delivery within 7 working days';
+    if(speed==='EXPRESS'||key.includes('EXPRESS')) return 'Delivery within 9 working days';
+    return 'Delivery within 20 working days';
+  }
+  function rateKey(code,speed,wine){
+    if(code==='US'){
+      if(wine) return speed==='EXPRESS'?'USA_WINE_EXPRESS':'USA_WINE_STANDARD';
+      return speed==='EXPRESS'?'USA_EXTRA_EXPRESS':'USA_EXTRA_STANDARD';
+    }
+    if(code==='CA') return speed==='EXPRESS'?'CANADA_EXPRESS':'CANADA_STANDARD';
+    return ZONE_MAP[code]||null;
+  }
+  function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
+  function tierLabel(qty){
+    if(qty<=0) return '';
+    const steps=[[1,3],[4,6],[7,12],[13,18],[19,24],[25,30],[31,36]];
+    for(const [lo,hi] of steps) if(qty>=lo&&qty<=hi) return `(${lo}–${hi} pieces)`;
+    return '(31–36 pieces)';
+  }
+
+  /* ── App ── */
+  function App(){
+    const [step,setStep]   = useState(1);
+    const [speed,setSpeed] = useState('STANDARD');
+    const [cart,setCart]   = useState([]);
+    const [prods,setProds] = useState([]);
+    const [ship,setShip]   = useState(null);
+    const [loading,setLoad]= useState(true);
+    const [err,setErr]     = useState('');
+    const [form,setForm]   = useState({...BLANK});
+    const [natTxt,setNat]  = useState('');
+
+    useEffect(()=>{
+      Promise.all([
+        fetch(CFG.products).then(r=>{if(!r.ok)throw 0;return r.json();}),
+        fetch(CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
+      ]).then(([p,s])=>{setProds(p);setShip(s);setLoad(false);})
+        .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
+    },[]);
+
+    const reset=()=>{setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');};
+
+    const qty  = cart.reduce((s,i)=>s+i.qty,0);
+    const prod = cart.reduce((s,i)=>s+i.price*i.qty,0);
+    const wine = cart.some(i=>i.category==='WINE'||i.category==='SPARKLING');
+    const aKey = rateKey(form.natCode,speed,wine);
+    const aRate= ship&&aKey?ship[aKey]:null;
+    const sc   = qty>0&&aRate?shipRate(aRate,qty):0;
+    const duty = aKey&&aKey.startsWith('USA_WINE')?prod*0.1:0;
+    const total= prod+sc+duty;
+    const dl   = dLabel(aKey,speed);
+    const spSel= ['US','CA'].includes(form.natCode);
+    const totals={qty,prod,ship:sc,duty,final:total};
+
+    const sendWA=()=>{
+      const em=`${form.emailUser}@${form.emailDomain}`;
+      let m=`*NEW ORDER*%0A%0A*CUSTOMER:*%0A${form.name} ${form.surname}%0A`;
+      m+=`Nationality: ${form.nationality}%0AEmail: ${em}%0APhone: ${form.mobile}%0A`;
+      m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}%0A`;
+      m+=`%0A*PRODUCTS:*%0A`;
+      cart.forEach(c=>{m+=`- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`;});
+      m+=`%0AProducts Total: €${prod.toFixed(2)}`;
+      if(duty>0) m+=`%0AImport Duties (10%): €${duty.toFixed(2)}`;
+      m+=`%0AShipping (${aRate?aRate.label:'N/A - to be quoted'}): €${sc.toFixed(2)}%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
+      window.open(`https://wa.me/${CFG.whatsapp}?text=${m}`,'_blank');
+    };
+
+    if(loading) return html`
+      <div class="min-h-screen bg-black flex items-center justify-center">
+        <div class="text-center">
+          <div style="font-size:3rem" class="animate-pulse">🍷</div>
+          <p class="gold-text tracking-widest text-sm uppercase mt-4">Loading catalog…</p>
+        </div>
+      </div>`;
+    if(err) return html`
+      <div class="min-h-screen bg-black flex items-center justify-center p-8">
+        <div class="text-center">
+          <div style="font-size:2rem">⚠️</div>
+          <p class="gold-text text-lg mt-3">Configuration Error</p>
+          <p class="text-gray-400 text-sm mt-2">${err}</p>
+        </div>
+      </div>`;
+
+    return html`
+      <div class="min-h-screen bg-black text-white" style=${{padding:step===3?'8px':'16px 16px 32px'}}>
+        <div class="w-full" style=${{maxWidth:step===3?'100%':'768px',margin:'0 auto'}}>
+          <div class="relative text-center mb-4 flex flex-col items-center">
+            <button onClick=${reset} class="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
+              ⌂ Home
+            </button>
+            <${LogoImg}/>
+          </div>
+          ${step===1 && html`<${FormStep} form=${form} setForm=${setForm} natTxt=${natTxt} setNat=${setNat} onNext=${()=>setStep(2)}/>`}
+          ${step===2 && html`<${SummaryStep} form=${form} onEdit=${()=>setStep(1)} onConfirm=${()=>setStep(3)}/>`}
+          ${step===3 && html`<${CatalogStep} products=${prods} cart=${cart} setCart=${setCart}
+            speed=${speed} setSpeed=${setSpeed} spSel=${spSel}
+            aRate=${aRate} hasDuty=${duty>0} dl=${dl}
+            totals=${totals} onSend=${sendWA} natCode=${form.natCode} province=${form.province}/>`}
+        </div>
+      </div>`;
+  }
+
+  /* ── LogoImg ── */
+  function LogoImg(){
+    const [err,setErr]=useState(false);
+    if(err) return html`<h1 class="text-2xl font-bold gold-text tracking-widest">IL CILIEGIO</h1>`;
+    return html`<img src=${CFG.logo} alt="Il Ciliegio" class="object-contain" style="height:64px" onError=${()=>setErr(true)}/>`;
+  }
+
+  /* ── FormStep ── */
+  function FormStep({form,setForm,natTxt,setNat,onNext}){
+    const [showNat,setShowNat]=useState(false);
+    const [domErr,setDomErr]=useState(false);
+    const nations=COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
+
+    const pickCountry=c=>{
+      setForm({...BLANK,nationality:c.name,natCode:c.code,mobile:c.prefix+' '});
+      setNat(c.name); setShowNat(false);
+    };
+    const onZipBlur=async e=>{
+      const z=e.target.value.trim(); if(!z||!form.natCode) return;
+      const code=form.natCode==='GB'?'gb':form.natCode.toLowerCase();
+      try{
+        const r=await fetch(`https://api.zippopotam.us/${code}/${z}`);
+        if(r.ok){const d=await r.json();const p=d.places[0];
+          setForm(f=>({...f,city:p['place name'].toUpperCase(),state:p['state'].toUpperCase(),province:p['state abbreviation'].toUpperCase()}));
+        }
+      }catch(_){}
+    };
+    const ok=form.nationality&&form.name&&form.surname&&form.address&&
+      form.zip&&form.city&&form.province&&form.state&&
+      form.mobile&&form.emailUser&&form.emailDomain&&validDomain(form.emailDomain);
+
+    const inp=(field,opts={})=>html`
+      <input class="w-full p-3 rounded ${opts.lower?'lowercase':'uppercase'} ${opts.err?'err-field':''}"
+        type="text" value=${form[field]}
+        placeholder=${opts.placeholder||''}
+        onBlur=${opts.onBlur||null}
+        onChange=${e=>setForm(f=>({...f,[field]:opts.lower?e.target.value.replace(/\s/g,'').toLowerCase():e.target.value.toUpperCase()}))}/>`;
+
+    return html`
+      <div class="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+        <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between border-b border-[#D4AF37] pb-2 mb-5 gap-1">
+          <h2 class="text-xl gold-text">Customer Registration</h2>
+          <span class="text-xs gold-text italic" style="opacity:.7">all fields are required</span>
+        </div>
+        <div class="space-y-4">
+
+          <div class="relative">
+            <label class="block text-xs text-gray-400 mb-1">Nationality</label>
+            <input class="w-full p-3 rounded uppercase" type="text" placeholder="Start typing country name…"
+              value=${natTxt} onFocus=${()=>setShowNat(true)}
+              onChange=${e=>{const v=e.target.value.toUpperCase();setNat(v);if(form.nationality&&v!==form.nationality)setForm(f=>({...f,nationality:'',natCode:''}));}}/>
+            ${showNat&&natTxt&&!form.nationality&&html`
+              <div class="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded overflow-y-auto" style="max-height:176px">
+                ${nations.length>0?nations.map(c=>html`
+                  <div key=${c.code} class="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase text-sm"
+                    onClick=${()=>pickCountry(c)}>${c.flag} ${c.name} (${c.code})</div>
+                `):html`<div class="p-3 text-gray-500 text-sm">No country found…</div>`}
+              </div>`}
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">ZIP Code <span class="text-gray-600 italic text-xs">(auto-fills city & region)</span></label>
+            ${inp('zip',{onBlur:onZipBlur,placeholder:form.natCode?'Enter ZIP…':'Select nationality first'})}
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs text-gray-400 mb-1">First Name</label>${inp('name')}</div>
+            <div><label class="block text-xs text-gray-400 mb-1">Last Name</label>${inp('surname')}</div>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Full Address</label>
+            ${inp('address',{placeholder:'Street, number…'})}
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">City</label>
+            ${inp('city')}
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs text-gray-400 mb-1">Province / County</label>${inp('province')}</div>
+            <div><label class="block text-xs text-gray-400 mb-1">State / Region</label>${inp('state')}</div>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Mobile Number</label>
+            <input class="w-full p-3 rounded" type="text" placeholder="+1 234 567 8900" value=${form.mobile}
+              onChange=${e=>setForm(f=>({...f,mobile:e.target.value.replace(/[^\d+\s]/g,'')}))}/>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Email Address</label>
+            <div class="flex w-full items-center gap-2">
+              <input type="text" class="min-w-0 flex-1 p-3 rounded text-right lowercase"
+                placeholder="username" value=${form.emailUser}
+                onChange=${e=>setForm(f=>({...f,emailUser:e.target.value.replace(/\s/g,'').toLowerCase()}))}/>
+              <span class="gold-text font-bold text-xl shrink-0">@</span>
+              <input type="text" class=${'min-w-0 flex-1 p-3 rounded lowercase'+(domErr?' err-field':'')}
+                placeholder="provider.com" value=${form.emailDomain}
+                onChange=${e=>{setDomErr(false);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
+                onBlur=${e=>{const v=e.target.value.trim();setDomErr(v!==''&&!validDomain(v));}}/>
+            </div>
+            ${domErr&&html`<p class="text-xs text-red-400 mt-1">⚠️ Use format: gmail.com or provider.it</p>`}
+          </div>
+        </div>
+
+        <button onClick=${onNext} disabled=${!ok}
+          class=${'w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all '+(ok?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed')}>
+          Continue to Summary
+        </button>
+      </div>`;
+  }
+
+  /* ── SummaryStep ── */
+  function SummaryStep({form,onEdit,onConfirm}){
+    const rows=[
+      ['Customer',`${form.name} ${form.surname}`],
+      ['Nationality',form.nationality],
+      ['Email',`${form.emailUser}@${form.emailDomain}`],
+      ['Phone',form.mobile],
+      ['Address',html`${form.address}<br/>${form.zip} ${form.city} (${form.province})<br/>${form.state}`],
+    ];
+    return html`
+      <div class="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+        <h2 class="text-xl gold-text mb-5 border-b border-[#D4AF37] pb-2 text-center">Data Summary</h2>
+        <div class="space-y-3 text-sm">
+          ${rows.map(([l,v],i)=>html`
+            <div key=${i} class="flex justify-between border-b border-gray-800 pb-2">
+              <span class="text-gray-400">${l}:</span>
+              <span class="font-bold text-right">${v}</span>
+            </div>`)}
+        </div>
+        <div class="flex gap-4 mt-8">
+          <button onClick=${onEdit} class="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">Edit</button>
+          <button onClick=${onConfirm} class="flex-1 p-4 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">Confirm & Go to Catalog</button>
+        </div>
+      </div>`;
+  }
+
+  /* ── ProductCard ── */
+  function ProductCard({p,onAdd}){
+    const [imgErr,setImgErr]=useState(false);
+    const src=p.img?CFG.imgBase+p.img:null;
+    return html`
+      <div class="bg-dark rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col gap-1 transition-all overflow-hidden" style="padding:6px">
+        ${src&&!imgErr
+          ?html`<img src=${src} alt=${p.name} class="prod-img" onError=${()=>setImgErr(true)}/>`
+          :html`<div class="prod-img-fallback">🍷</div>`}
+        <p class="font-bold leading-tight text-gray-200" style="font-size:10px;line-height:1.2">${p.name}</p>
+        <p class="gold-text font-bold" style="font-size:11px">€${p.price.toFixed(2)}</p>
+        <button onClick=${()=>onAdd(p)}
+          class="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
+          style="font-size:10px;padding:3px 0">+ Add</button>
+      </div>`;
+  }
+
+  /* ── CartPanel ── */
+  function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate}){
+    return html`
+      <div class="flex flex-col gap-2" style="height:100%">
+
+        ${noRate&&html`
+          <div class="bg-yellow-950 border border-yellow-700 rounded p-2 shrink-0">
+            <p class="text-yellow-300 font-bold" style="font-size:10px">⚠️ We are not sure we can ship to your country.</p>
+            <p class="text-yellow-500 mt-1" style="font-size:9px">Please complete your order. We will contact you via email with a shipping quote.</p>
+          </div>`}
+
+        ${spSel&&html`
+          <div class="border border-gray-700 rounded px-2 py-1 shrink-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-gray-500 uppercase shrink-0" style="font-size:9px">Ship:</span>
+              ${['STANDARD','EXPRESS'].map(o=>html`
+                <button key=${o} onClick=${()=>setSpeed(o)}
+                  class=${'px-2 rounded border font-bold uppercase transition shrink-0 '+(speed===o?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]')}
+                  style="font-size:10px;padding:2px 6px">${o}</button>`)}
+              ${dl&&html`<span class="gold-text font-bold" style="font-size:10px">${dl}</span>`}
+            </div>
+          </div>`}
+
+        ${!spSel&&dl&&html`
+          <div class="shrink-0">
+            <span class="gold-text font-bold" style="font-size:10px">⏱ ${dl}</span>
+          </div>`}
+
+        <div class="flex-1 overflow-y-auto space-y-1 min-h-0">
+          ${cart.length===0
+            ?html`<p class="text-gray-500 italic text-center py-4" style="font-size:12px">Cart is empty</p>`
+            :cart.map(c=>html`
+              <div key=${c.id} class="flex items-center bg-black rounded px-2 py-1 gap-2">
+                <div class="flex-1 min-w-0">
+                  <p class="font-bold text-gray-200 truncate" style="font-size:10px">${c.name}</p>
+                  <p class="text-gray-400" style="font-size:10px">
+                    €${c.price.toFixed(2)} ×${c.qty} = <span class="text-gray-300">€${(c.price*c.qty).toFixed(2)}</span>
+                  </p>
+                </div>
+                <div class="flex gap-1 shrink-0">
+                  <button onClick=${()=>removeItem(c.id)} class="w-6 h-6 bg-gray-800 rounded hover:bg-red-700 font-bold text-sm">−</button>
+                  <button onClick=${()=>addItem(c)} class="w-6 h-6 gold-bg rounded font-bold text-sm">+</button>
+                </div>
+              </div>`)}
+        </div>
+
+        <div class="border-t border-gray-800 pt-2 shrink-0" style="font-size:11px">
+          <div class="flex justify-between text-gray-400">
+            <span>Products (${totals.qty}):</span><span>€${totals.prod.toFixed(2)}</span>
+          </div>
+          ${hasDuty&&html`
+            <div class="flex justify-between text-gray-400">
+              <span>Duties 10%:</span><span>€${totals.duty.toFixed(2)}</span>
+            </div>`}
+          <div class="flex justify-between text-gray-400">
+            <span>Shipping:</span>
+            <span class="text-white">
+              <span class="text-gray-300 mr-1" style="font-size:10px">${tierLabel(totals.qty)}</span>
+              €${totals.ship.toFixed(2)}
+            </span>
+          </div>
+          <div class="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style="font-size:13px">
+            <span>TOTAL:</span><span>€${totals.final.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <button onClick=${onSend} disabled=${cart.length===0}
+          class=${'w-full rounded font-bold uppercase transition shrink-0 '+(cart.length>0?'bg-green-600 hover:bg-green-500 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed')}
+          style="font-size:12px;padding:8px 0">
+          📲 Send Order via WhatsApp
+        </button>
+      </div>`;
+  }
+
+  /* ── CatalogStep ── */
+  function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,aRate,hasDuty,dl,totals,onSend,natCode,province}){
+    const [tab,setTab]        =useState('ALL');
+    const [cartErr,setCartErr]=useState('');
+
+    const isUSCA=(['US','CA'].includes(natCode));
+    const isCA  =(natCode==='CA');
+    const caBlock=isCA&&province&&CA_NO_WINE.some(p=>province.toUpperCase().includes(p));
+
+    const avail   =isUSCA?products.filter(p=>p.category!=='DISTILLATES'&&!US_CA_BLOCK.includes(p.id)):products;
+    const visCats =isUSCA?CATEGORIES.filter(c=>c!=='DISTILLATES'):CATEGORIES;
+    const tabs    =['ALL',...visCats];
+    const filtered=tab==='ALL'?avail:avail.filter(p=>p.category===tab);
+    const dCats   =tab==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tab];
+
+    const addItem=prod=>{
+      setCartErr('');
+      const curQty=cart.reduce((s,i)=>s+i.qty,0);
+      if(curQty>=36){setCartErr('⚠️ Maximum 36 items per order.');return;}
+      if(isCA){
+        const isAlc=c=>c==='WINE'||c==='SPARKLING';
+        const iA=isAlc(prod.category);
+        const hasAlc=cart.some(i=>isAlc(i.category));
+        const hasOth=cart.some(i=>!isAlc(i.category));
+        if(iA&&hasOth){setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products.');return;}
+        if(!iA&&hasAlc){setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products.');return;}
+        if(iA&&caBlock){setCartErr(`🚫 Wine/Sparkling cannot be shipped to ${province}.`);return;}
+      }
+      setCart(prev=>{
+        const ex=prev.find(p=>p.id===prod.id);
+        if(ex) return prev.map(p=>p.id===prod.id?{...p,qty:p.qty+1}:p);
+        return [...prev,{...prod,qty:1}];
+      });
+    };
+    const removeItem=id=>{setCartErr('');setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));};
+    const noRate=totals.qty>0&&!aRate;
+    const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate};
+
+    return html`
+      <div class="catalog-page">
+        ${cartErr&&html`<div class="bg-red-950 border border-red-700 rounded p-2 text-xs text-red-300 shrink-0 mb-1">${cartErr}</div>`}
+        <div class="catalog-layout">
+          <div class="catalog-col">
+            <div class="flex gap-1 flex-wrap mb-2">
+              ${tabs.map(t=>html`
+                <button key=${t} onClick=${()=>setTab(t)}
+                  class=${'px-2 py-1 rounded font-bold uppercase border transition '+(tab===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]')}
+                  style="font-size:10px">${t}</button>`)}
+            </div>
+            ${dCats.map(cat=>{
+              const ps=filtered.filter(p=>p.category===cat);
+              if(!ps.length) return null;
+              return html`
+                <div key=${cat} class="mb-4">
+                  <h2 class="font-bold gold-text border-b border-gray-800 pb-1 mb-2" style="font-size:13px">${cat}</h2>
+                  ${isUSCA&&cat==='EVO OIL'&&html`<p class="text-yellow-600 mb-1" style="font-size:10px">⚠️ Large formats (3L/5L) not available for US/Canada.</p>`}
+                  <div class="grid gap-2 prod-grid">
+                    ${ps.map(p=>html`<${ProductCard} key=${p.id} p=${p} onAdd=${addItem}/>`)}
+                  </div>
+                </div>`;
+            })}
+          </div>
+          <div class="cart-col bg-[#111] rounded border gold-border" style="padding:8px">
+            <h2 class="gold-text font-bold border-b border-gray-800 pb-1 mb-2" style="font-size:13px">🛒 Cart</h2>
+            <${CartPanel} ...${panelProps}/>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+})();
+</script>
+</body>
+</html>
