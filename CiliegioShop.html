@@ -190,12 +190,15 @@ function App(){
   const aKey  = rateKey(form.natCode,speed,wine);
   const aRate = ship&&aKey?ship[aKey]:null;
   const sc    = qty>0&&aRate?shipRate(aRate,qty):0;
-  const duty     = aKey&&aKey.startsWith('USA_WINE')?prod*0.1:0;
-  const discount = qty>=12 ? prod*0.05 : 0;
-  const total    = prod - discount + sc + duty;
+  const discount      = qty>=12 ? prod*0.05 : 0;
+  const discounted    = prod - discount;
+  const italyFree     = form.natCode==='IT' && discounted>100;
+  const effectiveSc   = italyFree ? 0 : sc;
+  const duty          = aKey&&aKey.startsWith('USA_WINE')?discounted*0.1:0;
+  const total         = discounted + effectiveSc + duty;
   const dl    = dLabel(aKey,speed);
   const spSel = ['US','CA'].includes(form.natCode);
-  const totals= {qty,prod,ship:sc,duty,discount,final:total};
+  const totals= {qty,prod,discount,ship:effectiveSc,duty,final:total};
 
   const sendWA=()=>{
     const em=`${form.emailUser}@${form.emailDomain}`;
@@ -433,7 +436,9 @@ function ProductCard({p,onAdd}){
 }
 
 /* ── CartPanel ─────────────────────────────────────────────── */
-function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate}){
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate,natCode}){
+  // Italy: free shipping if (products - discount) > €100
+  const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
     <div className="flex flex-col gap-2" style={{height:'100%'}}>
 
@@ -490,7 +495,9 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
         <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prod.toFixed(2)}</span></div>
         {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>Discount (5%):</span><span>-€{totals.discount.toFixed(2)}</span></div>}
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
-        <div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span></div>
+        {italyFreeShip
+          ? <div className="flex justify-between" style={{color:'#4ade80'}}><span>Shipping:</span><span>Free shipping for orders over €100 🎉</span></div>
+          : <div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span></div>}
         {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate for this country — you will be contacted via email.</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
@@ -561,7 +568,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   };
   const removeItem=(id)=>{setCartErr('');setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));};
 
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate};
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
 
   return(
     <div className="catalog-page">
