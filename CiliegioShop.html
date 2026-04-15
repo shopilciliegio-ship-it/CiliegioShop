@@ -172,6 +172,8 @@ function App(){
   const [err,setErr]      = useState('');
   const [form,setForm]    = useState({...BLANK});
   const [natTxt,setNat]   = useState('');
+  const [giftChoice,setGiftChoice] = useState(null); // null=not asked, true=yes, false=no
+  const [showGiftPopup,setShowGiftPopup] = useState(false);
 
   useEffect(()=>{
     Promise.all([
@@ -181,7 +183,7 @@ function App(){
       .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
   },[]);
 
-  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat(''); };
+  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');setGiftChoice(null);setShowGiftPopup(false); };
 
   const qty   = cart.reduce((s,i)=>s+i.qty,0);
   const prod  = cart.reduce((s,i)=>s+i.price*i.qty,0);
@@ -190,7 +192,8 @@ function App(){
   const aKey  = rateKey(form.natCode,speed,wine);
   const aRate = ship&&aKey?ship[aKey]:null;
   const sc    = qty>0&&aRate?shipRate(aRate,qty):0;
-  const discount      = qty>=12 ? prod*0.05 : 0;
+  const giftActive  = giftChoice===true;
+  const discount      = (!giftActive && qty>=12) ? prod*0.05 : 0;
   const discounted    = prod - discount;
   const italyFree     = form.natCode==='IT' && discounted>100;
   const effectiveSc   = italyFree ? 0 : sc;
@@ -246,7 +249,9 @@ function App(){
         {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
-          totals={totals} onSend={sendWA} natCode={form.natCode} province={form.province}/>}
+          totals={totals} onSend={sendWA} natCode={form.natCode} province={form.province}
+          giftChoice={giftChoice} setGiftChoice={setGiftChoice}
+          showGiftPopup={showGiftPopup} setShowGiftPopup={setShowGiftPopup}/>}
       </div>
     </div>
   );
@@ -437,7 +442,6 @@ function ProductCard({p,onAdd}){
 
 /* ── CartPanel ─────────────────────────────────────────────── */
 function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate,natCode}){
-  // Italy: free shipping if (products - discount) > €100
   const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
     <div className="flex flex-col gap-2" style={{height:'100%'}}>
@@ -496,8 +500,8 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
         {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>Discount (5%):</span><span>-€{totals.discount.toFixed(2)}</span></div>}
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
         {italyFreeShip
-          ? <div className="flex justify-between" style={{color:'#4ade80'}}><span>Shipping:</span><span>Free shipping for orders over €100 🎉</span></div>
-          : <div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span></div>}
+          ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>Shipping:</span><span>🎉 Free over €100</span></div>
+          :<div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span></div>}
         {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate for this country — you will be contacted via email.</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
@@ -515,9 +519,46 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
   );
 }
 
+
+/* ── GiftPopup ─────────────────────────────────────────────── */
+function GiftPopup({products,onYes,onNo}){
+  const giftProd = products.find(p=>p.id===5);
+  const imgSrc = giftProd ? window.CFG.imgBase + giftProd.img : null;
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'340px',width:'100%',padding:'24px',textAlign:'center'}}>
+        <div className="gold-text font-bold mb-3" style={{fontSize:'14px'}}>🎁 Special Gift!</div>
+        <p className="text-white mb-4" style={{fontSize:'13px',lineHeight:'1.5'}}>
+          Would you like to receive a free bottle of<br/>
+          <span className="gold-text font-bold">Chianti Gran Fondo "Strade Bianche"</span><br/>
+          Limited Edition 2025 with your order?
+        </p>
+        {imgSrc && <img src={imgSrc} alt="Chianti Gran Fondo" style={{width:'120px',height:'120px',objectFit:'cover',borderRadius:'8px',margin:'0 auto 16px',display:'block'}}/>}
+        <p className="text-gray-400 mb-5" style={{fontSize:'11px'}}>
+          If you accept the gift, the 5% discount on 12+ items will not apply.<br/>
+          Every 11 items, one free bottle will be added automatically.
+        </p>
+        <div style={{display:'flex',gap:'12px'}}>
+          <button onClick={onNo}
+            className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
+            style={{fontSize:'12px'}}>
+            No thanks
+          </button>
+          <button onClick={onYes}
+            className="flex-1 p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
+            style={{fontSize:'12px'}}>
+            Yes, please! 🎉
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
-  aRate,aKey,hasDuty,dl,totals,onSend,natCode,province}){
+  aRate,aKey,hasDuty,dl,totals,onSend,natCode,province,
+  giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
 
   const [tab,setTab]         = useState('ALL');
   const [cartErr,setCartErr] = useState('');
@@ -565,13 +606,38 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
       if(ex) return prev.map(p=>p.id===prod.id?{...p,qty:p.qty+1}:p);
       return [...prev,{...prod,qty:1}];
     });
+    // After adding, check new qty
+    const newQty = currentQty + 1;
+    if(giftChoice===null && newQty===11) {
+      // First time hitting 11: show popup
+      setShowGiftPopup(true);
+    } else if(giftChoice===true && newQty>11 && (newQty-1)%11===0) {
+      // Gift accepted: auto-add gift every 11 items (22, 33...)
+      }
   };
   const removeItem=(id)=>{setCartErr('');setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));};
 
   const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
 
+  const handleGiftYes = () => {
+    setGiftChoice(true);
+    setShowGiftPopup(false);
+    // Add gift product ID=5
+    const giftProd = products.find(p=>p.id===5);
+    if(giftProd) setCart(prev=>{
+      const ex=prev.find(p=>p.id===5);
+      if(ex) return prev.map(p=>p.id===5?{...p,qty:p.qty+1}:p);
+      return [...prev,{...giftProd,qty:1}];
+    });
+  };
+  const handleGiftNo = () => {
+    setGiftChoice(false);
+    setShowGiftPopup(false);
+  };
+
   return(
     <div className="catalog-page">
+      {showGiftPopup && <GiftPopup products={products} onYes={handleGiftYes} onNo={handleGiftNo}/>}
       {cartErr&&<div className="bg-red-950 border border-red-700 rounded p-2 text-xs text-red-300 shrink-0 mb-1">{cartErr}</div>}
 
       <div className="catalog-layout">
