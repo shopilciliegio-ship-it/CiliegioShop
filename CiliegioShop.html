@@ -109,8 +109,7 @@ const COUNTRIES = [
 ];
 
 const ZONE_MAP = {
-  GB:'UK',CH:'SWITZERLAND',NO:'NORWAY',
-  IT:'ITALY',
+  IT:'ITALIA',GB:'UK',CH:'SWITZERLAND',NO:'NORWAY',
   DE:'EU_ZONE_1',BE:'EU_ZONE_1',NL:'EU_ZONE_1',LU:'EU_ZONE_1',
   FR:'EU_ZONE_2',DK:'EU_ZONE_2',AT:'EU_ZONE_2',
   ES:'EU_ZONE_3',SE:'EU_ZONE_4',PT:'EU_ZONE_4',
@@ -138,8 +137,7 @@ function shipRate(obj,qty){
 }
 function dLabel(key,speed){
   if(!key) return '';
-  if(key==='ITALY') return 'Delivery within 3 working days';
-  if(key.startsWith('EU_')||['UK','SWITZERLAND','NORWAY'].includes(key)) return 'Delivery within 7 working days';
+  if(key.startsWith('EU_')||['UK','SWITZERLAND','NORWAY','ITALIA'].includes(key)) return 'Delivery within 7 working days';
   if(speed==='EXPRESS'||key.includes('EXPRESS')) return 'Delivery within 9 working days';
   return 'Delivery within 20 working days';
 }
@@ -186,24 +184,18 @@ function App(){
   const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat(''); };
 
   const qty   = cart.reduce((s,i)=>s+i.qty,0);
-  const prodRaw = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  // Italy: 5% discount
-  const isItaly = form.natCode==='IT';
-  const discount = isItaly ? prodRaw*0.05 : 0;
-  const prod = prodRaw - discount;
+  const prod  = cart.reduce((s,i)=>s+i.price*i.qty,0);
   // Vino O Sparkling → listino USA_WINE (con dazi)
   const wine  = cart.some(i=>i.category==='WINE'||i.category==='SPARKLING');
   const aKey  = rateKey(form.natCode,speed,wine);
   const aRate = ship&&aKey?ship[aKey]:null;
-  const scRaw = qty>0&&aRate?shipRate(aRate,qty):0;
-  // Italy: free shipping if prod (after discount) >= 100
-  const sc    = (isItaly && prod>=100) ? 0 : scRaw;
-  const freeShip = isItaly && prod>=100;
-  const duty  = aKey&&aKey.startsWith('USA_WINE')?prod*0.1:0;
-  const total = prod+sc+duty;
+  const sc    = qty>0&&aRate?shipRate(aRate,qty):0;
+  const duty     = aKey&&aKey.startsWith('USA_WINE')?prod*0.1:0;
+  const discount = qty>=12 ? prod*0.05 : 0;
+  const total    = prod - discount + sc + duty;
   const dl    = dLabel(aKey,speed);
   const spSel = ['US','CA'].includes(form.natCode);
-  const totals= {qty,prodRaw,discount,prod,ship:sc,freeShip,duty,final:total};
+  const totals= {qty,prod,ship:sc,duty,discount,final:total};
 
   const sendWA=()=>{
     const em=`${form.emailUser}@${form.emailDomain}`;
@@ -212,24 +204,10 @@ function App(){
     m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}%0A`;
     m+=`%0A*PRODUCTS:*%0A`;
     cart.forEach(c=>{m+=`- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`;});
-    m+=`%0AProducts Total: €${prodRaw.toFixed(2)}`;
-    if(discount>0) m+=`%0ADiscount (5%): -€${discount.toFixed(2)}`;
+    m+=`%0AProducts Total: €${prod.toFixed(2)}`;
     if(duty>0) m+=`%0AImport Duties (10%): €${duty.toFixed(2)}`;
-    m+=`%0AShipping (${aRate?aRate.label:(freeShip?'FREE':'N/A')}): €${sc.toFixed(2)}`;
-    m+=`%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
+    m+=`%0AShipping (${aRate?aRate.label:'N/A'}): €${sc.toFixed(2)}%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
     window.open(`https://wa.me/${window.CFG.whatsapp}?text=${m}`,'_blank');
-    // Email reminder to customer
-    setTimeout(()=>{
-      const sub=encodeURIComponent('Your order from Il Ciliegio');
-      let body=`Dear ${form.name} ${form.surname},%0A%0AThank you for your order!%0A%0AORDER SUMMARY:%0A`;
-      cart.forEach(c=>{body+=`- ${c.qty}x ${c.name} @ €${c.price.toFixed(2)} = €${(c.price*c.qty).toFixed(2)}%0A`;});
-      body+=`%0AProducts: €${prodRaw.toFixed(2)}`;
-      if(discount>0) body+=`%0ADiscount 5%: -€${discount.toFixed(2)}`;
-      if(duty>0) body+=`%0ADuties 10%: €${duty.toFixed(2)}`;
-      body+=`%0AShipping: €${sc.toFixed(2)}`;
-      body+=`%0A%0ATOTAL: €${total.toFixed(2)}%0A%0AWe will process your order shortly.%0A%0AIl Ciliegio Team`;
-      window.open(`mailto:${em}?subject=${sub}&body=${body}`,'_blank');
-    },1500);
   };
 
   if(loading) return(
@@ -455,18 +433,14 @@ function ProductCard({p,onAdd}){
 }
 
 /* ── CartPanel ─────────────────────────────────────────────── */
-function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate,freeShip}){
-  const [warnDismissed,setWarnDismissed] = useState(false);
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate}){
   return(
     <div className="flex flex-col gap-2" style={{height:'100%'}}>
 
-      {/* Avviso paese non coperto — con X per chiudere */}
-      {noRate&&!warnDismissed&&(
-        <div className="bg-yellow-950 border border-yellow-700 rounded p-2 shrink-0 relative">
-          <button onClick={()=>setWarnDismissed(true)}
-            className="absolute top-1 right-1 text-yellow-500 hover:text-yellow-200 font-bold leading-none"
-            style={{fontSize:'14px',lineHeight:'1',padding:'2px 4px'}}>✕</button>
-          <p className="text-yellow-300 font-bold pr-5" style={{fontSize:'10px'}}>⚠️ We are not sure we can ship to your country.</p>
+      {/* Avviso paese non coperto */}
+      {noRate&&(
+        <div className="bg-yellow-950 border border-yellow-700 rounded p-2 shrink-0">
+          <p className="text-yellow-300 font-bold" style={{fontSize:'10px'}}>⚠️ We are not sure we can ship to your country.</p>
           <p className="text-yellow-500 mt-1" style={{fontSize:'9px'}}>Please complete your order anyway. We will contact you via email as soon as possible with a shipping quote.</p>
         </div>)}
 
@@ -513,15 +487,11 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
 
       {/* Totals */}
       <div className="border-t border-gray-800 pt-2 shrink-0" style={{fontSize:'11px'}}>
-        <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prodRaw.toFixed(2)}</span></div>
-        {totals.discount>0&&<div className="flex justify-between text-green-400"><span>Discount (5%):</span><span>-€{totals.discount.toFixed(2)}</span></div>}
+        <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prod.toFixed(2)}</span></div>
+        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>Discount (5%):</span><span>-€{totals.discount.toFixed(2)}</span></div>}
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
-        <div className="flex justify-between text-gray-400"><span>Shipping:</span>
-          {totals.freeShip
-            ?<span className="text-green-400 font-bold">FREE 🎉</span>
-            :<span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span>}
-        </div>
-        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate — you will be contacted via email.</p>}
+        <div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span></div>
+        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate for this country — you will be contacted via email.</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
         </div>
@@ -555,17 +525,17 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const filtered= tab==='ALL'?avail:avail.filter(p=>p.category===tab);
   const dCats   = tab==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tab];
 
-  const isIT   = natCode==='IT';
-  const maxQty = isIT ? 18 : 36;
-
   const addItem=(prod)=>{
     setCartErr('');
+    // Max 36 articoli totali
     const currentQty=cart.reduce((s,i)=>s+i.qty,0);
-    if(currentQty>=maxQty){
-      setCartErr(`⚠️ Maximum ${maxQty} items per order for this destination.`);
+    const maxItems=natCode==='IT'?18:36;
+    if(currentQty>=maxItems){
+      setCartErr(natCode==='IT'?'⚠️ Maximum 18 items per order for Italy.':'⚠️ Maximum 36 items per order.');
       return;
     }
     if(isCA){
+      // WINE e SPARKLING sono "alcolici": possono stare assieme ma non con altre categorie
       const isAlc  = c => c==='WINE'||c==='SPARKLING';
       const iA     = isAlc(prod.category);
       const hasAlc = cart.some(i=>isAlc(i.category));
@@ -591,7 +561,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   };
   const removeItem=(id)=>{setCartErr('');setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));};
 
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,freeShip:totals.freeShip};
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate};
 
   return(
     <div className="catalog-page">
