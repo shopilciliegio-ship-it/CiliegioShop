@@ -276,5 +276,17 @@
       "30": 177.00,
       "36": 205.00
     }
+  },
+
+  "ITALIA": {
+    "label": "Italia - Gratis oltre 100 €",
+    "applies_to": "Italia",
+    "countries": ["IT"],
+    "rates": {
+      "3":  10.00,
+      "6":  12.00,
+      "12": 14.00,
+      "18": 16.00
+    }
   }
 }
