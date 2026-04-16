@@ -1,6 +1,6 @@
-Privacy Notice provided pursuant to Articles 13–14 of the GDPR 2016/679 (General Data Protection Regulation)
-
-Dear Madam/Sir
+{
+  "text": "Privacy Notice provided pursuant to Articles 13–14 of the GDPR 2016/679 (General Data Protection Regulation)
+\n\nDear Madam/Sir
 Pursuant to Article 13 of EU Regulation 2016/679 and in relation to the information we will collect, for the purpose of
 protecting individuals and other entities with regard to the processing of personal data, we hereby inform you of the following:
 1. The data you provide will be used for the purpose of PROCESSING AN ORDER
@@ -22,8 +22,8 @@ h) request from the data controller access to personal data and the rectificatio
 of processing concerning the data subject or to object to their processing, in addition to the right to data portability;
 i) withdraw consent at any time without affecting the lawfulness of processing based on consent given
 prior to withdrawal;
-j) lodge a complaint with a supervisory authority.
-
-You may exercise your rights by sending a written request via email to shop@ilciliegio.com
+j) lodge a complaint with a supervisory authority.\n\nYou may exercise your rights by sending a written request via email to shop@ilciliegio.com
 I, the undersigned, declare that I have received and accept the above privacy notice.
 If you do not accept, please do not fill out the form and do not proceed with the order.
+"
+}

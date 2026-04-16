@@ -59,6 +59,7 @@
     products : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/products.json",
     shipping : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
     imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
+    privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
     whatsapp : "393357655171"
   };
   // Fix iOS Safari: imposta --vh come 1% dell'altezza visibile reale
@@ -179,11 +180,12 @@ function App(){
     Promise.all([
       fetch(window.CFG.products).then(r=>{if(!r.ok)throw 0;return r.json();}),
       fetch(window.CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
-    ]).then(([p,s])=>{setProds(p);setShip(s);setLoad(false);})
+      fetch(window.CFG.privacy).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]).then(([p,s,prv])=>{setProds(p);setShip(s);if(prv&&prv.text)setPrivacyText(prv.text);setLoad(false);})
       .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
   },[]);
 
-  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');setGiftChoice(null);setShowGiftPopup(false); };
+  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');setGiftChoice(null);setShowGiftPopup(false);setShowPrivacy(false); };
 
   const qty   = cart.reduce((s,i)=>s+i.qty,0);
   const prod  = cart.reduce((s,i)=>s+i.price*i.qty,0);
@@ -244,8 +246,9 @@ function App(){
           <h1 id="logo-txt" className="text-2xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
         </div>
 
+        {showPrivacy && <PrivacyPopup text={privacyText} onClose={()=>setShowPrivacy(false)}/>}
         {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} onNext={()=>setStep(2)}/>}
-        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onConfirm={()=>setStep(3)}/>}
+        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onConfirm={()=>setStep(3)} onPrivacy={()=>setShowPrivacy(true)}/>}
         {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
@@ -411,10 +414,13 @@ function FormStep({form,setForm,natTxt,setNat,onNext}){
 }
 
 /* ── SummaryStep ───────────────────────────────────────────── */
-function SummaryStep({form,onEdit,onConfirm}){
+function SummaryStep({form,onEdit,onConfirm,onPrivacy}){
   return(
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
-      <h2 className="text-xl gold-text mb-5 border-b border-[#D4AF37] pb-2 text-center">Data Summary</h2>
+      <div className="relative flex items-center justify-center border-b border-[#D4AF37] pb-2 mb-5">
+        <h2 className="text-xl gold-text">Data Summary</h2>
+        <button onClick={onPrivacy} className="absolute right-0 px-3 py-1 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">Privacy</button>
+      </div>
       <div className="space-y-3 text-sm">
         {[['Customer',`${form.name} ${form.surname}`],
           ['Nationality',form.nationality],
@@ -431,6 +437,9 @@ function SummaryStep({form,onEdit,onConfirm}){
         <button onClick={onEdit} className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">Edit</button>
         <button onClick={onConfirm} className="flex-1 p-4 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">Confirm &amp; Go to Catalog</button>
       </div>
+      <p className="text-gray-500 text-center mt-4" style={{fontSize:'11px',lineHeight:'1.5'}}>
+        By continuing to submit your data, you are deemed to have accepted all the privacy terms set forth in the policy available on this page.
+      </p>
     </div>
   );
 }
@@ -535,6 +544,26 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
 }
 
 
+
+/* ── PrivacyPopup ──────────────────────────────────────────── */
+function PrivacyPopup({text,onClose}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'500px',width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
+        <div className="flex justify-between items-center p-4 border-b border-[#D4AF37]">
+          <h2 className="gold-text font-bold uppercase tracking-widest" style={{fontSize:'14px'}}>Privacy Policy</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black transition font-bold text-lg leading-none">✕</button>
+        </div>
+        <div className="overflow-y-auto p-4 text-gray-300" style={{fontSize:'12px',lineHeight:'1.7',flex:1}}>
+          {text ? text.split('\n').map((line,i)=>
+            line.trim()===''?<br key={i}/>:<p key={i} className="mb-2">{line}</p>
+          ) : <p className="text-gray-500 italic">Loading privacy policy…</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── GiftPopup ─────────────────────────────────────────────── */
 function GiftPopup({products,onYes,onNo}){
   const giftProd = products.find(p=>p.id===5);
@@ -543,10 +572,10 @@ function GiftPopup({products,onYes,onNo}){
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
       <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'340px',width:'100%',padding:'24px',textAlign:'center'}}>
         <div className="gold-text font-bold mb-3" style={{fontSize:'14px'}}>🎁 Special Gift!</div>
-        <p className="text-white mb-4" style={{fontSize:'13px',lineHeight:'1.5'}}>
-          Would you like to receive a free bottle of<br/>
+        <p className="text-white mb-2" style={{fontSize:'13px',lineHeight:'1.6'}}>
+          Would you like to receive a <span className="gold-text font-bold">FREE BOTTLE</span> of<br/>
           <span className="gold-text font-bold">Chianti Gran Fondo "Strade Bianche"</span><br/>
-          Limited Edition 2025 with your order?
+          <span className="gold-text font-bold">LIMITED EDITION</span> 2025 with your order?
         </p>
         {imgSrc && <img src={imgSrc} alt="Chianti Gran Fondo" style={{width:'120px',height:'120px',objectFit:'cover',borderRadius:'8px',margin:'0 auto 16px',display:'block'}}/>}
         <p className="text-gray-400 mb-5" style={{fontSize:'11px'}}>
@@ -626,11 +655,43 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     if(giftChoice===null && newQty===11) {
       // First time hitting 11: show popup
       setShowGiftPopup(true);
-    } else if(giftChoice===true && newQty>11 && (newQty-1)%11===0) {
-      // Gift accepted: auto-add gift every 11 items (22, 33...)
-      }
+    } else if(giftChoice===true) {
+      // Recalculate expected gifts based on non-gift items
+      setCart(prev => {
+        const updated = prev; // already updated by previous setCart
+        const nonGiftQty = updated.reduce((s,i)=>i.id===5?s:s+i.qty,0) + (prod.id===5?0:1);
+        const expectedGifts = Math.floor(nonGiftQty / 11);
+        const currentGifts = updated.filter(i=>i.id===5).reduce((s,i)=>s+i.qty,0);
+        if(expectedGifts > currentGifts){
+          const giftProd = products.find(p=>p.id===5);
+          if(!giftProd) return updated;
+          const ex = updated.find(p=>p.id===5);
+          if(ex) return updated.map(p=>p.id===5?{...p,qty:p.qty+1}:p);
+          return [...updated,{...giftProd,price:0,qty:1}];
+        }
+        return updated;
+      });
+    }
   };
-  const removeItem=(id)=>{setCartErr('');setCart(prev=>prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0));};
+  const removeItem=(id)=>{
+    setCartErr('');
+    setCart(prev=>{
+      const updated = prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0);
+      if(giftChoice===true){
+        const nonGiftQty = updated.reduce((s,i)=>i.id===5?s:s+i.qty,0);
+        const expectedGifts = Math.floor(nonGiftQty/11);
+        const currentGifts = updated.filter(i=>i.id===5).reduce((s,i)=>s+i.qty,0);
+        if(currentGifts > expectedGifts){
+          let toRemove = currentGifts - expectedGifts;
+          return updated.map(p=>{
+            if(p.id===5 && toRemove>0){ toRemove--; return p.qty-1>0?{...p,qty:p.qty-1}:null; }
+            return p;
+          }).filter(Boolean);
+        }
+      }
+      return updated;
+    });
+  };
 
   const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
 
