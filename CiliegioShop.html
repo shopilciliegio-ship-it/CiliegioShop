@@ -60,6 +60,7 @@
     shipping : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
     imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
     privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
+    privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
     whatsapp : "393357655171"
   };
   // Fix iOS Safari: imposta --vh come 1% dell'altezza visibile reale
@@ -175,6 +176,8 @@ function App(){
   const [natTxt,setNat]   = useState('');
   const [giftChoice,setGiftChoice] = useState(null); // null=not asked, true=yes, false=no
   const [showGiftPopup,setShowGiftPopup] = useState(false);
+  const [showPrivacy,setShowPrivacy]     = useState(false);
+  const [privacyText,setPrivacyText]     = useState('');
 
   useEffect(()=>{
     Promise.all([
@@ -548,8 +551,8 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
 /* ── PrivacyPopup ──────────────────────────────────────────── */
 function PrivacyText({text}){
   if(!text) return React.createElement('p',{className:'text-gray-500 italic'},'Loading privacy policy…');
-  const lines = text.split('
-');
+  const NL = String.fromCharCode(10);
+  const lines = text.split(NL);
   return React.createElement(React.Fragment, null,
     lines.map((line,i) => line.trim()===''
       ? React.createElement('br',{key:i})
@@ -583,13 +586,12 @@ function GiftPopup({products,onYes,onNo}){
       <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'340px',width:'100%',padding:'24px',textAlign:'center'}}>
         <div className="gold-text font-bold mb-3" style={{fontSize:'14px'}}>🎁 Special Gift!</div>
         <p className="text-white mb-2" style={{fontSize:'13px',lineHeight:'1.6'}}>
-          Would you like to receive a <span className="gold-text font-bold">FREE BOTTLE</span> of<br/>
+          Would you like to receive a <span className="gold-text font-bold" style={{fontSize:'16px'}}>FREE BOTTLE</span> of<br/>
           <span className="gold-text font-bold">Chianti Gran Fondo "Strade Bianche"</span><br/>
-          <span className="gold-text font-bold">LIMITED EDITION</span> 2025 with your order?
+          <span className="gold-text font-bold" style={{fontSize:'16px'}}>LIMITED EDITION</span> 2025 with your order?
         </p>
         {imgSrc && <img src={imgSrc} alt="Chianti Gran Fondo" style={{width:'120px',height:'120px',objectFit:'cover',borderRadius:'8px',margin:'0 auto 16px',display:'block'}}/>}
-        <p className="text-gray-400 mb-5" style={{fontSize:'11px'}}>
-          If you accept the gift, the 5% discount on 12+ items will not apply.<br/>
+        <p className="gold-text font-bold mb-4" style={{fontSize:'15px',lineHeight:'1.5'}}>
           Every 11 items, one free bottle will be added automatically.
         </p>
         <div style={{display:'flex',gap:'12px'}}>
@@ -710,7 +712,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     if(giftProd) setCart(prev=>{
       const ex=prev.find(p=>p.id===5);
       if(ex) return prev.map(p=>p.id===5?{...p,qty:p.qty+1}:p);
-      return [...prev,{...giftProd,qty:1}];
+      return [...prev,{...giftProd,price:0,qty:1}];
     });
   };
   const handleGiftNo = () => {
