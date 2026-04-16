@@ -50,7 +50,7 @@
       .cart-col        { flex:0 0 38vh; border-top:1px solid #D4AF37; overflow-y:auto; padding-top:8px; }
     }
   </style>
-</head>hh
+</head>
 <body>
 <div id="root"></div>
 
@@ -549,7 +549,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
 function PrivacyText({text}){
   if(!text) return React.createElement('p',{className:'text-gray-500 italic'},'Loading privacy policy…');
   const NL = String.fromCharCode(10);
-  const NL = String.fromCharCode(10); const lines = text.split(NL);NL);
+  const lines = text.split(NL);
   return React.createElement(React.Fragment, null,
     lines.map((line,i) => line.trim()===''
       ? React.createElement('br',{key:i})
