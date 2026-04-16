@@ -60,6 +60,7 @@
     shipping : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
     imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
     privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
+    privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
     whatsapp : "393357655171"
   };
   // Fix iOS Safari: imposta --vh come 1% dell'altezza visibile reale
@@ -175,6 +176,8 @@ function App(){
   const [natTxt,setNat]   = useState('');
   const [giftChoice,setGiftChoice] = useState(null); // null=not asked, true=yes, false=no
   const [showGiftPopup,setShowGiftPopup] = useState(false);
+  const [showPrivacy,setShowPrivacy]     = useState(false);
+  const [privacyText,setPrivacyText]     = useState('');
 
   useEffect(()=>{
     Promise.all([
