@@ -479,18 +479,21 @@ function SummaryStep({form,onEdit,onConfirm,onPrivacy}){
 function ProductCard({p,onAdd}){
   const [imgErr,setImgErr]=useState(false);
   const src=p.img?window.CFG.imgBase+p.img:null;
+  const unavail = p.available===false;
   return(
-    <div className="bg-dark rounded border border-gray-800 hover:border-[#D4AF37] text-center flex flex-col gap-1 transition-all overflow-hidden" style={{padding:'6px'}}>
+    <div className={`bg-dark rounded border text-center flex flex-col gap-1 transition-all overflow-hidden${unavail?' border-gray-800 opacity-60':' border-gray-800 hover:border-[#D4AF37]'}`} style={{padding:'6px'}}>
       {src&&!imgErr
-        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setImgErr(true)}/>
+        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setImgErr(true)} style={unavail?{filter:'grayscale(100%)'}:{}}/>
         :<div className="prod-img-fallback">🍷</div>}
       <p className="font-bold leading-tight text-gray-200" style={{fontSize:'10px',lineHeight:'1.2'}}>{p.name}</p>
       <p className="gold-text font-bold" style={{fontSize:'11px'}}>€{p.price.toFixed(2)}</p>
-      <button onClick={()=>onAdd(p)}
-        className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
-        style={{fontSize:'10px',padding:'3px 0'}}>
-        + Add
-      </button>
+      {unavail
+        ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>Out of Stock</div>
+        :<button onClick={()=>onAdd(p)}
+          className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
+          style={{fontSize:'10px',padding:'3px 0'}}>
+          + Add
+        </button>}
     </div>
   );
 }
