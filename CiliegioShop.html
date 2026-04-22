@@ -147,8 +147,15 @@ const USA_SPECIAL = ['HI','AK','PR','AL','AR','UT','MS','VI'];
 const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
   'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
 const QTY_TIERS   = [3,6,12,18,24,30,36,42,48,54,60];
+const OIL_WEIGHTS = {20:0.8, 21:0.5, 22:1.0, 23:2.0, 24:4.0, 25:6.0};
+const UNIT_KG = 1.5;
+function effectiveUnits(item){
+  const w = OIL_WEIGHTS[item.id];
+  if(!w) return item.qty;
+  return Math.ceil(item.qty * w / UNIT_KG);
+}
 const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
-const US_CA_BLOCK = [24,25];
+const US_CA_BLOCK = []; // IDs 24,25 now available everywhere
 const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
   zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
 
@@ -209,13 +216,14 @@ function App(){
 
   const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');setGiftChoice(null);setShowGiftPopup(false);setShowPrivacy(false); };
 
-  const qty   = cart.reduce((s,i)=>s+i.qty,0);
+  const qty     = cart.reduce((s,i)=>s+i.qty,0);
+  const shipQty = cart.reduce((s,i)=>s+effectiveUnits(i),0);
   const prod  = cart.reduce((s,i)=>s+i.price*i.qty,0);
   // Vino O Sparkling → listino USA_WINE (con dazi)
   const wine  = cart.some(i=>i.category==='WINE'||i.category==='SPARKLING');
   const aKey  = rateKey(form.natCode,speed,wine);
   const aRate = ship&&aKey?ship[aKey]:null;
-  const sc    = qty>0&&aRate?shipRate(aRate,qty):0;
+  const sc    = shipQty>0&&aRate?shipRate(aRate,shipQty):0;
   const giftActive  = giftChoice===true;
   const discount      = (!giftActive && qty>=12) ? prod*0.05 : 0;
   const discounted    = prod - discount;
@@ -225,7 +233,7 @@ function App(){
   const total         = discounted + effectiveSc + duty;
   const dl    = dLabel(aKey,speed);
   const spSel = ['US','CA'].includes(form.natCode);
-  const totals= {qty,prod,discount,ship:effectiveSc,duty,final:total};
+  const totals= {qty,shipQty,prod,discount,ship:effectiveSc,duty,final:total};
 
   const sendWA=()=>{
     const em=`${form.emailUser}@${form.emailDomain}`;
@@ -548,7 +556,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
         {italyFreeShip
           ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>Shipping:</span><span>🎉 Free over €100</span></div>
-          :<div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.qty)}</span>€{totals.ship.toFixed(2)}</span></div>}
+          :<div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.shipQty)}</span>€{totals.ship.toFixed(2)}</span></div>}
         {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate for this country — you will be contacted via email.</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
@@ -653,9 +661,15 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     setCartErr('');
     // Max 36 articoli totali
     const currentQty=cart.reduce((s,i)=>s+i.qty,0);
+    const currentShipQty=cart.reduce((s,i)=>s+effectiveUnits(i),0);
     const rateMaxItems = aRate && aRate.max_items ? aRate.max_items : null;
-    const maxItems = rateMaxItems || (natCode==='IT' ? 18 : 60);
-    if(currentQty>=maxItems){
+    const maxItems=(()=>{
+      if(natCode==='IT') return 18;
+      if(!aRate||!aRate.rates) return 60;
+      const keys=Object.keys(aRate.rates).map(Number).filter(n=>!isNaN(n));
+      return keys.length>0?Math.max(...keys):60;
+    })();
+    if(currentShipQty>=maxItems){
       setCartErr('⚠️ Maximum '+maxItems+' items per order for this destination.');
       return;
     }
