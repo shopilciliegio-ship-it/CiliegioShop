@@ -1,5 +1,5 @@
 [
-  { "id": 1,  "name": "AFELIO CHIANTI DOCG 2022", "price": 5.00, "img": "img/prod_01.jpg", "category": "WINE", "available": false },
+  { "id": 1,  "name": "AFELIO CHIANTI DOCG 2022", "price": 5.00, "img": "img/prod_01.jpg", "category": "WINE", "available": true },
   { "id": 2,  "name": "WHITE WINE IGT 2024", "price": 7.00, "img": "img/prod_02.jpg", "category": "WINE" },
   { "id": 3,  "name": "RED WINE IGT 2024", "price": 7.00, "img": "img/prod_03.jpg", "category": "WINE" },
   { "id": 4,  "name": "PURPLE GRAPES - SWEET RED WINE IGT 2024", "price": 4.25, "img": "img/prod_04.jpg", "category": "WINE" },
