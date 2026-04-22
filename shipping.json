@@ -1,18 +1,22 @@
 {
   "_note": "Shipping costs by rate list. Quantities: 3 / 6 / 12 / 18 / 24 / 30 / 36 items. Add your prices for each tier.",
-  "_qty_tiers": [3, 6, 12, 18, 24, 30, 36],
+  "_qty_tiers": [3, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60],
 
   "USA_WINE_STANDARD": {
     "label": "USA Wine Standard",
     "applies_to": "USA destinations (excluding special states) when at least 1 WINE item is in cart",
     "rates": {
-      "3":  67.00,
-      "6":  78.00,
-      "12": 121.00,
-      "18": 194.00,
-      "24": 232.00,
-      "30": 300.00,
-      "36": 338.00
+      "3":  65.00,
+      "6":  75.00,
+      "12": 115.00,
+      "18": 185.00,
+      "24": 220.00,
+      "30": 285.00,
+      "36": 320.00,
+      "42": 385.00,
+      "48": 420.00,
+      "54": 485.00,
+      "60": 520.00
     }
   },
 

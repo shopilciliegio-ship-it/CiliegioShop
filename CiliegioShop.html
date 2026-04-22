@@ -12,7 +12,28 @@
   </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.10/babel.min.js"></script>
+  <script>
+  // Load Babel only after React is confirmed available
+  function loadBabel() {
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+      setTimeout(loadBabel, 50);
+      return;
+    }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.10/babel.min.js';
+    s.onload = function() {
+      // Find and transform all text/babel scripts manually
+      document.querySelectorAll('script[type="text/babel"]').forEach(function(script) {
+        var code = Babel.transform(script.innerHTML, {presets: ['react']}).code;
+        var newScript = document.createElement('script');
+        newScript.textContent = code;
+        document.body.appendChild(newScript);
+      });
+    };
+    document.head.appendChild(s);
+  }
+  document.addEventListener('DOMContentLoaded', loadBabel);
+</script>
   <style>
     * { box-sizing: border-box; }
     body { background:#000; color:#fff; font-family:sans-serif; margin:0; padding:0; }
@@ -70,7 +91,7 @@
   window.addEventListener('orientationchange', ()=>setTimeout(setVh,200));
 </script>
 
-<script type="text/babel">
+<script type="text/babel" id="app-script">
 const { useState, useEffect, useRef } = React;
 
 /* ── Constants ─────────────────────────────────────────────── */
@@ -125,7 +146,7 @@ const ZONE_MAP = {
 const USA_SPECIAL = ['HI','AK','PR','AL','AR','UT','MS','VI'];
 const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
   'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
-const QTY_TIERS   = [3,6,12,18,24,30,36];
+const QTY_TIERS   = [3,6,12,18,24,30,36,42,48,54,60];
 const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
 const US_CA_BLOCK = [24,25];
 const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
@@ -156,11 +177,9 @@ function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 // Restituisce la label dello scaglione applicato — es. "(4–6 pieces)"
 function tierLabel(qty){
   if(qty<=0) return '';
-  const steps = [[1,3],[4,6],[7,12],[13,18],[19,24],[25,30],[31,36]];
-  for(const [lo,hi] of steps){
-    if(qty>=lo&&qty<=hi) return `(${lo}–${hi} pieces)`;
-  }
-  return '(31–36 pieces)'; // oltre 36 usa lo stesso scaglione massimo
+  const steps=[[1,3],[4,6],[7,12],[13,18],[19,24],[25,30],[31,36],[37,42],[43,48],[49,54],[55,60]];
+  for(const [lo,hi] of steps) if(qty>=lo&&qty<=hi) return `(${lo}–${hi} pieces)`;
+  return '(55–60 pieces)';
 }
 
 /* ── App ───────────────────────────────────────────────────── */
@@ -256,6 +275,7 @@ function App(){
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
           totals={totals} onSend={sendWA} natCode={form.natCode} province={form.province}
+          resetCart={()=>{setCart([]);setGiftChoice(null);setShowGiftPopup(false);}}
           giftChoice={giftChoice} setGiftChoice={setGiftChoice}
           showGiftPopup={showGiftPopup} setShowGiftPopup={setShowGiftPopup}/>}
       </div>
@@ -614,7 +634,7 @@ function GiftPopup({products,onYes,onNo}){
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   aRate,aKey,hasDuty,dl,totals,onSend,natCode,province,
-  giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
+  resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
 
   const [tab,setTab]         = useState('ALL');
   const [cartErr,setCartErr] = useState('');
@@ -633,9 +653,10 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     setCartErr('');
     // Max 36 articoli totali
     const currentQty=cart.reduce((s,i)=>s+i.qty,0);
-    const maxItems=natCode==='IT'?18:36;
+    const rateMaxItems = aRate && aRate.max_items ? aRate.max_items : null;
+    const maxItems = rateMaxItems || (natCode==='IT' ? 18 : 60);
     if(currentQty>=maxItems){
-      setCartErr(natCode==='IT'?'⚠️ Maximum 18 items per order for Italy.':'⚠️ Maximum 36 items per order.');
+      setCartErr('⚠️ Maximum '+maxItems+' items per order for this destination.');
       return;
     }
     if(isCA){
@@ -720,6 +741,11 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     setShowGiftPopup(false);
   };
 
+  const doResetCart=()=>{
+    resetCart();
+    setCartErr('');
+  };
+
   return(
     <div className="catalog-page">
       {showGiftPopup && <GiftPopup products={products} onYes={handleGiftYes} onNo={handleGiftNo}/>}
@@ -757,7 +783,12 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
 
         {/* ── Cart column ── */}
         <div className="cart-col bg-[#111] rounded border gold-border" style={{padding:'8px'}}>
-          <h2 className="gold-text font-bold border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>🛒 Cart</h2>
+          <div className="flex justify-between items-center border-b border-gray-800 pb-1 mb-2">
+            <h2 className="gold-text font-bold" style={{fontSize:'13px'}}>🛒 Cart</h2>
+            {cart.length>0&&<button onClick={doResetCart}
+              className="border border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-400 rounded transition"
+              style={{fontSize:'9px',padding:'2px 6px'}}>✕ Reset</button>}
+          </div>
           <CartPanel {...panelProps}/>
         </div>
       </div>
