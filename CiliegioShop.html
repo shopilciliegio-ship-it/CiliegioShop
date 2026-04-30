@@ -101,55 +101,96 @@
   var isAndroid = /android/i.test(navigator.userAgent);
   if(!isIOS && !isAndroid) return;
 
-  var banner = document.createElement('div');
-  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;border-top:2px solid #D4AF37;padding:12px 16px;display:flex;align-items:center;gap:12px;font-family:sans-serif';
+  // Overlay backdrop
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.75)';
 
-  var icon = document.createElement('div');
-  icon.textContent = '🍷';
-  icon.style.cssText = 'font-size:26px;flex-shrink:0';
+  // Popup box
+  var popup = document.createElement('div');
+  popup.style.cssText = [
+    'position:fixed','top:50%','left:50%',
+    'transform:translate(-50%,-50%)',
+    'z-index:9999',
+    'background:#1a1a1a',
+    'border:2px solid #D4AF37',
+    'border-radius:16px',
+    'padding:32px 28px 28px',
+    'width:86vw','max-width:360px',
+    'text-align:center',
+    'font-family:sans-serif',
+    'box-shadow:0 8px 40px rgba(0,0,0,0.8)'
+  ].join(';');
 
-  var text = document.createElement('div');
-  text.style.cssText = 'flex:1;min-width:0';
-
-  var title = document.createElement('div');
-  title.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:13px;margin-bottom:3px';
-  title.textContent = 'Install Il Ciliegio Shop';
-
-  var sub = document.createElement('div');
-  sub.style.cssText = 'color:#aaa;font-size:11px;line-height:1.4';
-
-  if(isIOS){
-    sub.innerHTML = 'In Safari: tap <b style="color:#fff">⬆ Share</b> → <b style="color:#fff">Add to Home Screen</b>';
-  } else {
-    sub.innerHTML = 'In Chrome: tap <b style="color:#fff">⋮ Menu</b> → <b style="color:#fff">Add to Home Screen</b>';
-  }
-
+  // Close button
   var close = document.createElement('button');
   close.textContent = '✕';
-  close.style.cssText = 'background:none;border:1px solid #555;color:#aaa;width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer;flex-shrink:0';
-  close.onclick = function(){ banner.remove(); };
+  close.style.cssText = [
+    'position:absolute','top:14px','right:16px',
+    'background:none','border:1px solid #555',
+    'color:#aaa','width:32px','height:32px',
+    'border-radius:50%','font-size:16px','cursor:pointer'
+  ].join(';');
+  close.onclick = function(){ overlay.remove(); popup.remove(); };
 
-  text.appendChild(title);
-  text.appendChild(sub);
-  banner.appendChild(icon);
-  banner.appendChild(text);
-  banner.appendChild(close);
-  document.body.appendChild(banner);
+  // Wine icon
+  var icon = document.createElement('div');
+  icon.textContent = '🍷';
+  icon.style.cssText = 'font-size:48px;margin-bottom:12px';
 
-  // Android: intercept native install prompt and add Install button
+  // Subtitle
+  var sub = document.createElement('div');
+  sub.style.cssText = 'color:#aaa;font-size:13px;margin-bottom:6px;letter-spacing:0.03em';
+  sub.textContent = 'For a better experience';
+
+  // Main title
+  var title = document.createElement('div');
+  title.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:20px;margin-bottom:20px;letter-spacing:0.05em';
+  title.textContent = 'IL CILIEGIO Online Shop App';
+
+  // Divider
+  var divider = document.createElement('div');
+  divider.style.cssText = 'height:1px;background:#333;margin-bottom:20px';
+
+  // Instructions
+  var instr = document.createElement('div');
+  instr.style.cssText = 'color:#ccc;font-size:15px;line-height:1.8';
+
+  if(isIOS){
+    instr.innerHTML = 'In <b style="color:#fff">Safari</b>:<br>tap <b style="color:#D4AF37">⬆ Share</b><br>then <b style="color:#D4AF37">Add to Home Screen</b>';
+  } else {
+    instr.innerHTML = 'In <b style="color:#fff">Chrome</b>:<br>tap <b style="color:#D4AF37">⋮ Menu</b><br>then <b style="color:#D4AF37">Add to Home Screen</b>';
+  }
+
+  popup.appendChild(close);
+  popup.appendChild(icon);
+  popup.appendChild(sub);
+  popup.appendChild(title);
+  popup.appendChild(divider);
+  popup.appendChild(instr);
+
+  // Android native install button
   if(isAndroid){
     window.addEventListener('beforeinstallprompt', function(e){
       e.preventDefault();
       var btn = document.createElement('button');
-      btn.textContent = '+ Install';
-      btn.style.cssText = 'background:#D4AF37;color:#000;border:none;padding:8px 12px;border-radius:6px;font-weight:bold;font-size:12px;cursor:pointer;flex-shrink:0';
+      btn.textContent = '+ Install Now';
+      btn.style.cssText = [
+        'display:block','width:100%','margin-top:20px',
+        'background:#D4AF37','color:#000',
+        'border:none','padding:14px',
+        'border-radius:8px','font-weight:bold',
+        'font-size:16px','cursor:pointer','letter-spacing:0.05em'
+      ].join(';');
       btn.onclick = function(){
         e.prompt();
-        e.userChoice.then(function(){ banner.remove(); });
+        e.userChoice.then(function(){ overlay.remove(); popup.remove(); });
       };
-      banner.replaceChild(btn, close);
+      popup.appendChild(btn);
     });
   }
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(popup);
 })();
 </script>
 
