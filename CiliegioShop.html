@@ -157,12 +157,6 @@
 
   popup.appendChild(close);
 
-  // Small hint below X button
-  var xhint = document.createElement('div');
-  xhint.style.cssText = 'position:absolute;top:48px;right:0;left:0;text-align:center;color:#666;font-size:10px;line-height:1.3;padding:0 16px';
-  xhint.textContent = 'Press ✕ to continue in the website';
-  popup.appendChild(xhint);
-
   popup.appendChild(icon);
   popup.appendChild(title);
   popup.appendChild(divider);
@@ -175,6 +169,12 @@
     btn.style.cssText = 'display:block;width:100%;margin-top:18px;background:#D4AF37;color:#000;border:none;padding:14px;border-radius:8px;font-weight:bold;font-size:16px;cursor:pointer;letter-spacing:0.05em';
     btn.style.display = 'none'; // hidden until prompt is ready
     popup.appendChild(btn);
+
+    // Hint below install button
+    var xhint = document.createElement('div');
+    xhint.style.cssText = 'color:#555;font-size:11px;margin-top:10px;text-align:center;line-height:1.4';
+    xhint.textContent = 'Press ✕ to continue in the website';
+    popup.appendChild(xhint);
 
     window.addEventListener('beforeinstallprompt', function(e){
       e.preventDefault();
@@ -834,21 +834,19 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     // After adding, check new qty
     const newQty = currentQty + 1;
     if(giftChoice===null && newQty===11) {
-      // First time hitting 11: show popup (only if no purchased id=5 in cart)
-      const hasPurchasedGiftProd = cart.some(i=>i.id===5);
-      if(!hasPurchasedGiftProd) setShowGiftPopup(true);
-      else setGiftChoice(false); // auto-decline if already purchased
+      // Always show popup at 11th item
+      setShowGiftPopup(true);
     } else if(giftChoice===true) {
       // Auto-add gift: check after adding
-      const nonGiftQty = currentQty + (prod.id===5||prod.id==='5_gift'?0:1);
+      const nonGiftQty = currentQty + (prod.id==='5_gift'?0:1);
       const expectedGifts = Math.floor(nonGiftQty / 11);
       const currentGifts = cart.filter(i=>i.id==='5_gift').reduce((s,i)=>s+i.qty,0);
       if(expectedGifts > currentGifts){
-        const giftProd = products.find(p=>p.id===5);
+        const giftProd = products.find(p=>p.id==='5_gift');
         if(giftProd) setCart(prev=>{
           const ex=prev.find(p=>p.id==='5_gift');
           if(ex) return prev.map(p=>p.id==='5_gift'?{...p,qty:p.qty+1}:p);
-          return [...prev,{...giftProd,id:'5_gift',name:giftProd.name+' 🎁',price:0,qty:1}];
+          return [...prev,{...giftProd,qty:1}];
         });
       }
     }
@@ -878,12 +876,12 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const handleGiftYes = () => {
     setGiftChoice(true);
     setShowGiftPopup(false);
-    // Add gift product as separate entry with id='5_gift' to avoid merging with purchased id=5
-    const giftProd = products.find(p=>p.id===5);
+    // Use the dedicated 5_gift product from products.json (already price=0)
+    const giftProd = products.find(p=>p.id==='5_gift');
     if(giftProd) setCart(prev=>{
       const ex=prev.find(p=>p.id==='5_gift');
       if(ex) return prev.map(p=>p.id==='5_gift'?{...p,qty:p.qty+1}:p);
-      return [...prev,{...giftProd,id:'5_gift',name:giftProd.name+' 🎁',price:0,qty:1}];
+      return [...prev,{...giftProd,qty:1}];
     });
   };
   const handleGiftNo = () => {
