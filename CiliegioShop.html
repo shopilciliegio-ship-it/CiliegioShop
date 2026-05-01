@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Il Ciliegio">
+  <meta name="theme-color" content="#D4AF37">
+  <link rel="apple-touch-icon" href="ciliegio_trasparente.png">
   <title>Il Ciliegio — Shop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -101,6 +108,9 @@
   var isAndroid = /android/i.test(navigator.userAgent);
   if(!isIOS && !isAndroid) return;
 
+  // Show only once — if user already dismissed, don't show again
+  if(localStorage.getItem('ciliegio_install_dismissed')) return;
+
   // Overlay backdrop
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.75)';
@@ -130,7 +140,7 @@
     'color:#aaa','width:32px','height:32px',
     'border-radius:50%','font-size:16px','cursor:pointer'
   ].join(';');
-  close.onclick = function(){ overlay.remove(); popup.remove(); };
+  close.onclick = function(){ localStorage.setItem('ciliegio_install_dismissed','1'); overlay.remove(); popup.remove(); };
 
   // Wine icon
   var icon = document.createElement('div');
@@ -145,7 +155,7 @@
   // Main title
   var title = document.createElement('div');
   title.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:20px;margin-bottom:20px;letter-spacing:0.05em';
-  title.textContent = 'IL CILIEGIO Online Shop App';
+  title.innerHTML = 'IL CILIEGIO<br><span style="font-size:15px;letter-spacing:0.08em">Online Shop App</span>';
 
   // Divider
   var divider = document.createElement('div');
@@ -183,7 +193,7 @@
       ].join(';');
       btn.onclick = function(){
         e.prompt();
-        e.userChoice.then(function(){ overlay.remove(); popup.remove(); });
+        e.userChoice.then(function(){ localStorage.setItem('ciliegio_install_dismissed','1'); overlay.remove(); popup.remove(); });
       };
       popup.appendChild(btn);
     });

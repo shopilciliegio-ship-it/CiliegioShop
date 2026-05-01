@@ -1,0 +1,25 @@
+{
+  "name": "IL CILIEGIO Online Shop App",
+  "short_name": "Il Ciliegio",
+  "description": "Shop online di Il Ciliegio - Azienda Agricola",
+  "start_url": "./CiliegioShop.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#D4AF37",
+  "icons": [
+    {
+      "src": "ciliegio_trasparente.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "ciliegio_trasparente.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
