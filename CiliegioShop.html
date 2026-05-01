@@ -796,7 +796,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const isCA   = natCode==='CA';
   const caBlock = isCA&&province&&CA_NO_WINE.some(p=>province.toUpperCase().includes(p));
 
-  const avail   = isUSCA?products.filter(p=>p.category!=='DISTILLATES'&&!US_CA_BLOCK.includes(p.id)):products;
+  const avail   = (isUSCA?products.filter(p=>p.category!=='DISTILLATES'&&!US_CA_BLOCK.includes(p.id)):products).filter(p=>p.id!=='5_gift');
   const visCats = isUSCA?CATEGORIES.filter(c=>c!=='DISTILLATES'):CATEGORIES;
   const tabs    = ['ALL',...visCats];
   const filtered= tab==='ALL'?avail:avail.filter(p=>p.category===tab);
