@@ -183,23 +183,34 @@
       btn.onclick = function(){
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then(function(choice){
-          if(choice.outcome === 'accepted'){
-            dismiss();
-            // Launch as standalone after install
-            setTimeout(function(){
-              window.location.href = window.location.href;
-            }, 1500);
+          if(choice.outcome !== 'accepted'){
+            dismiss(); // declined — just close popup
           }
+          // if accepted: appinstalled event handles it
         });
       };
     });
 
     // Also listen for successful install
     window.addEventListener('appinstalled', function(){
-      dismiss();
-      setTimeout(function(){
-        window.location.href = window.location.href;
-      }, 1000);
+      sessionStorage.setItem('ciliegio_install_dismissed','1');
+      // Show success message
+      overlay.style.background = 'rgba(0,0,0,0.95)';
+      popup.innerHTML = '';
+      var doneIcon = document.createElement('div');
+      doneIcon.textContent = '✅';
+      doneIcon.style.cssText = 'font-size:56px;margin-bottom:16px';
+      var doneTitle = document.createElement('div');
+      doneTitle.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:20px;margin-bottom:12px';
+      doneTitle.textContent = 'App Installed!';
+      var doneMsg = document.createElement('div');
+      doneMsg.style.cssText = 'color:#ccc;font-size:14px;line-height:1.8;text-align:center';
+      doneMsg.innerHTML = 'Go to your <b style="color:#fff">Home Screen</b><br>and tap the<br><b style="color:#D4AF37">IL CILIEGIO</b> icon<br>to open the app.';
+      popup.appendChild(doneIcon);
+      popup.appendChild(doneTitle);
+      popup.appendChild(doneMsg);
+      // Try to close this browser tab
+      setTimeout(function(){ window.close(); }, 2500);
     });
   }
 
@@ -212,7 +223,7 @@
 
     var iosAfter = document.createElement('div');
     iosAfter.style.cssText = 'color:#D4AF37;font-size:12px;margin-top:10px;line-height:1.6;font-style:italic';
-    iosAfter.textContent = 'Once added, open the app from your Home Screen for the full experience.';
+    iosAfter.innerHTML = 'Once added, <b style="color:#fff">close this page</b> and open the <b style="color:#D4AF37">IL CILIEGIO</b> icon from your Home Screen.';
     popup.appendChild(iosAfter);
   }
 
