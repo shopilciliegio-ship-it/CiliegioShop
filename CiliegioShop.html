@@ -108,7 +108,7 @@
   var isAndroid = /android/i.test(navigator.userAgent);
   if(!isIOS && !isAndroid) return;
 
-  if(localStorage.getItem('ciliegio_install_dismissed')) return;
+  if(sessionStorage.getItem('ciliegio_install_dismissed')) return;
 
   var deferredPrompt = null;
 
@@ -128,7 +128,7 @@
     'box-shadow:0 8px 40px rgba(0,0,0,0.8)'
   ].join(';');
 
-  function dismiss(){ localStorage.setItem('ciliegio_install_dismissed','1'); overlay.remove(); popup.remove(); }
+  function dismiss(){ sessionStorage.setItem('ciliegio_install_dismissed','1'); overlay.remove(); popup.remove(); }
 
   // Close button
   var close = document.createElement('button');
@@ -156,6 +156,13 @@
   msg.textContent = 'To ensure a better App experience, click the Install button. Thanks!';
 
   popup.appendChild(close);
+
+  // Small hint below X button
+  var xhint = document.createElement('div');
+  xhint.style.cssText = 'position:absolute;top:48px;right:0;left:0;text-align:center;color:#666;font-size:10px;line-height:1.3;padding:0 16px';
+  xhint.textContent = 'Press ✕ to continue in the website';
+  popup.appendChild(xhint);
+
   popup.appendChild(icon);
   popup.appendChild(title);
   popup.appendChild(divider);
@@ -202,6 +209,11 @@
     iosInstr.style.cssText = 'color:#888;font-size:12px;margin-top:14px;line-height:1.6';
     iosInstr.innerHTML = 'In Safari: tap <b style="color:#D4AF37">⬆ Share</b> → <b style="color:#D4AF37">Add to Home Screen</b>';
     popup.appendChild(iosInstr);
+
+    var iosAfter = document.createElement('div');
+    iosAfter.style.cssText = 'color:#D4AF37;font-size:12px;margin-top:10px;line-height:1.6;font-style:italic';
+    iosAfter.textContent = 'Once added, open the app from your Home Screen for the full experience.';
+    popup.appendChild(iosAfter);
   }
 
   document.body.appendChild(overlay);
