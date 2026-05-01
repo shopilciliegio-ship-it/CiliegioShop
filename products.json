@@ -4,7 +4,7 @@
   { "id": 3,  "name": "RED WINE IGT 2024", "price": 7.00, "img": "img/prod_03.jpg", "category": "WINE" },
   { "id": 4,  "name": "PURPLE GRAPES - SWEET RED WINE IGT 2024", "price": 4.25, "img": "img/prod_04.jpg", "category": "WINE" },
   { "id": 5,  "name": "CHIANTI GRAN FONDO STRADE BIANCHE LIMITED EDITION", "price": 20.00, "img": "img/prod_05.jpg", "category": "WINE" },
-  { "id": 5_gift,  "name": "CHIANTI GRAN FONDO STRADE BIANCHE LIMITED EDITION", "price": 0.00, "img": "img/prod_05.jpg", "category": "WINE" },
+  { "id": "5_gift",  "name": "CHIANTI GRAN FONDO STRADE BIANCHE LIMITED EDITION", "price": 0.00, "img": "img/prod_05.jpg", "category": "WINE" },
   { "id": 6,  "name": "CHIANTI COLLI SENESI DOCG POGGIO ORLANDO 2024", "price": 12.00, "img": "img/prod_06.jpg", "category": "WINE" },
   { "id": 7,  "name": "CHIANTI COLLI SENESI DOCG POGGIO ORLANDO RISERVA 2021", "price": 19.00, "img": "img/prod_07.jpg", "category": "WINE" },
   { "id": 8,  "name": "INFERNACCIO RED WINE IGT 2022", "price": 16.00, "img": "img/prod_08.jpg", "category": "WINE" },
