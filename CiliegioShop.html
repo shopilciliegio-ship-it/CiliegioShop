@@ -280,7 +280,8 @@ const QTY_TIERS   = [3,6,12,18,24,30,36,42,48,54,60];
 const OIL_WEIGHTS = {20:0.8, 21:0.5, 22:1.0, 23:2.0, 24:4.0, 25:6.0};
 const UNIT_KG = 1.5;
 function effectiveUnits(item){
-  const w = OIL_WEIGHTS[item.id];
+  const realId = item.id==='5_gift' ? 5 : item.id;
+  const w = OIL_WEIGHTS[realId];
   if(!w) return item.qty;
   return Math.ceil(item.qty * w / UNIT_KG);
 }
@@ -371,7 +372,7 @@ function App(){
     m+=`Nationality: ${form.nationality}%0AEmail: ${em}%0APhone: ${form.mobile}%0A`;
     m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}%0A`;
     m+=`%0A*PRODUCTS:*%0A`;
-    cart.forEach(c=>{m+=`- ${c.qty}x ${c.name} (€${c.price.toFixed(2)})%0A`;});
+    cart.forEach(c=>{m+=`- ${c.qty}x ${c.name} (${c.price===0?'FREE GIFT':'€'+c.price.toFixed(2)})%0A`;});
     m+=`%0AProducts Total: €${prod.toFixed(2)}`;
     if(duty>0) m+=`%0AImport Duties (10%): €${duty.toFixed(2)}`;
     m+=`%0AShipping (${aRate?aRate.label:'N/A'}): €${sc.toFixed(2)}%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
@@ -833,19 +834,21 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     // After adding, check new qty
     const newQty = currentQty + 1;
     if(giftChoice===null && newQty===11) {
-      // First time hitting 11: show popup
-      setShowGiftPopup(true);
+      // First time hitting 11: show popup (only if no purchased id=5 in cart)
+      const hasPurchasedGiftProd = cart.some(i=>i.id===5);
+      if(!hasPurchasedGiftProd) setShowGiftPopup(true);
+      else setGiftChoice(false); // auto-decline if already purchased
     } else if(giftChoice===true) {
       // Auto-add gift: check after adding
-      const nonGiftQty = currentQty + (prod.id===5?0:1);
+      const nonGiftQty = currentQty + (prod.id===5||prod.id==='5_gift'?0:1);
       const expectedGifts = Math.floor(nonGiftQty / 11);
-      const currentGifts = cart.filter(i=>i.id===5).reduce((s,i)=>s+i.qty,0);
+      const currentGifts = cart.filter(i=>i.id==='5_gift').reduce((s,i)=>s+i.qty,0);
       if(expectedGifts > currentGifts){
         const giftProd = products.find(p=>p.id===5);
         if(giftProd) setCart(prev=>{
-          const ex=prev.find(p=>p.id===5);
-          if(ex) return prev.map(p=>p.id===5?{...p,qty:p.qty+1}:p);
-          return [...prev,{...giftProd,price:0,qty:1}];
+          const ex=prev.find(p=>p.id==='5_gift');
+          if(ex) return prev.map(p=>p.id==='5_gift'?{...p,qty:p.qty+1}:p);
+          return [...prev,{...giftProd,id:'5_gift',name:giftProd.name+' 🎁',price:0,qty:1}];
         });
       }
     }
@@ -855,13 +858,13 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     setCart(prev=>{
       const updated = prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0);
       if(giftChoice===true){
-        const nonGiftQty = updated.reduce((s,i)=>i.id===5?s:s+i.qty,0);
+        const nonGiftQty = updated.reduce((s,i)=>i.id==='5_gift'?s:s+i.qty,0);
         const expectedGifts = Math.floor(nonGiftQty/11);
-        const currentGifts = updated.filter(i=>i.id===5).reduce((s,i)=>s+i.qty,0);
+        const currentGifts = updated.filter(i=>i.id==='5_gift').reduce((s,i)=>s+i.qty,0);
         if(currentGifts > expectedGifts){
           let toRemove = currentGifts - expectedGifts;
           return updated.map(p=>{
-            if(p.id===5 && toRemove>0){ toRemove--; return p.qty-1>0?{...p,qty:p.qty-1}:null; }
+            if(p.id==='5_gift' && toRemove>0){ toRemove--; return p.qty-1>0?{...p,qty:p.qty-1}:null; }
             return p;
           }).filter(Boolean);
         }
@@ -875,12 +878,12 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const handleGiftYes = () => {
     setGiftChoice(true);
     setShowGiftPopup(false);
-    // Add gift product ID=5
+    // Add gift product as separate entry with id='5_gift' to avoid merging with purchased id=5
     const giftProd = products.find(p=>p.id===5);
     if(giftProd) setCart(prev=>{
-      const ex=prev.find(p=>p.id===5);
-      if(ex) return prev.map(p=>p.id===5?{...p,qty:p.qty+1}:p);
-      return [...prev,{...giftProd,price:0,qty:1}];
+      const ex=prev.find(p=>p.id==='5_gift');
+      if(ex) return prev.map(p=>p.id==='5_gift'?{...p,qty:p.qty+1}:p);
+      return [...prev,{...giftProd,id:'5_gift',name:giftProd.name+' 🎁',price:0,qty:1}];
     });
   };
   const handleGiftNo = () => {
