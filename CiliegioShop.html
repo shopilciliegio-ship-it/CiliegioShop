@@ -484,15 +484,14 @@ function FormStep({form,setForm,natTxt,setNat,onNext}){
         }
       } else {
         const code = form.natCode.toLowerCase();
-        // UK postcodes: zippopotam.us only accepts the outward code (e.g. "SO40" from "SO40 3AJ")
-        // Strip spaces and hyphens, then take first 2-4 chars (outward code)
+        // UK/Canada: zippopotam.us only accepts partial postcodes
         let zipQuery = z.replace(/[\s\-]/g,'').toUpperCase();
         if(form.natCode==='GB'){
-          // UK format: AN NAA, ANN NAA, AAN NAA, AANN NAA, ANA NAA, AANA NAA
-          // Outward code is everything before the last 3 chars (inward code)
-          if(zipQuery.length>3){
-            zipQuery = zipQuery.slice(0, zipQuery.length-3);
-          }
+          // UK outward code = everything except last 3 chars (e.g. SO40 3AJ → SO40)
+          if(zipQuery.length>3) zipQuery = zipQuery.slice(0, zipQuery.length-3);
+        } else if(form.natCode==='CA'){
+          // Canada FSA = first 3 chars (e.g. H2A 1Y7 → H2A)
+          if(zipQuery.length>3) zipQuery = zipQuery.slice(0,3);
         }
         const r=await fetch(`https://api.zippopotam.us/${code}/${zipQuery}`);
         if(r.ok){
