@@ -287,6 +287,8 @@ const ZONE_MAP = {
 const USA_SPECIAL = ['HI','AK','PR','AL','AR','UT','MS','VI'];
 const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
   'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
+// Province abbreviations for the same blocked provinces
+const CA_NO_WINE_ABBR = ['NB','NL','NT','NS','NU','PE','SK','YT'];
 const QTY_TIERS   = [3,6,12,18,24,30,36,42,48,54,60];
 const OIL_WEIGHTS = {20:0.8, 21:0.5, 22:1.0, 23:2.0, 24:4.0, 25:6.0};
 const UNIT_KG = 1.5;
@@ -465,15 +467,20 @@ function App(){
           onConfirm={()=>{
             const CA_NO_ALCOHOL=['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
               'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
-            const blocked=form.natCode==='CA'&&CA_NO_ALCOHOL.some(p=>
-              (form.province+' '+form.state).toUpperCase().includes(p));
+            const CA_NO_ALCOHOL_ABBR=['NB','NL','NT','NS','NU','PE','SK','YT'];
+            const caStr=(form.province+' '+form.state).toUpperCase();
+            const caAbbr=form.province.trim().toUpperCase();
+            const blocked=form.natCode==='CA'&&(
+              CA_NO_ALCOHOL.some(p=>caStr.includes(p))||
+              CA_NO_ALCOHOL_ABBR.includes(caAbbr)
+            );
             if(blocked) setShowCAWarn(true);
             else setStep(3);
           }}/>}
         {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
-          totals={totals} onSend={handleSendOrder} natCode={form.natCode} province={form.province}
+          totals={totals} onSend={handleSendOrder} natCode={form.natCode} province={form.province} state={form.state}
           resetCart={()=>{setCart([]);setGiftChoice(null);setShowGiftPopup(false);}}
           giftChoice={giftChoice} setGiftChoice={setGiftChoice}
           showGiftPopup={showGiftPopup} setShowGiftPopup={setShowGiftPopup}/>}
@@ -873,7 +880,7 @@ function GiftPopup({products,onYes,onNo}){
 
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
-  aRate,aKey,hasDuty,dl,totals,onSend,natCode,province,
+  aRate,aKey,hasDuty,dl,totals,onSend,natCode,province,state,
   resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
 
   const [tab,setTab]         = useState('ALL');
@@ -881,7 +888,13 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
 
   const isUSCA = ['US','CA'].includes(natCode);
   const isCA   = natCode==='CA';
-  const caBlock = isCA&&province&&CA_NO_WINE.some(p=>province.toUpperCase().includes(p));
+  // Check province AND state fields, full names AND abbreviations
+  const caProvinceStr = ((province||'')+' '+(state||'')).toUpperCase();
+  const caProvinceAbbr = province.trim().toUpperCase();
+  const caBlock = isCA&&(province||form.state)&&(
+    CA_NO_WINE.some(p=>caProvinceStr.includes(p)) ||
+    CA_NO_WINE_ABBR.includes(caProvinceAbbr)
+  );
   const caBlockedCats = caBlock ? ['WINE','SPARKLING','DISTILLATES'] : [];
 
   // Distillates visible only for Italy + EU countries
