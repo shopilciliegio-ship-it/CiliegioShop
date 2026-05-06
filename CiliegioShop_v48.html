@@ -456,7 +456,7 @@ function App(){
 
         {/* Header */}
         <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
-          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.46</span>
+          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.47</span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
@@ -732,7 +732,7 @@ function ProductCard({p,onAdd,blocked}){
 }
 
 /* ── CartPanel ─────────────────────────────────────────────── */
-function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onEmail,speed,setSpeed,spSel,noRate,natCode}){
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onEmail,onPlaceOrder,speed,setSpeed,spSel,noRate,natCode}){
   const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',gap:'4px',overflow:'hidden'}}>
@@ -798,20 +798,12 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onEma
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
         </div>
       </div>
-      <div style={{display:'flex',gap:'6px'}}>
-        <button onClick={onSend} disabled={cart.length===0}
-          className={`flex-1 rounded font-bold uppercase transition
-            ${cart.length>0?'bg-green-700 hover:bg-green-600 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
-          style={{fontSize:'11px',padding:'8px 2px'}}>
-          📲 WhatsApp
-        </button>
-        <button onClick={onEmail} disabled={cart.length===0}
-          className={`flex-1 rounded font-bold uppercase transition
-            ${cart.length>0?'bg-blue-700 hover:bg-blue-600 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
-          style={{fontSize:'11px',padding:'8px 2px'}}>
-          ✉️ Email
-        </button>
-      </div></div>
+      <button onClick={onPlaceOrder} disabled={cart.length===0}
+        className={`w-full rounded font-bold uppercase transition
+          ${cart.length>0?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+        style={{fontSize:'12px',padding:'9px 0',letterSpacing:'0.05em'}}>
+        🛍️ Place your order
+      </button></div>
     </div>
   );
 }
@@ -984,8 +976,9 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     // After adding, check new qty
     const newQty = currentQty + 1;
     if(giftChoice===null && newQty===11) {
-      // Always show popup at 11th item
-      setShowGiftPopup(true);
+      // Don't offer gift to blocked CA provinces (no alcohol shipping)
+      if(caBlock){ setGiftChoice(false); }
+      else { setShowGiftPopup(true); }
     } else if(giftChoice===true) {
       // Auto-add gift: check after adding
       const nonGiftQty = currentQty + (prod.id==='5_gift'?0:1);
@@ -1043,7 +1036,12 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const handleSend=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('wa');}else{onSend();} };
   const handleEmail=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('email');}else{onEmail();} };
 
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onEmail:handleEmail,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
+  const [showOrderPopup,setShowOrderPopup] = useState(false);
+  const handlePlaceOrder=()=>{
+    if(getDutyWarning){setShowDutyWarn(true);}
+    else{setShowOrderPopup(true);}
+  };
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onEmail:handleEmail,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
 
   const handleGiftYes = () => {
     setGiftChoice(true);
@@ -1069,6 +1067,31 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   return(
     <div className="catalog-page">
       {showGiftPopup && <GiftPopup products={products} onYes={handleGiftYes} onNo={handleGiftNo}/>}
+      {showOrderPopup&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+          <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>
+            <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>🍷</div>
+            <h2 className="gold-text font-bold mb-3" style={{fontSize:'17px',letterSpacing:'0.04em'}}>Thank you for choosing<br/>IL CILIEGIO!</h2>
+            <p className="text-gray-300 mb-4" style={{fontSize:'12px',lineHeight:'1.8'}}>
+              Your order has been completed.<br/><br/>
+              If you are <b style={{color:'#fff'}}>visiting us</b>, please proceed to our direct sales office to complete your payment.<br/><br/>
+              If you are <b style={{color:'#fff'}}>ordering remotely</b>, we will contact you via email or WhatsApp to complete your payment through a secure <b style={{color:'#D4AF37'}}>pay-by-link</b>.
+            </p>
+            <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>Please send us your order using one of the options below:</p>
+            <div style={{display:'flex',gap:'10px',marginBottom:'10px'}}>
+              <button onClick={()=>{setShowOrderPopup(false);handleSend();}}
+                className="flex-1 p-3 rounded font-bold uppercase bg-green-600 hover:bg-green-500 text-white transition"
+                style={{fontSize:'12px'}}>📲 WhatsApp</button>
+              <button onClick={()=>{setShowOrderPopup(false);handleEmail();}}
+                className="flex-1 p-3 rounded font-bold uppercase bg-blue-700 hover:bg-blue-600 text-white transition"
+                style={{fontSize:'12px'}}>✉️ Email</button>
+            </div>
+            <button onClick={()=>setShowOrderPopup(false)}
+              className="w-full p-2 rounded border border-gray-700 text-gray-500 hover:border-gray-400 hover:text-gray-300 transition uppercase"
+              style={{fontSize:'11px'}}>← Go Back</button>
+          </div>
+        </div>
+      )}
       {showDutyWarn && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
           <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>

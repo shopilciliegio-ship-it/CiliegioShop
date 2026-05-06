@@ -976,8 +976,9 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     // After adding, check new qty
     const newQty = currentQty + 1;
     if(giftChoice===null && newQty===11) {
-      // Always show popup at 11th item
-      setShowGiftPopup(true);
+      // Don't offer gift to blocked CA provinces (no alcohol shipping)
+      if(caBlock){ setGiftChoice(false); }
+      else { setShowGiftPopup(true); }
     } else if(giftChoice===true) {
       // Auto-add gift: check after adding
       const nonGiftQty = currentQty + (prod.id==='5_gift'?0:1);
