@@ -434,8 +434,7 @@ function App(){
   };
   const sendEmail=()=>{
     const subj=encodeURIComponent(`New Order — ${form.name} ${form.surname} (${form.nationality})`);
-    const body=encodeURIComponent(buildMsg('
-',false));
+    const NL=String.fromCharCode(10);const body=encodeURIComponent(buildMsg(NL,false));
     window.open(`mailto:${window.CFG.email}?subject=${subj}&body=${body}`,'_blank');
   };
 
