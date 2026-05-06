@@ -62,20 +62,29 @@
     }
 
     /* ── Catalog page layout ── */
-    /* Desktop (≥768px): side-by-side, catalog scrolls freely */
+
+    /* DESKTOP (≥768px): side-by-side */
     @media (min-width: 768px) {
-      .catalog-layout  { display:flex; flex-direction:row; gap:16px; align-items:flex-start; }
-      .catalog-col     { flex:1; min-width:0; }
-      .cart-col        { width:288px; flex-shrink:0; position:sticky; top:12px; }
+      .catalog-page    { height:calc(var(--vh,1vh)*100 - 88px); display:flex; flex-direction:column; }
+      .catalog-layout  { flex:1; display:flex; flex-direction:row; gap:16px; min-height:0; }
+      .catalog-col     { flex:1; min-width:0; overflow-y:auto; padding-right:4px; padding-bottom:8px; }
+      /* Cart: fixed height with internal scroll so Send button is always visible */
+      .cart-col        { width:300px; flex-shrink:0; display:flex; flex-direction:column;
+                         max-height:calc(var(--vh,1vh)*100 - 108px); position:sticky; top:8px; }
+      .cart-inner      { flex:1; overflow-y:auto; min-height:0; }
+      .cart-send       { flex-shrink:0; padding-top:8px; }
     }
 
-    /* Mobile (<768px): viewport split ~62/38 */
+    /* MOBILE (<768px): top=products, bottom=cart — cart has fixed structure */
     @media (max-width: 767px) {
-      /* Full page takes exactly 100dvh, no outer scroll */
-      .catalog-page    { height: calc(var(--vh, 1vh) * 100 - 90px); display:flex; flex-direction:column; gap:0; }
-      .catalog-layout  { flex:1; display:flex; flex-direction:column; min-height:0; gap:0; }
+      .catalog-page    { height:calc(var(--vh,1vh)*100 - 84px); display:flex; flex-direction:column; }
+      .catalog-layout  { flex:1; display:flex; flex-direction:column; min-height:0; }
       .catalog-col     { flex:1; min-height:0; overflow-y:auto; padding-bottom:4px; }
-      .cart-col        { flex:0 0 38vh; border-top:1px solid #D4AF37; overflow-y:auto; padding-top:8px; }
+      /* Cart area: fixed 44% of viewport, split internally */
+      .cart-col        { flex:0 0 44vh; border-top:2px solid #D4AF37; display:flex;
+                         flex-direction:column; min-height:0; padding-top:6px; }
+      .cart-inner      { flex:1; overflow-y:auto; min-height:0; }
+      .cart-send       { flex-shrink:0; padding-top:6px; }
     }
   </style>
 </head>
@@ -433,7 +442,7 @@ function App(){
       <div className="w-full" style={{maxWidth: step===3?'100%':'768px', margin:'0 auto'}}>
 
         {/* Header */}
-        <div className="relative text-center mb-4 flex flex-col items-center">
+        <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
@@ -712,7 +721,7 @@ function ProductCard({p,onAdd,blocked}){
 function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate,natCode}){
   const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
-    <div className="flex flex-col gap-2" style={{height:'100%'}}>
+    <div style={{display:'flex',flexDirection:'column',height:'100%',gap:'4px',overflow:'hidden'}}>
 
       {/* Avviso paese non coperto */}
       {noRate&&(
@@ -743,8 +752,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
           <span className="gold-text font-bold" style={{fontSize:'10px'}}>⏱ {dl}</span>
         </div>)}
 
-      {/* Items list — takes remaining height */}
-      <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+      <div className="cart-inner"><div className="space-y-1">
         {cart.length===0
           ?<p className="text-gray-500 italic text-center py-4" style={{fontSize:'12px'}}>Cart is empty</p>
           :cart.map(c=>(
@@ -760,10 +768,11 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
                 <button onClick={()=>addItem(c)} className="w-6 h-6 gold-bg rounded font-bold text-sm">+</button>
               </div>
             </div>))}
-      </div>
+      </div></div>
 
-      {/* Totals */}
-      <div className="border-t border-gray-800 pt-2 shrink-0" style={{fontSize:'11px'}}>
+      {/* Totals — always visible, pinned above Send button */}
+      <div className="cart-send">
+      <div className="border-t border-gray-800 pt-2" style={{fontSize:'11px'}}>
         <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prod.toFixed(2)}</span></div>
         {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>Discount (5%):</span><span>-€{totals.discount.toFixed(2)}</span></div>}
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
@@ -775,14 +784,12 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
         </div>
       </div>
-
-      {/* Send */}
       <button onClick={onSend} disabled={cart.length===0}
         className={`w-full rounded font-bold uppercase transition shrink-0
           ${cart.length>0?'bg-green-600 hover:bg-green-500 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
         style={{fontSize:'12px',padding:'8px 0'}}>
         📲 Send Order via WhatsApp
-      </button>
+      </button></div>
     </div>
   );
 }
