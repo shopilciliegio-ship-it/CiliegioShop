@@ -451,7 +451,7 @@ function App(){
               <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.7'}}>
                 Please note that you cannot ship alcohol to your destination province or region!
               </p>
-              <button onClick={()=>{setShowCAWarn(false);setStep(3);}}
+              <button onClick={()=>{setShowCAWarn(false);setTimeout(()=>setStep(3),50);}}
                 className="w-full p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
                 style={{fontSize:'14px',letterSpacing:'0.05em'}}>
                 I Understand
@@ -882,6 +882,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const isUSCA = ['US','CA'].includes(natCode);
   const isCA   = natCode==='CA';
   const caBlock = isCA&&province&&CA_NO_WINE.some(p=>province.toUpperCase().includes(p));
+  const caBlockedCats = caBlock ? ['WINE','SPARKLING','DISTILLATES'] : [];
 
   // Distillates visible only for Italy + EU countries
   const EU_AND_ITALY = ['IT', 'DE', 'BE', 'NL', 'LU', 'FR', 'DK', 'AT', 'ES', 'SE', 'PT', 'IE', 'SI', 'FI', 'HR', 'GR', 'CY', 'MT', 'PL', 'CZ', 'SK', 'HU', 'BG', 'EE', 'LV', 'LT', 'RO'];
