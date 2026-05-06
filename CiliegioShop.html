@@ -349,6 +349,7 @@ function App(){
   const [showGiftPopup,setShowGiftPopup] = useState(false);
   const [showPrivacy,setShowPrivacy]     = useState(false);
   const [privacyText,setPrivacyText]     = useState('');
+  const [showCAWarn,setShowCAWarn]       = useState(false);
   const [dutyReminder,setDutyReminder]   = useState(null); // null or message string
 
   useEffect(()=>{
@@ -360,7 +361,7 @@ function App(){
       .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
   },[]);
 
-  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');setGiftChoice(null);setShowGiftPopup(false);setShowPrivacy(false); };
+  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');setGiftChoice(null);setShowGiftPopup(false);setShowPrivacy(false);setShowCAWarn(false); };
 
   const qty     = cart.reduce((s,i)=>s+i.qty,0);
   const shipQty = cart.reduce((s,i)=>s+effectiveUnits(i),0);
@@ -442,9 +443,33 @@ function App(){
         </div>
 
         {showPrivacy && <PrivacyPopup text={privacyText} onClose={()=>setShowPrivacy(false)}/>}
+        {showCAWarn && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+            <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'360px',width:'100%',padding:'28px',textAlign:'center'}}>
+              <div style={{fontSize:'3rem',marginBottom:'12px'}}>🚫</div>
+              <h2 className="gold-text font-bold uppercase mb-4" style={{fontSize:'15px',letterSpacing:'0.05em'}}>Shipping Restriction</h2>
+              <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.7'}}>
+                Please note that you cannot ship alcohol to your destination province or region!
+              </p>
+              <button onClick={()=>{setShowCAWarn(false);setStep(3);}}
+                className="w-full p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
+                style={{fontSize:'14px',letterSpacing:'0.05em'}}>
+                I Understand
+              </button>
+            </div>
+          </div>
+        )}
         {dutyReminder && <DutyReminderPopup msg={dutyReminder} onConfirm={()=>{setDutyReminder(null);sendWA();}} onClose={()=>setDutyReminder(null)}/>}
         {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} onNext={()=>setStep(2)}/>}
-        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onConfirm={()=>setStep(3)} onPrivacy={()=>setShowPrivacy(true)}/>}
+        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onPrivacy={()=>setShowPrivacy(true)}
+          onConfirm={()=>{
+            const CA_NO_ALCOHOL=['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
+              'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
+            const blocked=form.natCode==='CA'&&CA_NO_ALCOHOL.some(p=>
+              (form.province+' '+form.state).toUpperCase().includes(p));
+            if(blocked) setShowCAWarn(true);
+            else setStep(3);
+          }}/>}
         {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
