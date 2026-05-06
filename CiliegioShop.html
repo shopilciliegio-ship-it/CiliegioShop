@@ -307,8 +307,11 @@ function shipRate(obj,qty){
   const t=QTY_TIERS.find(t=>qty<=t)||QTY_TIERS[QTY_TIERS.length-1];
   return parseFloat(obj.rates[String(t)])||0;
 }
-function dLabel(key,speed){
+function dLabel(key,speed,rateObj){
   if(!key) return '';
+  // Read from shipping.json if available
+  if(rateObj&&rateObj.delivery) return rateObj.delivery;
+  // Fallback hardcoded
   if(key.startsWith('EU_')||['UK','SWITZERLAND','NORWAY','ITALIA'].includes(key)) return 'Delivery within 7 working days';
   if(speed==='EXPRESS'||key.includes('EXPRESS')) return 'Delivery within 9 working days';
   return 'Delivery within 20 working days';
@@ -353,7 +356,7 @@ function App(){
       fetch(window.CFG.products).then(r=>{if(!r.ok)throw 0;return r.json();}),
       fetch(window.CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
       fetch(window.CFG.privacy).then(r=>r.ok?r.json():null).catch(()=>null),
-    ]).then(([p,s,prv])=>{setProds(p);setShip(s);if(prv&&prv.text)setPrivacyText(prv.text);setLoad(false);})
+    ]).then(([p,s,prv])=>{setProds(p.sort((a,b)=>(a.sort||999)-(b.sort||999)));setShip(s);if(prv&&prv.text)setPrivacyText(prv.text);setLoad(false);})
       .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
   },[]);
 
@@ -374,7 +377,7 @@ function App(){
   const effectiveSc   = italyFree ? 0 : sc;
   const duty          = aKey&&aKey.startsWith('USA_WINE')?discounted*0.1:0;
   const total         = discounted + effectiveSc + duty;
-  const dl    = dLabel(aKey,speed);
+  const dl    = dLabel(aKey,speed,aRate);
   const spSel = ['US','CA'].includes(form.natCode);
   const totals= {qty,shipQty,prod,discount,ship:effectiveSc,duty,final:total};
 
@@ -648,24 +651,27 @@ function SummaryStep({form,onEdit,onConfirm,onPrivacy}){
 }
 
 /* ── ProductCard ───────────────────────────────────────────── */
-function ProductCard({p,onAdd}){
+function ProductCard({p,onAdd,blocked}){
   const [imgErr,setImgErr]=useState(false);
   const src=p.img?window.CFG.imgBase+p.img:null;
   const unavail = p.available===false;
+  const disabled = unavail || blocked;
   return(
-    <div className={`bg-dark rounded border text-center flex flex-col gap-1 transition-all overflow-hidden${unavail?' border-gray-800 opacity-60':' border-gray-800 hover:border-[#D4AF37]'}`} style={{padding:'6px'}}>
+    <div className={`bg-dark rounded border text-center flex flex-col gap-1 transition-all overflow-hidden${disabled?' border-gray-800 opacity-50':' border-gray-800 hover:border-[#D4AF37]'}`} style={{padding:'6px'}}>
       {src&&!imgErr
-        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setImgErr(true)} style={unavail?{filter:'grayscale(100%)'}:{}}/>
+        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setImgErr(true)} style={disabled?{filter:'grayscale(100%)'}:{}}/>
         :<div className="prod-img-fallback">🍷</div>}
       <p className="font-bold leading-tight text-gray-200" style={{fontSize:'10px',lineHeight:'1.2'}}>{p.name}</p>
       <p className="gold-text font-bold" style={{fontSize:'11px'}}>€{p.price.toFixed(2)}</p>
       {unavail
         ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>Out of Stock</div>
-        :<button onClick={()=>onAdd(p)}
-          className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
-          style={{fontSize:'10px',padding:'3px 0'}}>
-          + Add
-        </button>}
+        :blocked
+          ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>Not Available</div>
+          :<button onClick={()=>onAdd(p)}
+            className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
+            style={{fontSize:'10px',padding:'3px 0'}}>
+            + Add
+          </button>}
     </div>
   );
 }
@@ -1039,7 +1045,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
                 {isUSCA&&cat==='EVO OIL'&&<p className="text-yellow-600 mb-1" style={{fontSize:'10px'}}>⚠️ Large formats (3L/5L) not available for US/Canada.</p>}
                 {/* auto-fill: ~4 cols on mobile (80px min), ~3-4 cols on desktop (120px min) */}
                 <div className="grid gap-2 prod-grid">
-                  {ps.map(p=><ProductCard key={p.id} p={p} onAdd={addItem}/>)}
+                  {ps.map(p=><ProductCard key={p.id} p={p} onAdd={addItem} blocked={caBlockedCats.includes(p.category)}/>)}
                 </div>
               </div>);
           })}
