@@ -98,6 +98,7 @@
     imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
     privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
     privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
+    email    : "shop@ilciliegio.com",
     whatsapp : "393394652717"
   };
   // Fix iOS Safari: imposta --vh come 1% dell'altezza visibile reale
@@ -412,17 +413,30 @@ function App(){
     sendWA();
   };
 
-  const sendWA=()=>{
+  const buildMsg=(nl,bold)=>{
     const em=`${form.emailUser}@${form.emailDomain}`;
-    let m=`*NEW ORDER*%0A%0A*CUSTOMER:*%0A${form.name} ${form.surname}%0A`;
-    m+=`Nationality: ${form.nationality}%0AEmail: ${em}%0APhone: ${form.mobile}%0A`;
-    m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}%0A`;
-    m+=`%0A*PRODUCTS:*%0A`;
-    cart.forEach(c=>{m+=`- ${c.qty}x ${c.name} (${c.price===0?'FREE GIFT':'€'+c.price.toFixed(2)})%0A`;});
-    m+=`%0AProducts Total: €${prod.toFixed(2)}`;
-    if(duty>0) m+=`%0AImport Duties (10%): €${duty.toFixed(2)}`;
-    m+=`%0AShipping (${aRate?aRate.label:'N/A'}): €${sc.toFixed(2)}%0A*FINAL TOTAL: €${total.toFixed(2)}*`;
+    const b=bold?(s=>`*${s}*`):(s=>s);
+    let m=`${b('NEW ORDER')}${nl}${nl}${b('CUSTOMER:')}${nl}${form.name} ${form.surname}${nl}`;
+    m+=`Nationality: ${form.nationality}${nl}Email: ${em}${nl}Phone: ${form.mobile}${nl}`;
+    m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}${nl}`;
+    m+=`${nl}${b('PRODUCTS:')}${nl}`;
+    cart.forEach(i=>{m+=`- ${i.qty}x ${i.name} (${i.price===0?'FREE GIFT':'€'+i.price.toFixed(2)})${nl}`;});
+    m+=`${nl}Products Total: €${prod.toFixed(2)}`;
+    if(discount>0) m+=`${nl}Discount (5%): -€${discount.toFixed(2)}`;
+    if(duty>0) m+=`${nl}Import Duties (10%): €${duty.toFixed(2)}`;
+    m+=`${nl}Shipping (${aRate?aRate.label:'N/A - to be quoted'}): €${effectiveSc.toFixed(2)}`;
+    m+=`${nl}${b('FINAL TOTAL: €'+total.toFixed(2))}`;
+    return m;
+  };
+  const sendWA=()=>{
+    const m=buildMsg('%0A',true);
     window.open(`https://wa.me/${window.CFG.whatsapp}?text=${m}`,'_blank');
+  };
+  const sendEmail=()=>{
+    const subj=encodeURIComponent(`New Order — ${form.name} ${form.surname} (${form.nationality})`);
+    const body=encodeURIComponent(buildMsg('
+',false));
+    window.open(`mailto:${window.CFG.email}?subject=${subj}&body=${body}`,'_blank');
   };
 
   if(loading) return(
@@ -718,7 +732,7 @@ function ProductCard({p,onAdd,blocked}){
 }
 
 /* ── CartPanel ─────────────────────────────────────────────── */
-function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed,setSpeed,spSel,noRate,natCode}){
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onEmail,speed,setSpeed,spSel,noRate,natCode}){
   const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',gap:'4px',overflow:'hidden'}}>
@@ -784,12 +798,20 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,speed
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
         </div>
       </div>
-      <button onClick={onSend} disabled={cart.length===0}
-        className={`w-full rounded font-bold uppercase transition shrink-0
-          ${cart.length>0?'bg-green-600 hover:bg-green-500 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
-        style={{fontSize:'12px',padding:'8px 0'}}>
-        📲 Send Order via WhatsApp
-      </button></div>
+      <div style={{display:'flex',gap:'6px'}}>
+        <button onClick={onSend} disabled={cart.length===0}
+          className={`flex-1 rounded font-bold uppercase transition
+            ${cart.length>0?'bg-green-700 hover:bg-green-600 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+          style={{fontSize:'11px',padding:'8px 2px'}}>
+          📲 WhatsApp
+        </button>
+        <button onClick={onEmail} disabled={cart.length===0}
+          className={`flex-1 rounded font-bold uppercase transition
+            ${cart.length>0?'bg-blue-700 hover:bg-blue-600 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+          style={{fontSize:'11px',padding:'8px 2px'}}>
+          ✉️ Email
+        </button>
+      </div></div>
     </div>
   );
 }
@@ -887,7 +909,7 @@ function GiftPopup({products,onYes,onNo}){
 
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
-  aRate,aKey,hasDuty,dl,totals,onSend,natCode,province,state,
+  aRate,aKey,hasDuty,dl,totals,onSend,onEmail,natCode,province,state,
   resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
 
   const [tab,setTab]         = useState('ALL');
@@ -1016,13 +1038,12 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   })();
 
   const [showDutyWarn,setShowDutyWarn] = useState(false);
+  const [pendingAction,setPendingAction] = useState('wa');
 
-  const handleSend=()=>{
-    if(getDutyWarning) { setShowDutyWarn(true); }
-    else { onSend(); }
-  };
+  const handleSend=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('wa');}else{onSend();} };
+  const handleEmail=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('email');}else{onEmail();} };
 
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onEmail:handleEmail,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
 
   const handleGiftYes = () => {
     setGiftChoice(true);
@@ -1058,7 +1079,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
               <button onClick={()=>setShowDutyWarn(false)}
                 className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
                 style={{fontSize:'12px'}}>← Go Back</button>
-              <button onClick={()=>{setShowDutyWarn(false);onSend();}}
+              <button onClick={()=>{setShowDutyWarn(false);pendingAction==='email'?onEmail():onSend();}}
                 className="flex-1 p-3 rounded bg-green-600 hover:bg-green-500 text-white font-bold uppercase transition"
                 style={{fontSize:'12px'}}>Send Anyway →</button>
             </div>
