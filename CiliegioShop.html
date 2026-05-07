@@ -456,7 +456,7 @@ function App(){
 
         {/* Header */}
         <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
-          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.47</span>
+          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.48</span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
@@ -1041,6 +1041,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     if(getDutyWarning){setShowDutyWarn(true);}
     else{setShowOrderPopup(true);}
   };
+  const dutyAcknowledged = React.useRef(false);
   const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onEmail:handleEmail,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
 
   const handleGiftYes = () => {
@@ -1079,10 +1080,10 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
             </p>
             <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>Please send us your order using one of the options below:</p>
             <div style={{display:'flex',gap:'10px',marginBottom:'10px'}}>
-              <button onClick={()=>{setShowOrderPopup(false);handleSend();}}
+              <button onClick={()=>{setShowOrderPopup(false);onSend();}}
                 className="flex-1 p-3 rounded font-bold uppercase bg-green-600 hover:bg-green-500 text-white transition"
                 style={{fontSize:'12px'}}>📲 WhatsApp</button>
-              <button onClick={()=>{setShowOrderPopup(false);handleEmail();}}
+              <button onClick={()=>{setShowOrderPopup(false);onEmail();}}
                 className="flex-1 p-3 rounded font-bold uppercase bg-blue-700 hover:bg-blue-600 text-white transition"
                 style={{fontSize:'12px'}}>✉️ Email</button>
             </div>
@@ -1102,9 +1103,9 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
               <button onClick={()=>setShowDutyWarn(false)}
                 className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
                 style={{fontSize:'12px'}}>← Go Back</button>
-              <button onClick={()=>{setShowDutyWarn(false);pendingAction==='email'?onEmail():onSend();}}
+              <button onClick={()=>{setShowDutyWarn(false);setShowOrderPopup(true);}}
                 className="flex-1 p-3 rounded bg-green-600 hover:bg-green-500 text-white font-bold uppercase transition"
-                style={{fontSize:'12px'}}>Send Anyway →</button>
+                style={{fontSize:'12px'}}>I understand →</button>
             </div>
           </div>
         </div>
