@@ -2,6 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // Service Worker: auto-update on new version
+    if('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        // Check for updates every time app opens
+        reg.update();
+
+        // When a new service worker is waiting, reload automatically
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if(newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available — reload to apply it
+              window.location.reload();
+            }
+          });
+        });
+      });
+
+      // If controller changes (new SW activated), reload
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if(!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  </script>
   <!-- Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-QY93H4QWVG"></script>
   <script>
@@ -505,7 +534,7 @@ function App(){
 
         {/* Header */}
         <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
-          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.62</span>
+          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.63</span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
