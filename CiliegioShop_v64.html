@@ -2,6 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // Service Worker: auto-update on new version
+    if('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        // Check for updates every time app opens
+        reg.update();
+
+        // When a new service worker is waiting, reload automatically
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if(newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available — reload to apply it
+              window.location.reload();
+            }
+          });
+        });
+      });
+
+      // If controller changes (new SW activated), reload
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if(!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  </script>
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QY93H4QWVG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QY93H4QWVG');
+
+    // Detect and send device type
+    var _device=/iphone|ipad|ipod/i.test(navigator.userAgent)?'iOS':/android/i.test(navigator.userAgent)?'Android':'Desktop';
+    gtag('set','user_properties',{device_type:_device});
+    var _isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+    gtag('set','user_properties',{pwa_installed:_isStandalone?'yes':'no'});
+
+    // Track if opened in standalone mode (installed PWA)
+    if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+      gtag('event', 'app_opened_standalone', {event_category: 'PWA', event_label: _device+' - Opened from icon'});
+    }
+
+    // Track app installation
+    window.addEventListener('appinstalled', function(){
+      gtag('event', 'app_installed', {event_category: 'PWA', event_label: _device+' - Installed'});
+    });
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
@@ -97,6 +150,7 @@
     shipping : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
     imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
     privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
+    email    : "shop@ilciliegio.com",
     privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
     email    : "shop@ilciliegio.com",
     whatsapp : "393394652717"
@@ -280,6 +334,19 @@ const COUNTRIES = [
   {name:'SWITZERLAND',    code:'CH', prefix:'+41',  flag:'🇨🇭'},
   {name:'UNITED KINGDOM', code:'GB', prefix:'+44',  flag:'🇬🇧'},
   {name:'UNITED STATES',  code:'US', prefix:'+1',   flag:'🇺🇸'},
+  {name:'BRAZIL',         code:'BR', prefix:'+55',  flag:'🇧🇷'},
+  {name:'CHINA',          code:'CN', prefix:'+86',  flag:'🇨🇳'},
+  {name:'HONG KONG',      code:'HK', prefix:'+852', flag:'🇭🇰'},
+  {name:'INDIA',          code:'IN', prefix:'+91',  flag:'🇮🇳'},
+  {name:'ISRAEL',         code:'IL', prefix:'+972', flag:'🇮🇱'},
+  {name:'JAPAN',          code:'JP', prefix:'+81',  flag:'🇯🇵'},
+  {name:'MEXICO',         code:'MX', prefix:'+52',  flag:'🇲🇽'},
+  {name:'NEW ZEALAND',    code:'NZ', prefix:'+64',  flag:'🇳🇿'},
+  {name:'SINGAPORE',      code:'SG', prefix:'+65',  flag:'🇸🇬'},
+  {name:'SOUTH AFRICA',   code:'ZA', prefix:'+27',  flag:'🇿🇦'},
+  {name:'SOUTH KOREA',    code:'KR', prefix:'+82',  flag:'🇰🇷'},
+  {name:'TAIWAN',         code:'TW', prefix:'+886', flag:'🇹🇼'},
+  {name:'UNITED ARAB EMIRATES', code:'AE', prefix:'+971', flag:'🇦🇪'},
 ];
 
 const ZONE_MAP = {
@@ -300,7 +367,7 @@ const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
 // Province abbreviations for the same blocked provinces
 const CA_NO_WINE_ABBR = ['NB','NL','NT','NS','NU','PE','SK','YT'];
 const QTY_TIERS   = [3,6,12,18,24,30,36,42,48,54,60];
-const OIL_WEIGHTS = {20:0.8, 21:0.5, 22:1.0, 23:2.0, 24:4.0, 25:6.0};
+const OIL_WEIGHTS = {20:0.8, 21:0.5, 22:1.5, 23:2.0, 24:4.0, 25:6.0};
 const UNIT_KG = 1.5;
 function effectiveUnits(item){
   const realId = item.id==='5_gift' ? 5 : item.id;
@@ -357,7 +424,9 @@ function App(){
   const [err,setErr]      = useState('');
   const [form,setForm]    = useState({...BLANK});
   const [natTxt,setNat]   = useState('');
-  const [giftChoice,setGiftChoice] = useState(null); // null=not asked, true=yes, false=no
+  const [giftChoice,setGiftChoice] = useState(null);
+  const [isVendita,setIsVendita]   = useState(()=>sessionStorage.getItem('ciliegio_vendita')==='1');
+  const [showLogin,setShowLogin]   = useState(false); // null=not asked, true=yes, false=no
   const [showGiftPopup,setShowGiftPopup] = useState(false);
   const [showPrivacy,setShowPrivacy]     = useState(false);
   const [privacyText,setPrivacyText]     = useState('');
@@ -388,7 +457,7 @@ function App(){
   const discounted    = prod - discount;
   const italyFree     = form.natCode==='IT' && discounted>100;
   const effectiveSc   = italyFree ? 0 : sc;
-  const duty          = aKey&&aKey.startsWith('USA_WINE')?discounted*0.1:0;
+  const duty          = form.natCode==='US'?discounted*0.1:0;
   const total         = discounted + effectiveSc + duty;
   const dl    = dLabel(aKey,speed,aRate);
   const spSel = ['US','CA'].includes(form.natCode);
@@ -416,7 +485,7 @@ function App(){
   const buildMsg=(nl,bold)=>{
     const em=`${form.emailUser}@${form.emailDomain}`;
     const b=bold?(s=>`*${s}*`):(s=>s);
-    let m=`${b('NEW ORDER')}${nl}${nl}${b('CUSTOMER:')}${nl}${form.name} ${form.surname}${nl}`;
+    let m=`${b('NEW ORDER')}${isVendita?' ✅ PAID AT FARM - DIRECT SALE':''}${nl}${nl}${b('CUSTOMER:')}${nl}${form.name} ${form.surname}${isVendita?' [STAFF ORDER]':''}${nl}`;
     m+=`Nationality: ${form.nationality}${nl}Email: ${em}${nl}Phone: ${form.mobile}${nl}`;
     m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}${nl}`;
     m+=`${nl}${b('PRODUCTS:')}${nl}`;
@@ -429,13 +498,24 @@ function App(){
     return m;
   };
   const sendWA=()=>{
+    if(typeof gtag!=='undefined') gtag('event','order_sent',{event_category:'order',event_label:'WhatsApp',value:Math.round(total),currency:'EUR',items_count:qty,nationality:form.natCode});
     const m=buildMsg('%0A',true);
     window.open(`https://wa.me/${window.CFG.whatsapp}?text=${m}`,'_blank');
   };
-  const sendEmail=()=>{
-    const subj=encodeURIComponent(`New Order — ${form.name} ${form.surname} (${form.nationality})`);
-    const NL=String.fromCharCode(10);const body=encodeURIComponent(buildMsg(NL,false));
-    window.open(`mailto:${window.CFG.email}?subject=${subj}&body=${body}`,'_blank');
+  const getMailtoUrl=()=>{
+    const NL=String.fromCharCode(10);
+    const subj=encodeURIComponent('New Order - '+form.name+' '+form.surname+' ('+form.nationality+')');
+    const body=encodeURIComponent(buildMsg(NL,false));
+    return 'mailto:'+window.CFG.email+'?subject='+subj+'&body='+body;
+  };
+  const sendEmail=()=>{ if(typeof gtag!=='undefined') gtag('event','order_sent',{event_category:'order',event_label:'Email',value:Math.round(total),currency:'EUR',items_count:qty,nationality:form.natCode}); window.open(getMailtoUrl()); };
+  const sendSMS=()=>{
+    if(typeof gtag!=='undefined') gtag('event','order_sent',{event_category:'order',event_label:'SMS',value:Math.round(total),currency:'EUR',items_count:qty,nationality:form.natCode});
+    const NL=String.fromCharCode(10);
+    const text=encodeURIComponent(buildMsg(NL,false));
+    const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    const sep=isIOS?'&':'?';
+    window.open('sms:'+window.CFG.whatsapp+sep+'body='+text);
   };
 
   if(loading) return(
@@ -456,7 +536,11 @@ function App(){
 
         {/* Header */}
         <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
-          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.46</span>
+          <span style={{position:"absolute",right:0,top:0,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px"}}>
+            {isVendita
+              ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
+              :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.64</span>}
+          </span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
@@ -468,6 +552,7 @@ function App(){
         </div>
 
         {showPrivacy && <PrivacyPopup text={privacyText} onClose={()=>setShowPrivacy(false)}/>}
+        {showLogin && <LoginPopup onClose={()=>setShowLogin(false)} onLogin={()=>{setIsVendita(true);setShowLogin(false);}}/>}
         {showCAWarn && (
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
             <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'360px',width:'100%',padding:'28px',textAlign:'center'}}>
@@ -476,7 +561,10 @@ function App(){
               <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.7'}}>
                 Please note that you cannot ship alcohol to your destination province or region!
               </p>
-              <button onClick={()=>{setShowCAWarn(false);setTimeout(()=>setStep(3),50);}}
+              <button onClick={()=>{setShowCAWarn(false);setTimeout(()=>{
+              if(typeof gtag!=='undefined') gtag('event','step_catalog',{event_category:'funnel'});
+              setStep(3);
+            },50);}}
                 className="w-full p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
                 style={{fontSize:'14px',letterSpacing:'0.05em'}}>
                 I Understand
@@ -485,7 +573,10 @@ function App(){
           </div>
         )}
         {dutyReminder && <DutyReminderPopup msg={dutyReminder} onConfirm={()=>{setDutyReminder(null);sendWA();}} onClose={()=>setDutyReminder(null)}/>}
-        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} onNext={()=>setStep(2)}/>}
+        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} onNext={()=>{
+              if(typeof gtag!=='undefined') gtag('event','step_registration',{event_category:'funnel',event_label:'Completed registration',nationality:form.natCode});
+              setStep(2);
+            }}/>}
         {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onPrivacy={()=>setShowPrivacy(true)}
           onConfirm={()=>{
             const CA_NO_ALCOHOL=['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
@@ -498,12 +589,15 @@ function App(){
               CA_NO_ALCOHOL_ABBR.includes(caAbbr)
             );
             if(blocked) setShowCAWarn(true);
-            else setStep(3);
+            else{
+              if(typeof gtag!=='undefined') gtag('event','step_catalog',{event_category:'funnel'});
+              setStep(3);
+            }
           }}/>}
         {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
-          totals={totals} onSend={handleSendOrder} natCode={form.natCode} province={form.province} state={form.state}
+          totals={totals} onSend={handleSendOrder} onDirectSend={sendWA} onSMS={sendSMS} getMailtoUrl={getMailtoUrl} natCode={form.natCode} province={form.province} state={form.state}
           resetCart={()=>{setCart([]);setGiftChoice(null);setShowGiftPopup(false);}}
           giftChoice={giftChoice} setGiftChoice={setGiftChoice}
           showGiftPopup={showGiftPopup} setShowGiftPopup={setShowGiftPopup}/>}
@@ -527,40 +621,16 @@ function FormStep({form,setForm,natTxt,setNat,onNext}){
     const z=e.target.value.trim();
     if(!z||!form.natCode) return;
     try{
-      if(form.natCode==='IT'){
-        // Italy: use Nominatim for correct municipality, province, region
-        const r=await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${z}&country=Italy&format=json&addressdetails=1&limit=1`,{headers:{'Accept-Language':'it'}});
-        if(r.ok){
-          const data=await r.json();
-          if(data.length>0){
-            const a=data[0].address;
-            const city=(a.municipality||a.city||a.town||a.village||'').toUpperCase();
-            const province=(a.county||a.state_district||'').toUpperCase();
-            const region=(a.state||'').toUpperCase();
-            setForm(f=>({...f,city,province,state:region}));
-          }
-        }
-      } else {
-        const code = form.natCode.toLowerCase();
-        // UK/Canada: zippopotam.us only accepts partial postcodes
-        let zipQuery = z.replace(/[\s\-]/g,'').toUpperCase();
-        if(form.natCode==='GB'){
-          // UK outward code = everything except last 3 chars (e.g. SO40 3AJ → SO40)
-          if(zipQuery.length>3) zipQuery = zipQuery.slice(0, zipQuery.length-3);
-        } else if(form.natCode==='CA'){
-          // Canada FSA = first 3 chars (e.g. H2A 1Y7 → H2A)
-          if(zipQuery.length>3) zipQuery = zipQuery.slice(0,3);
-        }
-        const r=await fetch(`https://api.zippopotam.us/${code}/${zipQuery}`);
-        if(r.ok){
-          const d=await r.json(); const p=d.places[0];
-          setForm(f=>({...f,
-            city:p['place name'].toUpperCase(),
-            state:p['state'].toUpperCase(),
-            province:p['state abbreviation'].toUpperCase()
-          }));
-        }
-      }
+      const url='https://nominatim.openstreetmap.org/search?postalcode='+encodeURIComponent(z)+'&countrycodes='+form.natCode.toLowerCase()+'&format=json&addressdetails=1&limit=1';
+      const r=await fetch(url,{headers:{'Accept-Language':'en'}});
+      if(!r.ok) return;
+      const data=await r.json();
+      if(!data.length) return;
+      const a=data[0].address;
+      const city=(a.municipality||a.city||a.town||a.village||a.hamlet||'').toUpperCase();
+      const province=(a.county||a.state_district||a.region||'').toUpperCase();
+      const region=(a.state||'').toUpperCase();
+      setForm(f=>({...f,city,province,state:region}));
     }catch(_){}
   };
 
@@ -732,7 +802,7 @@ function ProductCard({p,onAdd,blocked}){
 }
 
 /* ── CartPanel ─────────────────────────────────────────────── */
-function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onEmail,speed,setSpeed,spSel,noRate,natCode}){
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDirectSend,onEmail,onSMS,onPlaceOrder,speed,setSpeed,spSel,noRate,natCode}){
   const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',gap:'4px',overflow:'hidden'}}>
@@ -798,20 +868,12 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onEma
           <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
         </div>
       </div>
-      <div style={{display:'flex',gap:'6px'}}>
-        <button onClick={onSend} disabled={cart.length===0}
-          className={`flex-1 rounded font-bold uppercase transition
-            ${cart.length>0?'bg-green-700 hover:bg-green-600 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
-          style={{fontSize:'11px',padding:'8px 2px'}}>
-          📲 WhatsApp
-        </button>
-        <button onClick={onEmail} disabled={cart.length===0}
-          className={`flex-1 rounded font-bold uppercase transition
-            ${cart.length>0?'bg-blue-700 hover:bg-blue-600 text-white':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
-          style={{fontSize:'11px',padding:'8px 2px'}}>
-          ✉️ Email
-        </button>
-      </div></div>
+      <button onClick={onPlaceOrder} disabled={cart.length===0}
+        className={`w-full rounded font-bold uppercase transition
+          ${cart.length>0?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+        style={{fontSize:'12px',padding:'9px 0',letterSpacing:'0.05em'}}>
+        🛍️ Place your order
+      </button></div>
     </div>
   );
 }
@@ -909,7 +971,7 @@ function GiftPopup({products,onYes,onNo}){
 
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
-  aRate,aKey,hasDuty,dl,totals,onSend,onEmail,natCode,province,state,
+  aRate,aKey,hasDuty,dl,totals,onSend,onDirectSend,onEmail,onSMS,getMailtoUrl,natCode,province,state,
   resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
 
   const [tab,setTab]         = useState('ALL');
@@ -983,12 +1045,16 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     });
     // After adding, check new qty
     const newQty = currentQty + 1;
-    if(giftChoice===null && newQty===11) {
-      // Always show popup at 11th item
-      setShowGiftPopup(true);
+    const currentNonGiftQtyForPopup = cart.reduce((s,i)=>i.id==='5_gift'?s:s+i.qty,0) + (prod.id==='5_gift'?0:1);
+    if(giftChoice===null && currentNonGiftQtyForPopup===11) {
+      // Don't offer gift to blocked CA provinces (no alcohol shipping)
+      if(caBlock){ setGiftChoice(false); }
+      else { setShowGiftPopup(true); }
     } else if(giftChoice===true) {
-      // Auto-add gift: check after adding
-      const nonGiftQty = currentQty + (prod.id==='5_gift'?0:1);
+      // Count only NON-gift items currently in cart
+      const currentNonGiftQty = cart.reduce((s,i)=>i.id==='5_gift'?s:s+i.qty, 0);
+      // Add 1 if the product being added is not a gift
+      const nonGiftQty = currentNonGiftQty + (prod.id==='5_gift'?0:1);
       const expectedGifts = Math.floor(nonGiftQty / 11);
       const currentGifts = cart.filter(i=>i.id==='5_gift').reduce((s,i)=>s+i.qty,0);
       if(expectedGifts > currentGifts){
@@ -1043,7 +1109,13 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const handleSend=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('wa');}else{onSend();} };
   const handleEmail=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('email');}else{onEmail();} };
 
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onEmail:handleEmail,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
+  const [showOrderPopup,setShowOrderPopup] = useState(false);
+  const handlePlaceOrder=()=>{
+    if(getDutyWarning){setShowDutyWarn(true);}
+    else{setShowOrderPopup(true);}
+  };
+  const dutyAcknowledged = React.useRef(false);
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onDirectSend:onDirectSend,onEmail:handleEmail,onSMS:onSMS,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
 
   const handleGiftYes = () => {
     setGiftChoice(true);
@@ -1069,6 +1141,34 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   return(
     <div className="catalog-page">
       {showGiftPopup && <GiftPopup products={products} onYes={handleGiftYes} onNo={handleGiftNo}/>}
+      {showOrderPopup&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+          <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>
+            <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>🍷</div>
+            <h2 className="gold-text font-bold mb-3" style={{fontSize:'17px',letterSpacing:'0.04em'}}>Thank you for choosing<br/>IL CILIEGIO!</h2>
+            <p className="text-gray-300 mb-4" style={{fontSize:'12px',lineHeight:'1.8'}}>
+              Your order has been completed.<br/><br/>
+              If you are <b style={{color:'#fff'}}>visiting us</b>, please proceed to our direct sales office to complete your payment.<br/><br/>
+              If you are <b style={{color:'#fff'}}>ordering remotely</b>, we will contact you via email or WhatsApp to complete your payment through a secure <b style={{color:'#D4AF37'}}>pay-by-link</b>.
+            </p>
+            <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>Please send us your order using one of the options below:</p>
+            <div style={{display:'flex',gap:'10px',marginBottom:'10px'}}>
+              <button onClick={()=>{setShowOrderPopup(false);onDirectSend();}}
+                className="flex-1 p-3 rounded font-bold uppercase bg-green-600 hover:bg-green-500 text-white transition"
+                style={{fontSize:'12px'}}>📲 WhatsApp</button>
+              <a href={getMailtoUrl()} onClick={()=>setShowOrderPopup(false)}
+                className="flex-1 p-3 rounded font-bold uppercase bg-blue-700 hover:bg-blue-600 text-white transition"
+                style={{fontSize:'11px',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>✉️ Email</a>
+              <button onClick={()=>{setShowOrderPopup(false);onSMS();}}
+                className="flex-1 p-3 rounded font-bold uppercase bg-purple-700 hover:bg-purple-600 text-white transition"
+                style={{fontSize:'11px'}}>💬 SMS</button>
+            </div>
+            <button onClick={()=>setShowOrderPopup(false)}
+              className="w-full p-2 rounded border border-gray-700 text-gray-500 hover:border-gray-400 hover:text-gray-300 transition uppercase"
+              style={{fontSize:'11px'}}>← Go Back</button>
+          </div>
+        </div>
+      )}
       {showDutyWarn && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
           <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>
@@ -1079,9 +1179,9 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
               <button onClick={()=>setShowDutyWarn(false)}
                 className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
                 style={{fontSize:'12px'}}>← Go Back</button>
-              <button onClick={()=>{setShowDutyWarn(false);pendingAction==='email'?onEmail():onSend();}}
+              <button onClick={()=>{setShowDutyWarn(false);setShowOrderPopup(true);}}
                 className="flex-1 p-3 rounded bg-green-600 hover:bg-green-500 text-white font-bold uppercase transition"
-                style={{fontSize:'12px'}}>Send Anyway →</button>
+                style={{fontSize:'12px'}}>I understand →</button>
             </div>
           </div>
         </div>
@@ -1127,6 +1227,33 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
               style={{fontSize:'9px',padding:'2px 6px'}}>✕ Reset</button>}
           </div>
           <CartPanel {...panelProps}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginPopup({onClose,onLogin}){
+  const [u,setU]=useState('');
+  const [p,setP]=useState('');
+  const handle=()=>{
+    if(u.trim()==='Vendita'&&p==='Vendita02'){
+      sessionStorage.setItem('ciliegio_vendita','1');
+      onLogin();
+    } else { onClose(); }
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'300px',width:'100%',padding:'28px',textAlign:'center'}}>
+        <h2 className="gold-text font-bold mb-4" style={{fontSize:'16px'}}>Staff Login</h2>
+        <input type="text" placeholder="Username" value={u} onChange={e=>setU(e.target.value)}
+          className="w-full p-3 rounded mb-3" style={{textAlign:'center'}}/>
+        <input type="password" placeholder="Password" value={p} onChange={e=>setP(e.target.value)}
+          className="w-full p-3 rounded mb-4" style={{textAlign:'center'}}
+          onKeyDown={e=>e.key==='Enter'&&handle()}/>
+        <div style={{display:'flex',gap:'10px'}}>
+          <button onClick={onClose} className="flex-1 p-3 rounded border gold-border gold-text" style={{fontSize:'12px'}}>Cancel</button>
+          <button onClick={handle} className="flex-1 p-3 rounded gold-bg font-bold" style={{fontSize:'12px'}}>Login</button>
         </div>
       </div>
     </div>

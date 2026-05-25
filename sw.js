@@ -1,5 +1,5 @@
 // Service Worker — Il Ciliegio Shop
-const VERSION = 'v63';
+const VERSION = 'v64';
 const CACHE = 'ciliegio-' + VERSION;
 
 // On install: skip waiting to activate immediately

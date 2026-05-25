@@ -367,7 +367,7 @@ const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
 // Province abbreviations for the same blocked provinces
 const CA_NO_WINE_ABBR = ['NB','NL','NT','NS','NU','PE','SK','YT'];
 const QTY_TIERS   = [3,6,12,18,24,30,36,42,48,54,60];
-const OIL_WEIGHTS = {20:0.8, 21:0.5, 22:1.0, 23:2.0, 24:4.0, 25:6.0};
+const OIL_WEIGHTS = {20:0.8, 21:0.5, 22:1.5, 23:2.0, 24:4.0, 25:6.0};
 const UNIT_KG = 1.5;
 function effectiveUnits(item){
   const realId = item.id==='5_gift' ? 5 : item.id;
@@ -424,7 +424,9 @@ function App(){
   const [err,setErr]      = useState('');
   const [form,setForm]    = useState({...BLANK});
   const [natTxt,setNat]   = useState('');
-  const [giftChoice,setGiftChoice] = useState(null); // null=not asked, true=yes, false=no
+  const [giftChoice,setGiftChoice] = useState(null);
+  const [isVendita,setIsVendita]   = useState(()=>sessionStorage.getItem('ciliegio_vendita')==='1');
+  const [showLogin,setShowLogin]   = useState(false); // null=not asked, true=yes, false=no
   const [showGiftPopup,setShowGiftPopup] = useState(false);
   const [showPrivacy,setShowPrivacy]     = useState(false);
   const [privacyText,setPrivacyText]     = useState('');
@@ -455,7 +457,7 @@ function App(){
   const discounted    = prod - discount;
   const italyFree     = form.natCode==='IT' && discounted>100;
   const effectiveSc   = italyFree ? 0 : sc;
-  const duty          = aKey&&aKey.startsWith('USA_WINE')?discounted*0.1:0;
+  const duty          = form.natCode==='US'?discounted*0.1:0;
   const total         = discounted + effectiveSc + duty;
   const dl    = dLabel(aKey,speed,aRate);
   const spSel = ['US','CA'].includes(form.natCode);
@@ -483,7 +485,7 @@ function App(){
   const buildMsg=(nl,bold)=>{
     const em=`${form.emailUser}@${form.emailDomain}`;
     const b=bold?(s=>`*${s}*`):(s=>s);
-    let m=`${b('NEW ORDER')}${nl}${nl}${b('CUSTOMER:')}${nl}${form.name} ${form.surname}${nl}`;
+    let m=`${b('NEW ORDER')}${isVendita?' ✅ PAID AT FARM - DIRECT SALE':''}${nl}${nl}${b('CUSTOMER:')}${nl}${form.name} ${form.surname}${isVendita?' [STAFF ORDER]':''}${nl}`;
     m+=`Nationality: ${form.nationality}${nl}Email: ${em}${nl}Phone: ${form.mobile}${nl}`;
     m+=`Address: ${form.address}, ${form.zip} ${form.city} (${form.province}), ${form.state}${nl}`;
     m+=`${nl}${b('PRODUCTS:')}${nl}`;
@@ -534,7 +536,11 @@ function App(){
 
         {/* Header */}
         <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
-          <span style={{position:"absolute",right:0,top:0,color:"#fff",fontSize:"10px",opacity:0.5,letterSpacing:"0.05em"}}>v.63</span>
+          <span style={{position:"absolute",right:0,top:0,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px"}}>
+            {isVendita
+              ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
+              :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.64</span>}
+          </span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
             ⌂ Home
@@ -546,6 +552,7 @@ function App(){
         </div>
 
         {showPrivacy && <PrivacyPopup text={privacyText} onClose={()=>setShowPrivacy(false)}/>}
+        {showLogin && <LoginPopup onClose={()=>setShowLogin(false)} onLogin={()=>{setIsVendita(true);setShowLogin(false);}}/>}
         {showCAWarn && (
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
             <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'360px',width:'100%',padding:'28px',textAlign:'center'}}>
@@ -1220,6 +1227,33 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
               style={{fontSize:'9px',padding:'2px 6px'}}>✕ Reset</button>}
           </div>
           <CartPanel {...panelProps}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginPopup({onClose,onLogin}){
+  const [u,setU]=useState('');
+  const [p,setP]=useState('');
+  const handle=()=>{
+    if(u.trim()==='Vendita'&&p==='Vendita02'){
+      sessionStorage.setItem('ciliegio_vendita','1');
+      onLogin();
+    } else { onClose(); }
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'300px',width:'100%',padding:'28px',textAlign:'center'}}>
+        <h2 className="gold-text font-bold mb-4" style={{fontSize:'16px'}}>Staff Login</h2>
+        <input type="text" placeholder="Username" value={u} onChange={e=>setU(e.target.value)}
+          className="w-full p-3 rounded mb-3" style={{textAlign:'center'}}/>
+        <input type="password" placeholder="Password" value={p} onChange={e=>setP(e.target.value)}
+          className="w-full p-3 rounded mb-4" style={{textAlign:'center'}}
+          onKeyDown={e=>e.key==='Enter'&&handle()}/>
+        <div style={{display:'flex',gap:'10px'}}>
+          <button onClick={onClose} className="flex-1 p-3 rounded border gold-border gold-text" style={{fontSize:'12px'}}>Cancel</button>
+          <button onClick={handle} className="flex-1 p-3 rounded gold-bg font-bold" style={{fontSize:'12px'}}>Login</button>
         </div>
       </div>
     </div>
