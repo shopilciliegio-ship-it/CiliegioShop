@@ -6,43 +6,47 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { total, totalPaypal, currency, customerName, customerEmail, orderText, method } = JSON.parse(event.body);
+    const { total, currency, customerName, customerEmail, orderText, method } = JSON.parse(event.body);
 
-    const amount = method === 'paypal' ? totalPaypal : total;
+    const paymentMethods = method === 'paypal' ? ['paypal'] : ['card'];
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: method === 'paypal' ? ['paypal'] : ['card'],
+      payment_method_types: paymentMethods,
       line_items: [{
         price_data: {
           currency: currency || 'eur',
           product_data: {
-            name: 'Il Ciliegio — Order',
+            name: 'Il Ciliegio — Ordine',
             description: customerName,
           },
-          unit_amount: Math.round(amount * 100), // cents
+          unit_amount: Math.round(total * 100),
         },
         quantity: 1,
       }],
       mode: 'payment',
       customer_email: customerEmail,
       metadata: {
-        order_text: orderText.substring(0, 500), // Stripe metadata limit
         customer_name: customerName,
+        order_summary: orderText.substring(0, 500),
         payment_method: method,
       },
-      success_url: 'https://YOUR_NETLIFY_URL/CiliegioShop.html?payment=success',
-      cancel_url:  'https://YOUR_NETLIFY_URL/CiliegioShop.html?payment=cancel',
+      success_url: 'https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=success',
+      cancel_url:  'https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=cancel',
     });
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
       body: JSON.stringify({ url: session.url }),
     };
   } catch (err) {
     console.error('Stripe error:', err);
     return {
       statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({ error: err.message }),
     };
   }
