@@ -1,13 +1,11 @@
 // Service Worker — Il Ciliegio Shop
 const VERSION = 'v72';
 const CACHE = 'ciliegio-' + VERSION;
-
-// On install: skip waiting to activate immediately
+ 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
 });
-
-// On activate: delete old caches and claim clients
+ 
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -20,12 +18,24 @@ self.addEventListener('activate', function(e) {
     })
   );
 });
-
-// On fetch: network first, cache fallback
+ 
 self.addEventListener('fetch', function(e) {
+  var url = e.request.url;
+ 
+  // Never intercept: Netlify functions, Stripe, external APIs
+  if (url.includes('netlify/functions') ||
+      url.includes('stripe.com') ||
+      url.includes('nominatim.openstreetmap') ||
+      url.includes('googleapis.com') ||
+      url.includes('googletagmanager') ||
+      e.request.method !== 'GET') {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+ 
+  // Network first, cache fallback for everything else
   e.respondWith(
     fetch(e.request).then(function(response) {
-      // Cache a copy of the response
       var copy = response.clone();
       caches.open(CACHE).then(function(cache) {
         cache.put(e.request, copy);
@@ -36,3 +46,4 @@ self.addEventListener('fetch', function(e) {
     })
   );
 });
+ 
