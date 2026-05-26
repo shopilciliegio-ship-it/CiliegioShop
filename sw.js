@@ -1,11 +1,11 @@
 // Service Worker — Il Ciliegio Shop
-const VERSION = 'v72';
+const VERSION = 'v73';
 const CACHE = 'ciliegio-' + VERSION;
- 
+
 self.addEventListener('install', function(e) {
   self.skipWaiting();
 });
- 
+
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -18,10 +18,10 @@ self.addEventListener('activate', function(e) {
     })
   );
 });
- 
+
 self.addEventListener('fetch', function(e) {
   var url = e.request.url;
- 
+
   // Never intercept: Netlify functions, Stripe, external APIs
   if (url.includes('netlify/functions') ||
       url.includes('stripe.com') ||
@@ -32,7 +32,7 @@ self.addEventListener('fetch', function(e) {
     e.respondWith(fetch(e.request));
     return;
   }
- 
+
   // Network first, cache fallback for everything else
   e.respondWith(
     fetch(e.request).then(function(response) {
@@ -46,4 +46,3 @@ self.addEventListener('fetch', function(e) {
     })
   );
 });
- 
