@@ -1,6 +1,14 @@
 [build]
   publish = "."
+  functions = "netlify/functions"
 
+# NON redirigere le chiamate alle funzioni
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Tutto il resto va alla app
 [[redirects]]
   from = "/*"
   to = "/CiliegioShop.html"
