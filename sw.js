@@ -1,5 +1,5 @@
 // Service Worker — Il Ciliegio Shop
-const VERSION = 'v76';
+const VERSION = 'v77';
 const CACHE = 'ciliegio-' + VERSION;
 
 self.addEventListener('install', function(e) {
