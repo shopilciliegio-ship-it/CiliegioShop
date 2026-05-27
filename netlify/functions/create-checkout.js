@@ -1,35 +1,32 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const https  = require('https');
+// No external dependencies — uses Node.js built-in https
+const https = require('https');
 
-// Send email via EmailJS REST API (free, no SMTP needed)
-// OR via a simple mailto trick using Netlify's own email
-function sendOrderEmail(orderText, customerName, total, method) {
-  return new Promise(function(resolve) {
-    // Use Stripe's own email notification + store full order in metadata
-    // Additionally POST to a simple webhook if configured
-    const webhookUrl = process.env.ORDER_WEBHOOK_URL;
-    if (!webhookUrl) { resolve(); return; }
+function stripeRequest(path, data, secretKey) {
+  return new Promise(function(resolve, reject) {
+    const payload = Object.keys(data).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
+    }).join('&');
 
-    const payload = JSON.stringify({
-      text: '🍷 NEW ORDER PAID\n\n' + orderText,
-      total: total,
-      method: method,
-      customer: customerName
-    });
-
-    const url = new URL(webhookUrl);
     const options = {
-      hostname: url.hostname,
-      path: url.pathname,
+      hostname: 'api.stripe.com',
+      path: path,
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + secretKey,
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Content-Length': Buffer.byteLength(payload)
       }
     };
 
-    const req = https.request(options, function(res) { resolve(); });
-    req.on('error', function() { resolve(); });
+    const req = https.request(options, function(res) {
+      let body = '';
+      res.on('data', function(chunk) { body += chunk; });
+      res.on('end', function() {
+        try { resolve(JSON.parse(body)); }
+        catch(e) { reject(new Error('Invalid JSON: ' + body)); }
+      });
+    });
+    req.on('error', reject);
     req.write(payload);
     req.end();
   });
@@ -41,7 +38,17 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { total, currency, customerName, customerEmail, orderText, method } = JSON.parse(event.body);
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'STRIPE_SECRET_KEY not configured' })
+      };
+    }
+
+    const body = JSON.parse(event.body);
+    const { total, currency, customerName, customerEmail, orderText, method } = body;
 
     if (!total || total <= 0) {
       return {
@@ -52,36 +59,37 @@ exports.handler = async (event) => {
     }
 
     const paymentLabel = method === 'paypal' ? 'PayPal (+5%)' : 'Credit Card';
-    const fullOrderText = orderText + '\n\n✅ PAYMENT CONFIRMED via ' + paymentLabel;
+    const cur = currency || 'eur';
+    const amount = Math.round(total * 100);
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: method === 'paypal' ? ['paypal'] : ['card'],
-      line_items: [{
-        price_data: {
-          currency: currency || 'eur',
-          product_data: {
-            name: 'Il Ciliegio — Ordine',
-            description: customerName || 'Customer',
-          },
-          unit_amount: Math.round(total * 100),
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      customer_email: customerEmail,
-      receipt_email: customerEmail,  // Stripe sends receipt to customer
-      metadata: {
-        customer_name: customerName || '',
-        order_summary: fullOrderText.substring(0, 500),
-        payment_method: method || 'card',
-        shop_notification: 'shop@ilciliegio.com',
-      },
-      success_url: 'https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=success',
-      cancel_url:  'https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=cancel',
-    });
+    // Build Stripe Checkout Session via REST API
+    const params = {
+      'payment_method_types[]': method === 'paypal' ? 'paypal' : 'card',
+      'line_items[0][price_data][currency]': cur,
+      'line_items[0][price_data][product_data][name]': 'Il Ciliegio — Ordine',
+      'line_items[0][price_data][product_data][description]': customerName || 'Customer',
+      'line_items[0][price_data][unit_amount]': amount,
+      'line_items[0][quantity]': 1,
+      'mode': 'payment',
+      'customer_email': customerEmail || '',
+      'receipt_email': customerEmail || '',
+      'metadata[customer_name]': customerName || '',
+      'metadata[order_summary]': (orderText || '').substring(0, 500),
+      'metadata[payment_method]': method || 'card',
+      'success_url': 'https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=success',
+      'cancel_url': 'https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=cancel',
+    };
 
-    // Try to send webhook notification if configured
-    await sendOrderEmail(fullOrderText, customerName, total, paymentLabel);
+    const session = await stripeRequest('/v1/checkout/sessions', params, secretKey);
+
+    if (session.error) {
+      console.error('Stripe error:', session.error.message);
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: session.error.message })
+      };
+    }
 
     return {
       statusCode: 200,
@@ -93,15 +101,11 @@ exports.handler = async (event) => {
     };
 
   } catch (err) {
-    console.error('Stripe error:', err.message);
-    let userMessage = err.message;
-    if (err.message && err.message.includes('paypal')) {
-      userMessage = 'PayPal not enabled. Please activate PayPal in Stripe dashboard.';
-    }
+    console.error('Function error:', err.message);
     return {
       statusCode: 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: userMessage, type: err.type }),
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };
