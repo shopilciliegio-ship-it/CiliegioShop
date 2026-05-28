@@ -1,4 +1,3 @@
-// No external dependencies — uses Node.js built-in https
 const https = require('https');
 
 function stripeRequest(path, data, secretKey) {
@@ -33,12 +32,19 @@ function stripeRequest(path, data, secretKey) {
 }
 
 exports.handler = async (event) => {
+  console.log('--- create-checkout called ---');
+  console.log('Method:', event.httpMethod);
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
+  console.log('Body received:', event.body ? event.body.substring(0, 200) : 'EMPTY');
+
   try {
     const secretKey = process.env.STRIPE_SECRET_KEY;
+    console.log('Secret key present:', !!secretKey, '| prefix:', secretKey ? secretKey.substring(0,7) : 'NONE');
+
     if (!secretKey) {
       return {
         statusCode: 500,
@@ -47,8 +53,23 @@ exports.handler = async (event) => {
       };
     }
 
-    const body = JSON.parse(event.body);
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch(e) {
+      console.error('JSON parse error:', e.message);
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Invalid JSON body: ' + e.message })
+      };
+    }
+
+    console.log('Parsed body:', JSON.stringify(body));
+
     const { total, currency, customerName, customerEmail, orderText, method } = body;
+
+    console.log('total:', total, '| method:', method, '| currency:', currency);
 
     if (!total || total <= 0) {
       return {
@@ -58,11 +79,10 @@ exports.handler = async (event) => {
       };
     }
 
-    const paymentLabel = method === 'paypal' ? 'PayPal (+5%)' : 'Credit Card';
     const cur = currency || 'eur';
     const amount = Math.round(total * 100);
+    console.log('Calling Stripe with amount:', amount, cur);
 
-    // Build Stripe Checkout Session via REST API
     const params = {
       'payment_method_types[]': method === 'paypal' ? 'paypal' : 'card',
       'line_items[0][price_data][currency]': cur,
@@ -81,6 +101,7 @@ exports.handler = async (event) => {
     };
 
     const session = await stripeRequest('/v1/checkout/sessions', params, secretKey);
+    console.log('Stripe response:', JSON.stringify(session).substring(0, 200));
 
     if (session.error) {
       console.error('Stripe error:', session.error.message);
@@ -91,6 +112,7 @@ exports.handler = async (event) => {
       };
     }
 
+    console.log('Session URL:', session.url);
     return {
       statusCode: 200,
       headers: {
@@ -102,6 +124,7 @@ exports.handler = async (event) => {
 
   } catch (err) {
     console.error('Function error:', err.message);
+    console.error('Stack:', err.stack);
     return {
       statusCode: 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
