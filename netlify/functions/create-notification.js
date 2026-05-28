@@ -113,10 +113,12 @@ exports.handler = async (event) => {
 
   if (stripeEvent.type === 'checkout.session.completed') {
     const session       = stripeEvent.data.object;
-    const customerName  = (session.metadata && session.metadata.customer_name)  || 'Unknown';
-    const orderSummary  = (session.metadata && session.metadata.order_summary)  || 'No details';
-    const paymentMethod = (session.metadata && session.metadata.payment_method) || 'card';
-    const customerEmail = session.customer_email || '';
+    const customerName    = (session.metadata && session.metadata.customer_name)    || 'Unknown';
+    const customerEmail   = (session.metadata && session.metadata.customer_email)   || session.customer_email || '';
+    const customerPhone   = (session.metadata && session.metadata.customer_phone)   || '';
+    const customerAddress = (session.metadata && session.metadata.customer_address) || '';
+    const orderSummary    = (session.metadata && session.metadata.order_summary)    || 'No details';
+    const paymentMethod   = (session.metadata && session.metadata.payment_method)   || 'card';
     const amount        = (session.amount_total / 100).toFixed(2);
     const currency      = (session.currency || 'eur').toUpperCase();
     const paymentLabel  = paymentMethod === 'paypal' ? 'PayPal (+5%)' : 'Credit Card';
@@ -160,6 +162,8 @@ exports.handler = async (event) => {
     var customerBlock = '<table style="width:100%;border-collapse:collapse;margin:12px 0;background:#f9f9f9;border-radius:6px">' +
       '<tr><td style="padding:8px 12px;font-size:12px"><strong>Name:</strong> ' + customerName + '</td></tr>' +
       '<tr><td style="padding:8px 12px;font-size:12px"><strong>Email:</strong> ' + customerEmail + '</td></tr>' +
+      (customerPhone ? '<tr><td style="padding:8px 12px;font-size:12px"><strong>Phone:</strong> ' + customerPhone + '</td></tr>' : '') +
+      (customerAddress ? '<tr><td style="padding:8px 12px;font-size:12px"><strong>Address:</strong> ' + customerAddress + '</td></tr>' : '') +
       '<tr><td style="padding:8px 12px;font-size:12px"><strong>Payment:</strong> ✅ ' + paymentLabel + ' — ' + amount + ' ' + currency + '</td></tr>' +
       '</table>';
 
