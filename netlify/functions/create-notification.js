@@ -19,15 +19,17 @@ function verifyStripeSignature(payload, sig, secret) {
 
 function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderSummary) {
   // Parse order summary
-  var lines = orderSummary.split('\n');
+  // Handle both real newlines and literal \n sequences
+  var normalized = orderSummary.replace(/\\n/g, '\n');
+  var lines = normalized.split('\n');
   var products = [];
   var totals = [];
   var inProducts = false;
 
   lines.forEach(function(line) {
-    line = line.trim();
+    line = line.trim().replace(/\*/g, '');
     if (!line) return;
-    if (line.indexOf('PRODUCTS:') >= 0 || line.indexOf('*PRODUCTS:*') >= 0) { inProducts = true; return; }
+    if (line.indexOf('PRODUCTS:') >= 0) { inProducts = true; return; }
     if (line.match(/^(Products Total|Discount|Import Duties|Shipping|FINAL TOTAL)/)) {
       inProducts = false;
       totals.push(line);
@@ -35,6 +37,9 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     }
     if (inProducts && line.indexOf('- ') === 0) {
       products.push(line.substring(2));
+    } else if (inProducts && line.length > 0 && line.indexOf('Products Total') < 0) {
+      // Also catch lines without "- " prefix
+      products.push(line);
     }
   });
 
