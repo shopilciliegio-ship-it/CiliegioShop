@@ -22,7 +22,7 @@ function verifyStripeSignature(payload, sig, secret) {
 function sendBrevoEmail(subject, htmlContent, brevoKey) {
   return new Promise(function(resolve) {
     const payload = JSON.stringify({
-      sender:      { name: 'Il Ciliegio Shop', email: 'shop@ilciliegio.com' },
+      sender:      { name: 'Il Ciliegio Shop', email: 'luca@sienawine.it' },
       to:          [{ email: 'shop@ilciliegio.com', name: 'Il Ciliegio' }],
       subject:     subject,
       htmlContent: htmlContent
@@ -57,7 +57,7 @@ function sendBrevoEmailToCustomer(subject, htmlContent, brevoKey, customerEmail,
   return new Promise(function(resolve) {
     if (!customerEmail) { resolve(); return; }
     const payload = JSON.stringify({
-      sender:      { name: 'Il Ciliegio Shop', email: 'shop@ilciliegio.com' },
+      sender:      { name: 'Il Ciliegio Shop', email: 'luca@sienawine.it' },
       to:          [{ email: customerEmail, name: customerName || 'Customer' }],
       subject:     subject,
       htmlContent: htmlContent
