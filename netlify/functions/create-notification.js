@@ -17,47 +17,14 @@ function verifyStripeSignature(payload, sig, secret) {
   } catch(e) { return false; }
 }
 
-function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderSummary) {
-  // Parse order summary
-  // Handle both real newlines and literal \n sequences
-  var normalized = orderSummary.replace(/\\n/g, '\n');
-  var lines = normalized.split('\n');
-  var products = [];
-  var totals = [];
-  var customerLines = [];
-  var inProducts = false;
-  var inCustomer = false;
-
-  lines.forEach(function(line) {
-    var clean = line.trim().replace(/\*/g, '');
-    if (!clean) return;
-
-    // Section headers
-    if (clean.indexOf('NEW ORDER') >= 0) { return; }
-    if (clean.indexOf('CUSTOMER:') >= 0) { inCustomer = true; inProducts = false; return; }
-    if (clean.indexOf('PRODUCTS:') >= 0) { inProducts = true; inCustomer = false; return; }
-
-    // Totals lines
-    if (clean.match(/^(Products Total|Discount|Import Duties|Shipping|FINAL TOTAL)/)) {
-      inProducts = false; inCustomer = false;
-      totals.push(clean);
-      return;
-    }
-
-    // Products
-    if (inProducts) {
-      if (clean.indexOf('- ') === 0) products.push(clean.substring(2));
-      else if (clean.length > 0) products.push(clean);
-      return;
-    }
-
-    // Customer info (Name, Nationality, Email, Phone, Address)
-    if (inCustomer) {
-      customerLines.push(clean);
-    }
-  });
-
+function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals) {
   var gold = '#D4AF37';
+
+  // Parse products (pipe-separated)
+  var products = orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [];
+
+  // Parse totals (pipe-separated)
+  var totals = orderTotals ? orderTotals.split('|').map(function(t){ return t.trim(); }).filter(Boolean) : [];
 
   var header = '<div style="background:#111;padding:24px 20px;text-align:center">' +
     '<div style="color:' + gold + ';font-size:24px;font-weight:bold;letter-spacing:3px;font-family:Georgia,serif">IL CILIEGIO</div>' +
@@ -70,19 +37,11 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
       '<p style="color:#555;font-size:13px;margin:0 0 20px 0">Your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed. We will contact you shortly to arrange shipping.</p>';
 
-  // Extract address/phone from parsed customer lines if not in metadata
-  var parsedPhone = customerPhone;
-  var parsedAddress = customerAddress;
-  customerLines.forEach(function(line) {
-    if (!parsedPhone && line.indexOf('Phone:') === 0) parsedPhone = line.replace('Phone:', '').trim();
-    if (!parsedAddress && line.indexOf('Address:') === 0) parsedAddress = line.replace('Address:', '').trim();
-  });
-
   var customerRows =
-    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
+    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Email</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
-    (parsedPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + parsedPhone + '</td></tr>' : '') +
-    (parsedAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + parsedAddress + '</td></tr>' : '') +
+    (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
+    (customerAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerAddress + '</td></tr>' : '') +
     '<tr><td style="padding:6px 12px;font-size:13px"><strong>Payment</strong></td><td style="padding:6px 12px;font-size:13px">✅ ' + paymentLabel + '</td></tr>';
 
   var productRows = products.map(function(p) {
@@ -91,8 +50,8 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
 
   var totalRows = totals.map(function(t) {
     var isFinal = t.indexOf('FINAL TOTAL') >= 0;
-    return '<tr><td style="padding:6px 12px;font-size:' + (isFinal?'15':'13') + 'px;' +
-      (isFinal?'font-weight:bold;color:'+gold:'color:#444') + '">' + t.replace(/\*/g,'') + '</td></tr>';
+    return '<tr><td style="padding:6px 12px;font-size:' + (isFinal ? '15' : '13') + 'px;' +
+      (isFinal ? 'font-weight:bold;color:' + gold : 'color:#444') + '">' + t.replace(/\*/g, '') + '</td></tr>';
   }).join('');
 
   var body = '<div style="padding:24px 20px;font-family:Arial,sans-serif">' +
@@ -105,9 +64,7 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     '<div style="background:' + gold + ';color:#000;font-size:11px;font-weight:bold;padding:6px 12px;letter-spacing:1px;text-transform:uppercase">Products</div>' +
     '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + productRows + '</table>' +
     '</div>' +
-    '<div>' +
-    '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + totalRows + '</table>' +
-    '</div>' +
+    (totalRows ? '<div><table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + totalRows + '</table></div>' : '') +
     '</div>';
 
   var footer = '<div style="background:#f5f5f5;padding:12px;text-align:center;font-size:11px;color:#888;border-top:2px solid ' + gold + '">' +
@@ -167,17 +124,18 @@ exports.handler = async (event) => {
     const customerEmail   = m.customer_email   || s.customer_email || '';
     const customerPhone   = m.customer_phone   || '';
     const customerAddress = m.customer_address || '';
-    const orderSummary    = m.order_summary    || '';
+    const orderProducts   = m.order_products   || '';
+    const orderTotals     = m.order_totals     || '';
     const paymentMethod   = m.payment_method   || 'card';
     const amount          = (s.amount_total / 100).toFixed(2);
     const currency        = (s.currency || 'eur').toUpperCase();
-    const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : 'Credit Card';
+    const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : 'Credit Card';
 
-    const subjectShop     = '🍷 New Paid Order — ' + customerName + ' — ' + amount + ' ' + currency;
+    const subjectShop     = '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
     const subjectCustomer = '🍷 Order confirmed — Il Ciliegio Shop';
 
-    const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderSummary);
-    const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderSummary);
+    const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals);
+    const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals);
 
     if (brevoKey) {
       await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subjectShop, shopHtml, brevoKey);

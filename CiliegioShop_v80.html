@@ -449,7 +449,7 @@ function App(){
     // Payment success: clean URL only (email sent automatically via Stripe webhook)
     (function(){
       const p=new URLSearchParams(window.location.search);
-      if(p.get('payment')==='success'){
+      if(p.get('payment')==='success'||p.get('payment')==='cancel'){
         sessionStorage.removeItem('ciliegio_pending_order');
         window.history.replaceState({},'',window.location.pathname);
       }
@@ -522,6 +522,12 @@ function App(){
   const sendVenditaEmail=()=>{
     const NL=String.fromCharCode(10);
     const stateAbbr=form.province&&form.state&&form.province!==form.state?' ('+form.province+')':'';
+    var prodLines=cart.map(function(i){return i.qty+'x '+i.name+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|');
+    var totalLines='Products Total: €'+prod.toFixed(2);
+    if(discount>0) totalLines+='|Discount (5%): -€'+discount.toFixed(2);
+    if(duty>0) totalLines+='|Import Duties (10%): €'+duty.toFixed(2);
+    totalLines+='|Shipping ('+(aRate?aRate.label:'N/A')+('): €'+effectiveSc.toFixed(2));
+    totalLines+='|FINAL TOTAL: €'+total.toFixed(2);
     fetch('https://ciliegio-shop.netlify.app/.netlify/functions/create-notification',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -533,7 +539,8 @@ function App(){
             customer_email:form.emailUser+'@'+form.emailDomain,
             customer_phone:form.mobile,
             customer_address:form.address+', '+form.zip+' '+form.city+', '+form.state+stateAbbr,
-            order_summary:buildMsg(NL,false).substring(0,500),
+            order_products:prodLines.substring(0,490),
+            order_totals:totalLines.substring(0,490),
             payment_method:'direct_sale'
           },
           customer_email:form.emailUser+'@'+form.emailDomain,
@@ -571,7 +578,10 @@ function App(){
           currency:'eur',
           customerName:form.name+' '+form.surname,
           customerEmail:form.emailUser+'@'+form.emailDomain,
-          orderText:buildMsg(NL,false).substring(0,500),
+          customerPhone:form.mobile,
+          customerAddress:form.address+', '+form.zip+' '+form.city+', '+form.state+(form.province&&form.province!==form.state?' ('+form.province+')':''),
+          orderProducts:cart.map(function(i){return i.qty+'x '+i.name+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|').substring(0,490),
+          orderTotals:('Products Total: €'+prod.toFixed(2)+(discount>0?'|Discount (5%): -€'+discount.toFixed(2):'')+(duty>0?'|Import Duties (10%): €'+duty.toFixed(2):'')+('|Shipping ('+(aRate?aRate.label:'N/A')+'): €'+effectiveSc.toFixed(2))+'|FINAL TOTAL: €'+total.toFixed(2)).substring(0,490),
           method:method,
         })
       });

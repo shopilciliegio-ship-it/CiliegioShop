@@ -32,7 +32,8 @@ exports.handler = async (event) => {
   const customerEmail   = body.customerEmail   || '';
   const customerPhone   = (body.customerPhone   || '').substring(0, 50);
   const customerAddress = (body.customerAddress || '').substring(0, 200);
-  const orderText       = (body.orderText       || '').substring(0, 500);
+  const orderProducts   = (body.orderProducts   || '').substring(0, 500);
+  const orderTotals     = (body.orderTotals     || '').substring(0, 200);
 
   const formData = [
     'payment_method_types[]=' + (method === 'paypal' ? 'paypal' : 'card'),
@@ -47,7 +48,8 @@ exports.handler = async (event) => {
     'metadata[customer_email]='   + encodeURIComponent(customerEmail),
     'metadata[customer_phone]='   + encodeURIComponent(customerPhone),
     'metadata[customer_address]=' + encodeURIComponent(customerAddress),
-    'metadata[order_summary]='    + encodeURIComponent(orderText),
+    'metadata[order_products]=' + encodeURIComponent(orderProducts),
+    'metadata[order_totals]='   + encodeURIComponent(orderTotals),
     'metadata[payment_method]='   + encodeURIComponent(method),
     'success_url=' + encodeURIComponent('https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=success'),
     'cancel_url=' + encodeURIComponent('https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=cancel'),
