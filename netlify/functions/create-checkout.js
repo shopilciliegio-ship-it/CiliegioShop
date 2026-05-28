@@ -28,11 +28,11 @@ exports.handler = async (event) => {
   const method = body.method || 'card';
   const cur = body.currency || 'eur';
   const amount = Math.round(total * 100);
-  const customerName = (body.customerName || 'Customer').substring(0, 100);
-  const customerEmail = body.customerEmail || '';
-  const customerPhone = (body.customerPhone || '').substring(0, 50);
+  const customerName    = (body.customerName    || 'Customer').substring(0, 100);
+  const customerEmail   = body.customerEmail   || '';
+  const customerPhone   = (body.customerPhone   || '').substring(0, 50);
   const customerAddress = (body.customerAddress || '').substring(0, 200);
-  const orderText = (body.orderText || '').substring(0, 500);
+  const orderText       = (body.orderText       || '').substring(0, 500);
 
   const formData = [
     'payment_method_types[]=' + (method === 'paypal' ? 'paypal' : 'card'),
@@ -43,12 +43,12 @@ exports.handler = async (event) => {
     'line_items[0][quantity]=1',
     'mode=payment',
     'customer_email=' + encodeURIComponent(customerEmail),
-    'metadata[customer_name]=' + encodeURIComponent(customerName),
-    'metadata[customer_email]=' + encodeURIComponent(customerEmail),
-    'metadata[customer_phone]=' + encodeURIComponent(customerPhone),
+    'metadata[customer_name]='    + encodeURIComponent(customerName),
+    'metadata[customer_email]='   + encodeURIComponent(customerEmail),
+    'metadata[customer_phone]='   + encodeURIComponent(customerPhone),
     'metadata[customer_address]=' + encodeURIComponent(customerAddress),
-    'metadata[order_summary]=' + encodeURIComponent(orderText),
-    'metadata[payment_method]=' + encodeURIComponent(method),
+    'metadata[order_summary]='    + encodeURIComponent(orderText),
+    'metadata[payment_method]='   + encodeURIComponent(method),
     'success_url=' + encodeURIComponent('https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=success'),
     'cancel_url=' + encodeURIComponent('https://ciliegio-shop.netlify.app/CiliegioShop.html?payment=cancel'),
   ].join('&');

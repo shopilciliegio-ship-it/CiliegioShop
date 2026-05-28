@@ -1,6 +1,4 @@
-// Stripe webhook → sends email via Brevo
-// No external dependencies
-const https = require('https');
+const https  = require('https');
 const crypto = require('crypto');
 
 function verifyStripeSignature(payload, sig, secret) {
@@ -13,76 +11,105 @@ function verifyStripeSignature(payload, sig, secret) {
       if (kv[0] === 't') timestamp = kv[1];
       if (kv[0] === 'v1') signatures.push(kv[1]);
     });
-    const signed = timestamp + '.' + payload;
-    const expected = crypto.createHmac('sha256', secret).update(signed).digest('hex');
+    const expected = crypto.createHmac('sha256', secret)
+      .update(timestamp + '.' + payload).digest('hex');
     return signatures.some(function(s) { return s === expected; });
   } catch(e) { return false; }
 }
 
-function sendBrevoEmail(subject, htmlContent, brevoKey) {
-  return new Promise(function(resolve) {
-    const payload = JSON.stringify({
-      sender:      { name: 'Il Ciliegio Shop', email: 'luca@sienawine.it' },
-      to:          [{ email: 'shop@ilciliegio.com', name: 'Il Ciliegio' }],
-      subject:     subject,
-      htmlContent: htmlContent
-    });
+function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderSummary) {
+  // Parse order summary
+  var lines = orderSummary.split('\n');
+  var products = [];
+  var totals = [];
+  var inProducts = false;
 
-    const options = {
-      hostname: 'api.brevo.com',
-      path:     '/v3/smtp/email',
-      method:   'POST',
-      headers: {
-        'api-key':        brevoKey,
-        'Content-Type':   'application/json',
-        'Content-Length': Buffer.byteLength(payload)
-      }
-    };
-
-    const req = https.request(options, function(res) {
-      let data = '';
-      res.on('data', function(c) { data += c; });
-      res.on('end', function() {
-        console.log('Brevo status:', res.statusCode, data.substring(0,100));
-        resolve();
-      });
-    });
-    req.on('error', function(e) { console.error('Brevo error:', e.message); resolve(); });
-    req.write(payload);
-    req.end();
+  lines.forEach(function(line) {
+    line = line.trim();
+    if (!line) return;
+    if (line.indexOf('PRODUCTS:') >= 0 || line.indexOf('*PRODUCTS:*') >= 0) { inProducts = true; return; }
+    if (line.match(/^(Products Total|Discount|Import Duties|Shipping|FINAL TOTAL)/)) {
+      inProducts = false;
+      totals.push(line);
+      return;
+    }
+    if (inProducts && line.indexOf('- ') === 0) {
+      products.push(line.substring(2));
+    }
   });
+
+  var gold = '#D4AF37';
+
+  var header = '<div style="background:#111;padding:24px 20px;text-align:center">' +
+    '<div style="color:' + gold + ';font-size:24px;font-weight:bold;letter-spacing:3px;font-family:Georgia,serif">IL CILIEGIO</div>' +
+    '<div style="color:#888;font-size:11px;letter-spacing:4px;margin-top:4px">AZIENDA AGRICOLA</div>' +
+    '</div>';
+
+  var title = isShop
+    ? '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 4px 0">🍷 New Paid Order</h2>' +
+      '<p style="color:#666;font-size:12px;margin:0 0 20px 0">This order has been paid — please prepare and ship it.</p>'
+    : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
+      '<p style="color:#555;font-size:13px;margin:0 0 20px 0">Your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed. We will contact you shortly to arrange shipping.</p>';
+
+  var customerRows =
+    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
+    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Email</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
+    (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
+    (customerAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerAddress + '</td></tr>' : '') +
+    '<tr><td style="padding:6px 12px;font-size:13px"><strong>Payment</strong></td><td style="padding:6px 12px;font-size:13px">✅ ' + paymentLabel + '</td></tr>';
+
+  var productRows = products.map(function(p) {
+    return '<tr><td style="padding:7px 12px;font-size:13px;border-bottom:1px solid #f5f5f5">' + p + '</td></tr>';
+  }).join('');
+
+  var totalRows = totals.map(function(t) {
+    var isFinal = t.indexOf('FINAL TOTAL') >= 0;
+    return '<tr><td style="padding:6px 12px;font-size:' + (isFinal?'15':'13') + 'px;' +
+      (isFinal?'font-weight:bold;color:'+gold:'color:#444') + '">' + t.replace(/\*/g,'') + '</td></tr>';
+  }).join('');
+
+  var body = '<div style="padding:24px 20px;font-family:Arial,sans-serif">' +
+    title +
+    '<div style="margin-bottom:20px">' +
+    '<div style="background:' + gold + ';color:#000;font-size:11px;font-weight:bold;padding:6px 12px;letter-spacing:1px;text-transform:uppercase">Customer</div>' +
+    '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + customerRows + '</table>' +
+    '</div>' +
+    '<div style="margin-bottom:16px">' +
+    '<div style="background:' + gold + ';color:#000;font-size:11px;font-weight:bold;padding:6px 12px;letter-spacing:1px;text-transform:uppercase">Products</div>' +
+    '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + productRows + '</table>' +
+    '</div>' +
+    '<div>' +
+    '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + totalRows + '</table>' +
+    '</div>' +
+    '</div>';
+
+  var footer = '<div style="background:#f5f5f5;padding:12px;text-align:center;font-size:11px;color:#888;border-top:2px solid ' + gold + '">' +
+    'Il Ciliegio — Azienda Agricola | <a href="mailto:shop@ilciliegio.com" style="color:' + gold + '">shop@ilciliegio.com</a></div>';
+
+  return '<div style="max-width:600px;margin:0 auto;border:1px solid #ddd;border-radius:4px;overflow:hidden">' +
+    header + body + footer + '</div>';
 }
 
-function sendBrevoEmailToCustomer(subject, htmlContent, brevoKey, customerEmail, customerName) {
+function sendEmail(toEmail, toName, subject, html, brevoKey) {
   return new Promise(function(resolve) {
-    if (!customerEmail) { resolve(); return; }
     const payload = JSON.stringify({
       sender:      { name: 'Il Ciliegio Shop', email: 'luca@sienawine.it' },
-      to:          [{ email: customerEmail, name: customerName || 'Customer' }],
+      to:          [{ email: toEmail, name: toName }],
       subject:     subject,
-      htmlContent: htmlContent
+      htmlContent: html
     });
-
     const options = {
       hostname: 'api.brevo.com',
       path:     '/v3/smtp/email',
       method:   'POST',
-      headers: {
-        'api-key':        brevoKey,
-        'Content-Type':   'application/json',
-        'Content-Length': Buffer.byteLength(payload)
-      }
+      headers:  { 'api-key': brevoKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
     };
-
     const req = https.request(options, function(res) {
-      let data = '';
-      res.on('data', function(c) { data += c; });
-      res.on('end', function() {
-        console.log('Brevo customer email status:', res.statusCode);
-        resolve();
-      });
+      let d = '';
+      res.on('data', function(c) { d += c; });
+      res.on('end', function() { console.log('Email to', toEmail, ':', res.statusCode); resolve(); });
     });
-    req.on('error', function(e) { console.error('Brevo customer error:', e.message); resolve(); });
+    req.on('error', function(e) { console.error('Email error:', e.message); resolve(); });
     req.write(payload);
     req.end();
   });
@@ -93,114 +120,46 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const brevoKey     = process.env.BREVO_API_KEY;
+  const brevoKey      = process.env.BREVO_API_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const sig           = event.headers['stripe-signature'];
 
-  // Verify Stripe signature
-  if (webhookSecret && sig) {
-    if (!verifyStripeSignature(event.body, sig, webhookSecret)) {
-      return { statusCode: 400, body: 'Invalid signature' };
-    }
+  if (webhookSecret && sig && !verifyStripeSignature(event.body, sig, webhookSecret)) {
+    return { statusCode: 400, body: 'Invalid signature' };
   }
 
   let stripeEvent;
-  try {
-    stripeEvent = JSON.parse(event.body);
-  } catch(e) {
-    return { statusCode: 400, body: 'Bad JSON' };
-  }
+  try { stripeEvent = JSON.parse(event.body); }
+  catch(e) { return { statusCode: 400, body: 'Bad JSON' }; }
 
   if (stripeEvent.type === 'checkout.session.completed') {
-    const session       = stripeEvent.data.object;
-    const customerName    = (session.metadata && session.metadata.customer_name)    || 'Unknown';
-    const customerEmail   = (session.metadata && session.metadata.customer_email)   || session.customer_email || '';
-    const customerPhone   = (session.metadata && session.metadata.customer_phone)   || '';
-    const customerAddress = (session.metadata && session.metadata.customer_address) || '';
-    const orderSummary    = (session.metadata && session.metadata.order_summary)    || 'No details';
-    const paymentMethod   = (session.metadata && session.metadata.payment_method)   || 'card';
-    const amount        = (session.amount_total / 100).toFixed(2);
-    const currency      = (session.currency || 'eur').toUpperCase();
-    const paymentLabel  = paymentMethod === 'paypal' ? 'PayPal (+5%)' : 'Credit Card';
+    const s = stripeEvent.data.object;
+    const m = s.metadata || {};
 
-    const subject = '🍷 New Paid Order — ' + customerName + ' — ' + amount + ' ' + currency;
+    const customerName    = m.customer_name    || 'Unknown';
+    const customerEmail   = m.customer_email   || s.customer_email || '';
+    const customerPhone   = m.customer_phone   || '';
+    const customerAddress = m.customer_address || '';
+    const orderSummary    = m.order_summary    || '';
+    const paymentMethod   = m.payment_method   || 'card';
+    const amount          = (s.amount_total / 100).toFixed(2);
+    const currency        = (s.currency || 'eur').toUpperCase();
+    const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : 'Credit Card';
 
-    // Parse order summary into structured lines
-    var lines = orderSummary.split('\n');
-    var productsHtml = '';
-    var totalsHtml = '';
-    var inProducts = false;
-    lines.forEach(function(line) {
-      line = line.trim();
-      if (!line) return;
-      if (line.indexOf('PRODUCTS:') >= 0) { inProducts = true; return; }
-      if (line.indexOf('Products Total:') >= 0 || line.indexOf('Discount') >= 0 ||
-          line.indexOf('Import Duties') >= 0 || line.indexOf('Shipping') >= 0 ||
-          line.indexOf('FINAL TOTAL') >= 0) {
-        inProducts = false;
-        var isFinal = line.indexOf('FINAL TOTAL') >= 0;
-        totalsHtml += '<tr><td style="padding:4px 8px;' + (isFinal?'font-weight:bold;font-size:15px;color:#D4AF37':'color:#555') + '">' +
-          line.replace(/^-?\s*/, '') + '</td></tr>';
-        return;
-      }
-      if (inProducts && line.indexOf('- ') === 0) {
-        productsHtml += '<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">' +
-          line.substring(2) + '</td></tr>';
-      }
-    });
+    const subjectShop     = '🍷 New Paid Order — ' + customerName + ' — ' + amount + ' ' + currency;
+    const subjectCustomer = '🍷 Order confirmed — Il Ciliegio Shop';
 
-    var emailHeader = '<div style="background:#000;padding:20px;text-align:center">' +
-      '<div style="color:#D4AF37;font-size:22px;font-weight:bold;letter-spacing:2px">IL CILIEGIO</div>' +
-      '<div style="color:#888;font-size:11px;letter-spacing:3px">AZIENDA AGRICOLA</div></div>';
-
-    var orderTable = '<table style="width:100%;border-collapse:collapse;margin:12px 0">' +
-      '<thead><tr><td style="background:#f8f8f8;padding:8px;font-weight:bold;font-size:12px;color:#333;text-transform:uppercase;letter-spacing:1px">Products</td></tr></thead>' +
-      '<tbody>' + productsHtml + '</tbody></table>' +
-      '<table style="width:100%;border-collapse:collapse;margin:8px 0">' +
-      '<tbody>' + totalsHtml + '</tbody></table>';
-
-    var customerBlock = '<table style="width:100%;border-collapse:collapse;margin:12px 0;background:#f9f9f9;border-radius:6px">' +
-      '<tr><td style="padding:8px 12px;font-size:12px"><strong>Name:</strong> ' + customerName + '</td></tr>' +
-      '<tr><td style="padding:8px 12px;font-size:12px"><strong>Email:</strong> ' + customerEmail + '</td></tr>' +
-      (customerPhone ? '<tr><td style="padding:8px 12px;font-size:12px"><strong>Phone:</strong> ' + customerPhone + '</td></tr>' : '') +
-      (customerAddress ? '<tr><td style="padding:8px 12px;font-size:12px"><strong>Address:</strong> ' + customerAddress + '</td></tr>' : '') +
-      '<tr><td style="padding:8px 12px;font-size:12px"><strong>Payment:</strong> ✅ ' + paymentLabel + ' — ' + amount + ' ' + currency + '</td></tr>' +
-      '</table>';
-
-    var footer = '<div style="background:#f5f5f5;padding:12px;text-align:center;font-size:11px;color:#888;margin-top:20px">' +
-      'Il Ciliegio — Azienda Agricola | <a href="mailto:shop@ilciliegio.com" style="color:#D4AF37">shop@ilciliegio.com</a></div>';
-
-    var shopHtml = '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;border:1px solid #eee;border-radius:8px;overflow:hidden">' +
-      emailHeader +
-      '<div style="padding:20px">' +
-      '<h2 style="color:#D4AF37;font-size:18px;margin-bottom:4px">🍷 New Paid Order</h2>' +
-      '<p style="color:#888;font-size:12px;margin-top:0">This order has been paid — please prepare and ship it.</p>' +
-      customerBlock + orderTable + '</div>' + footer + '</div>';
-
-    var customerHtml = '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;border:1px solid #eee;border-radius:8px;overflow:hidden">' +
-      emailHeader +
-      '<div style="padding:20px">' +
-      '<h2 style="color:#D4AF37;font-size:18px;margin-bottom:4px">🍷 Thank you for your order!</h2>' +
-      '<p style="color:#555;font-size:14px">Dear <strong>' + customerName + '</strong>, your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed.</p>' +
-      '<p style="color:#555;font-size:13px">We will contact you shortly to arrange shipping.</p>' +
-      orderTable + '</div>' + footer + '</div>';
+    const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderSummary);
+    const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderSummary);
 
     if (brevoKey) {
-      await sendBrevoEmail(subject, shopHtml, brevoKey);
-      await sendBrevoEmailToCustomer(
-        '🍷 Order confirmed — Il Ciliegio Shop',
-        customerHtml, brevoKey, customerEmail, customerName
-      );
-    } else {
-      console.log('No BREVO_API_KEY — skipping email');
+      await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subjectShop, shopHtml, brevoKey);
+      if (customerEmail) {
+        await sendEmail(customerEmail, customerName, subjectCustomer, customerHtml, brevoKey);
+      }
     }
-
-    console.log('Order processed:', customerName, amount, currency);
+    console.log('Done:', customerName, amount, currency);
   }
 
-  return {
-    statusCode: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ received: true })
-  };
+  return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ received: true }) };
 };
