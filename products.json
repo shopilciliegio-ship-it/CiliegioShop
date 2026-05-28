@@ -55,7 +55,7 @@
   },
   {
     "id": 5,
-    "name": "CHIANTI GRAN FONDO STRADE BIANCHE LIMITED EDITION",
+    "name": "CHIANTI STRADE BIANCHE 2025 LIM. ED.",
     "price": 20.0,
     "img": "img/prod_05.jpg",
     "category": "WINE",
@@ -64,7 +64,7 @@
   },
   {
     "id": "5_gift",
-    "name": "CHIANTI GRAN FONDO STRADE BIANCHE LIMITED EDITION",
+    "name": "CHIANTI STRADE BIANCHE 2025 LIM. ED.",
     "price": 0.0,
     "img": "img/prod_05.jpg",
     "category": "WINE",
@@ -73,7 +73,7 @@
   },
   {
     "id": 6,
-    "name": "CHIANTI COLLI SENESI DOCG POGGIO ORLANDO 2024",
+    "name": "POGGIO ORLANDO 2024 CHIANTI COLLI SENESI DOCG",
     "price": 12.0,
     "img": "img/prod_06.jpg",
     "category": "WINE",
@@ -82,7 +82,7 @@
   },
   {
     "id": 7,
-    "name": "CHIANTI COLLI SENESI DOCG POGGIO ORLANDO RISERVA 2021",
+    "name": "POGGIO ORLANDO RISERVA 2021 CHIANTI COLLI SENESI DOCG",
     "price": 19.0,
     "img": "img/prod_07.jpg",
     "category": "WINE",
@@ -127,7 +127,7 @@
   },
   {
     "id": 12,
-    "name": "CILIEGIO IN FIORE SWEET SPARKLING WINE",
+    "name": "SWEET SPARKLING WINE CILIEGIO IN FIORE",
     "price": 10.0,
     "img": "img/prod_12.jpg",
     "category": "SPARKLING",
@@ -136,7 +136,7 @@
   },
   {
     "id": 13,
-    "name": "CILIEGIO IN FIORE ROSÉ SPARKLING WINE",
+    "name": "SPARKLING WINE CILIEGIO IN FIORE ROSÉ",
     "price": 10.0,
     "img": "img/prod_13.jpg",
     "category": "SPARKLING",
@@ -145,7 +145,7 @@
   },
   {
     "id": 14,
-    "name": "LIQUOR LIMONCELLO 500 ML",
+    "name": "LIMONCELLO LIQUOR 500 ML",
     "price": 15.0,
     "img": "img/prod_14.jpg",
     "category": "DISTILLATES",
@@ -154,7 +154,7 @@
   },
   {
     "id": 15,
-    "name": "ARTICHOKE LIQUEUR 500 ML",
+    "name": "ARTICHOKE LIQUOR 500 ML",
     "price": 20.0,
     "img": "img/prod_15.jpg",
     "category": "DISTILLATES",
@@ -163,7 +163,7 @@
   },
   {
     "id": 16,
-    "name": "LIQUOR ROSOLIO ALLA ROSA 500 ML",
+    "name": "ROSOLIO LIQUOR 500 ML",
     "price": 15.0,
     "img": "img/prod_16.jpg",
     "category": "DISTILLATES",
@@ -172,7 +172,7 @@
   },
   {
     "id": 17,
-    "name": "LIQUOR RUBINO 500 ML",
+    "name": "RUBINO LIQUOR 500 ML",
     "price": 15.0,
     "img": "img/prod_17.jpg",
     "category": "DISTILLATES",
@@ -199,7 +199,7 @@
   },
   {
     "id": 20,
-    "name": "EXTRA VIRGIN OLIVE OIL 2025 ML 100",
+    "name": "100 ML EXTRA VIRGIN OLIVE OIL 2025",
     "price": 5.0,
     "img": "img/prod_20.jpg",
     "category": "EVO OIL",
@@ -208,7 +208,7 @@
   },
   {
     "id": 21,
-    "name": "EXTRA VIRGIN OLIVE OIL 2025 ML 250",
+    "name": "250 ML EXTRA VIRGIN OLIVE OIL 2025",
     "price": 9.0,
     "img": "img/prod_21.jpg",
     "category": "EVO OIL",
@@ -217,7 +217,7 @@
   },
   {
     "id": 22,
-    "name": "EXTRA VIRGIN OLIVE OIL 2025 ML 500",
+    "name": "500 ML EXTRA VIRGIN OLIVE OIL 2025",
     "price": 11.5,
     "img": "img/prod_22.jpg",
     "category": "EVO OIL",
@@ -226,7 +226,7 @@
   },
   {
     "id": 23,
-    "name": "EXTRA VIRGIN OLIVE OIL 2025 LT 1",
+    "name": "1 LT EXTRA VIRGIN OLIVE OIL 2025",
     "price": 21.0,
     "img": "img/prod_23.jpg",
     "category": "EVO OIL",
@@ -235,7 +235,7 @@
   },
   {
     "id": 24,
-    "name": "EXTRA VIRGIN OLIVE OIL 2025 LT 3",
+    "name": "3 LT EXTRA VIRGIN OLIVE OIL 2025",
     "price": 58.0,
     "img": "img/prod_24.jpg",
     "category": "EVO OIL",
@@ -244,7 +244,7 @@
   },
   {
     "id": 25,
-    "name": "EXTRA VIRGIN OLIVE OIL 2025 LT 5",
+    "name": "5 LT EXTRA VIRGIN OLIVE OIL 2025",
     "price": 90.0,
     "img": "img/prod_25.jpg",
     "category": "EVO OIL",
