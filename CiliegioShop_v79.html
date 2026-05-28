@@ -509,7 +509,7 @@ function App(){
     let m=b('NEW ORDER')+(isVendita?' PAID AT FARM - DIRECT SALE':'')+nl+nl+b('CUSTOMER:')+nl+form.name+' '+form.surname+(isVendita?' [STAFF ORDER]':'')+nl;
     m+='Nationality: '+form.nationality+nl+'Email: '+em+nl+'Phone: '+form.mobile+nl;
     const stateAbbr=form.province&&form.state&&form.province!==form.state?' ('+form.province+')':'';
-    m+='Address: '+form.address+', '+form.zip+' '+form.city+', '+form.state+stateAbbr+nl;
+    m+='Address: '+form.address+', '+form.zip+' '+form.city+', '+form.state+(stateAbbr?' '+stateAbbr:'')+nl;
     m+=nl+b('PRODUCTS:')+nl;
     cart.forEach(function(i){m+='- '+i.qty+'x '+i.name+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'+nl;});
     m+=nl+'Products Total: €'+prod.toFixed(2);
