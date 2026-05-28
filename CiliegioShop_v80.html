@@ -521,6 +521,7 @@ function App(){
   };;
   const sendVenditaEmail=()=>{
     const NL=String.fromCharCode(10);
+    const stateAbbr=form.province&&form.state&&form.province!==form.state?' ('+form.province+')':'';
     fetch('https://ciliegio-shop.netlify.app/.netlify/functions/create-notification',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -529,6 +530,9 @@ function App(){
         data:{object:{
           metadata:{
             customer_name:form.name+' '+form.surname,
+            customer_email:form.emailUser+'@'+form.emailDomain,
+            customer_phone:form.mobile,
+            customer_address:form.address+', '+form.zip+' '+form.city+', '+form.state+stateAbbr,
             order_summary:buildMsg(NL,false).substring(0,500),
             payment_method:'direct_sale'
           },
@@ -567,8 +571,6 @@ function App(){
           currency:'eur',
           customerName:form.name+' '+form.surname,
           customerEmail:form.emailUser+'@'+form.emailDomain,
-          customerPhone:form.mobile,
-          customerAddress:form.address+', '+form.zip+' '+form.city+', '+form.state+(form.province&&form.province!==form.state?' ('+form.province+')':''),
           orderText:buildMsg(NL,false).substring(0,500),
           method:method,
         })

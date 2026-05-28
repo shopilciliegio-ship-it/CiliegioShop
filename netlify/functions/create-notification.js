@@ -24,22 +24,36 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
   var lines = normalized.split('\n');
   var products = [];
   var totals = [];
+  var customerLines = [];
   var inProducts = false;
+  var inCustomer = false;
 
   lines.forEach(function(line) {
-    line = line.trim().replace(/\*/g, '');
-    if (!line) return;
-    if (line.indexOf('PRODUCTS:') >= 0) { inProducts = true; return; }
-    if (line.match(/^(Products Total|Discount|Import Duties|Shipping|FINAL TOTAL)/)) {
-      inProducts = false;
-      totals.push(line);
+    var clean = line.trim().replace(/\*/g, '');
+    if (!clean) return;
+
+    // Section headers
+    if (clean.indexOf('NEW ORDER') >= 0) { return; }
+    if (clean.indexOf('CUSTOMER:') >= 0) { inCustomer = true; inProducts = false; return; }
+    if (clean.indexOf('PRODUCTS:') >= 0) { inProducts = true; inCustomer = false; return; }
+
+    // Totals lines
+    if (clean.match(/^(Products Total|Discount|Import Duties|Shipping|FINAL TOTAL)/)) {
+      inProducts = false; inCustomer = false;
+      totals.push(clean);
       return;
     }
-    if (inProducts && line.indexOf('- ') === 0) {
-      products.push(line.substring(2));
-    } else if (inProducts && line.length > 0 && line.indexOf('Products Total') < 0) {
-      // Also catch lines without "- " prefix
-      products.push(line);
+
+    // Products
+    if (inProducts) {
+      if (clean.indexOf('- ') === 0) products.push(clean.substring(2));
+      else if (clean.length > 0) products.push(clean);
+      return;
+    }
+
+    // Customer info (Name, Nationality, Email, Phone, Address)
+    if (inCustomer) {
+      customerLines.push(clean);
     }
   });
 
@@ -56,11 +70,19 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
       '<p style="color:#555;font-size:13px;margin:0 0 20px 0">Your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed. We will contact you shortly to arrange shipping.</p>';
 
+  // Extract address/phone from parsed customer lines if not in metadata
+  var parsedPhone = customerPhone;
+  var parsedAddress = customerAddress;
+  customerLines.forEach(function(line) {
+    if (!parsedPhone && line.indexOf('Phone:') === 0) parsedPhone = line.replace('Phone:', '').trim();
+    if (!parsedAddress && line.indexOf('Address:') === 0) parsedAddress = line.replace('Address:', '').trim();
+  });
+
   var customerRows =
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Email</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
-    (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
-    (customerAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerAddress + '</td></tr>' : '') +
+    (parsedPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + parsedPhone + '</td></tr>' : '') +
+    (parsedAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + parsedAddress + '</td></tr>' : '') +
     '<tr><td style="padding:6px 12px;font-size:13px"><strong>Payment</strong></td><td style="padding:6px 12px;font-size:13px">✅ ' + paymentLabel + '</td></tr>';
 
   var productRows = products.map(function(p) {
