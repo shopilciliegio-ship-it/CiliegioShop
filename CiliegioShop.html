@@ -23,7 +23,7 @@
         return Promise.all(regs.map(function(r){ return r.unregister(); }));
       }).then(function() {
         // Register with versioned name — browser sees it as brand new
-        return navigator.serviceWorker.register('./sw.js?v=74');
+        return navigator.serviceWorker.register('./sw.js?v=82');
       }).then(function(reg) {
         reg.addEventListener('updatefound', function() {
           var newWorker = reg.installing;
@@ -620,7 +620,7 @@ function App(){
           <span style={{position:"absolute",right:0,top:0,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px"}}>
             {isVendita
               ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
-              :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.81</span>}
+              :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.82</span>}
           </span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
