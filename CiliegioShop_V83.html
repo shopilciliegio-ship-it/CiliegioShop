@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // If opened from GitHub Pages, unregister SW and redirect to Netlify
+    if(window.location.hostname.includes('github.io')) {
+      if('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          return Promise.all(regs.map(function(r){ return r.unregister(); }));
+        }).then(function() {
+          window.location.replace('https://ciliegio-shop.netlify.app/CiliegioShop.html');
+        });
+      } else {
+        window.location.replace('https://ciliegio-shop.netlify.app/CiliegioShop.html');
+      }
+    }
+
+    // Service Worker with versioned filename to force browser to treat as new SW
+    if(!window.location.hostname.includes('github.io') && 'serviceWorker' in navigator) {
+      // Unregister ALL old service workers first
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        return Promise.all(regs.map(function(r){ return r.unregister(); }));
+      }).then(function() {
+        // Register with versioned name — browser sees it as brand new
+        return navigator.serviceWorker.register('./sw.js?v=83');
+      }).then(function(reg) {
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if(newWorker.state === 'installed') {
+              window.location.reload();
+            }
+          });
+        });
+      });
+
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if(!refreshing) { refreshing = true; window.location.reload(); }
+      });
+    }
+  </script>
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QY93H4QWVG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QY93H4QWVG');
+
+    // Detect and send device type
+    var _device=/iphone|ipad|ipod/i.test(navigator.userAgent)?'iOS':/android/i.test(navigator.userAgent)?'Android':'Desktop';
+    gtag('set','user_properties',{device_type:_device});
+    var _isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+    gtag('set','user_properties',{pwa_installed:_isStandalone?'yes':'no'});
+
+    // Track if opened in standalone mode (installed PWA)
+    if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+      gtag('event', 'app_opened_standalone', {event_category: 'PWA', event_label: _device+' - Opened from icon'});
+    }
+
+    // Track app installation
+    window.addEventListener('appinstalled', function(){
+      gtag('event', 'app_installed', {event_category: 'PWA', event_label: _device+' - Installed'});
+    });
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Il Ciliegio">
+  <meta name="theme-color" content="#D4AF37">
+  <link rel="apple-touch-icon" href="ciliegio_trasparente.png">
+  <title>Il Ciliegio — Shop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { gold: '#D4AF37', dark: '#121212' } } }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script>
+  // Load Babel only after React is confirmed available
+  function loadBabel() {
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+      setTimeout(loadBabel, 50);
+      return;
+    }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.10/babel.min.js';
+    s.onload = function() {
+      // Find and transform all text/babel scripts manually
+      document.querySelectorAll('script[type="text/babel"]').forEach(function(script) {
+        var code = Babel.transform(script.innerHTML, {presets: ['react']}).code;
+        var newScript = document.createElement('script');
+        newScript.textContent = code;
+        document.body.appendChild(newScript);
+      });
+    };
+    document.head.appendChild(s);
+  }
+  document.addEventListener('DOMContentLoaded', loadBabel);
+</script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background:#000; color:#fff; font-family:sans-serif; margin:0; padding:0; }
+    .gold-border { border-color:#D4AF37; }
+    .gold-text   { color:#D4AF37; }
+    .gold-bg     { background-color:#D4AF37; color:#000; }
+    input, select { background:#1a1a1a; color:#fff; border:1px solid #333; outline:none; }
+    input:focus   { border-color:#D4AF37; }
+    input.err-field { border-color:#ef4444 !important; }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:#000; }
+    ::-webkit-scrollbar-thumb { background:#D4AF37; border-radius:4px; }
+    .prod-img          { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:3px; background:#1a1a1a; }
+    .prod-img-fallback { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:1.4rem; background:#1a1a1a; border-radius:3px; }
+    /* Product grid: small on mobile, larger on desktop */
+    .prod-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+    @media (min-width: 768px) {
+      .prod-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    }
+
+    /* ── Catalog page layout ── */
+
+    /* DESKTOP (≥768px): side-by-side */
+    @media (min-width: 768px) {
+      .catalog-page    { height:calc(var(--vh,1vh)*100 - 88px); display:flex; flex-direction:column; }
+      .catalog-layout  { flex:1; display:flex; flex-direction:row; gap:16px; min-height:0; }
+      .catalog-col     { flex:1; min-width:0; overflow-y:auto; padding-right:4px; padding-bottom:8px; }
+      /* Cart: fixed height with internal scroll so Send button is always visible */
+      .cart-col        { width:300px; flex-shrink:0; display:flex; flex-direction:column;
+                         max-height:calc(var(--vh,1vh)*100 - 108px); position:sticky; top:8px; }
+      .cart-inner      { flex:1; overflow-y:auto; min-height:0; }
+      .cart-send       { flex-shrink:0; padding-top:8px; }
+    }
+
+    /* MOBILE (<768px): top=products, bottom=cart — cart has fixed structure */
+    @media (max-width: 767px) {
+      .catalog-page    { height:calc(var(--vh,1vh)*100 - 84px); display:flex; flex-direction:column; }
+      .catalog-layout  { flex:1; display:flex; flex-direction:column; min-height:0; }
+      .catalog-col     { flex:1; min-height:0; overflow-y:auto; padding-bottom:4px; }
+      /* Cart area: fixed 44% of viewport, split internally */
+      .cart-col        { flex:0 0 44vh; border-top:2px solid #D4AF37; display:flex;
+                         flex-direction:column; min-height:0; padding-top:6px; }
+      .cart-inner      { flex:1; overflow-y:auto; min-height:0; }
+      .cart-send       { flex-shrink:0; padding-top:6px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+  window.CFG = {
+    products : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/products.json",
+    shipping : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
+    imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
+    privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
+    email    : "shop@ilciliegio.com",
+    stripeKey: "pk_live_51TbFhSAao4RgOb42jX9J0w9MENaQtpPdeO8Re36nalpypLGpNmwQKJxGHoGEH0nNwO4qlq66CCDOxREzd7YvO3iW00CYhJU074",
+    privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
+    email    : "shop@ilciliegio.com",
+    stripeKey: "pk_live_51TbFhSAao4RgOb42jX9J0w9MENaQtpPdeO8Re36nalpypLGpNmwQKJxGHoGEH0nNwO4qlq66CCDOxREzd7YvO3iW00CYhJU074",
+    whatsapp : "393394652717"
+  };
+  // Fix iOS Safari: imposta --vh come 1% dell'altezza visibile reale
+  function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01+'px'); }
+  setVh();
+  window.addEventListener('resize', setVh);
+  window.addEventListener('orientationchange', ()=>setTimeout(setVh,200));
+</script>
+
+<script>
+(function(){
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  if(isStandalone) return;
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isAndroid = /android/i.test(navigator.userAgent);
+  if(!isIOS && !isAndroid) return;
+
+  if(sessionStorage.getItem('ciliegio_install_dismissed')) return;
+
+  var deferredPrompt = null;
+
+  // Overlay backdrop
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.75)';
+
+  // Popup box
+  var popup = document.createElement('div');
+  popup.style.cssText = [
+    'position:fixed','top:50%','left:50%',
+    'transform:translate(-50%,-50%)',
+    'z-index:9999','background:#1a1a1a',
+    'border:2px solid #D4AF37','border-radius:16px',
+    'padding:32px 28px 28px','width:86vw','max-width:360px',
+    'text-align:center','font-family:sans-serif',
+    'box-shadow:0 8px 40px rgba(0,0,0,0.8)'
+  ].join(';');
+
+  function dismiss(){ sessionStorage.setItem('ciliegio_install_dismissed','1'); overlay.remove(); popup.remove(); }
+
+  // Close button
+  var close = document.createElement('button');
+  close.textContent = '✕';
+  close.style.cssText = 'position:absolute;top:14px;right:16px;background:none;border:1px solid #555;color:#aaa;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer';
+  close.onclick = dismiss;
+
+  // Wine icon
+  var icon = document.createElement('div');
+  icon.textContent = '🍷';
+  icon.style.cssText = 'font-size:48px;margin-bottom:16px';
+
+  // Main title
+  var title = document.createElement('div');
+  title.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:22px;margin-bottom:6px;letter-spacing:0.05em';
+  title.innerHTML = 'IL CILIEGIO<br><span style="font-size:15px;letter-spacing:0.08em;font-weight:normal">Online Shop App</span>';
+
+  // Divider
+  var divider = document.createElement('div');
+  divider.style.cssText = 'height:1px;background:#333;margin:16px 0';
+
+  // Message
+  var msg = document.createElement('div');
+  msg.style.cssText = 'color:#ccc;font-size:14px;line-height:1.7;margin-bottom:4px';
+  msg.textContent = 'To ensure a better App experience, click the Install button. Thanks!';
+
+  popup.appendChild(close);
+
+  popup.appendChild(icon);
+  popup.appendChild(title);
+  popup.appendChild(divider);
+  popup.appendChild(msg);
+
+  // Install button — shown on Android when Chrome supports PWA install
+  if(isAndroid){
+    var btn = document.createElement('button');
+    btn.textContent = '⬇ Install';
+    btn.style.cssText = 'display:block;width:100%;margin-top:18px;background:#D4AF37;color:#000;border:none;padding:14px;border-radius:8px;font-weight:bold;font-size:16px;cursor:pointer;letter-spacing:0.05em';
+    btn.style.display = 'none'; // hidden until prompt is ready
+    popup.appendChild(btn);
+
+    // Hint below install button
+    var xhint = document.createElement('div');
+    xhint.style.cssText = 'color:#555;font-size:11px;margin-top:10px;text-align:center;line-height:1.4';
+    xhint.textContent = 'Press ✕ to continue in the website';
+    popup.appendChild(xhint);
+
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+      btn.style.display = 'block';
+      btn.onclick = function(){
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(choice){
+          if(choice.outcome !== 'accepted'){
+            dismiss(); // declined — just close popup
+          }
+          // if accepted: appinstalled event handles it
+        });
+      };
+    });
+
+    // Also listen for successful install
+    window.addEventListener('appinstalled', function(){
+      sessionStorage.setItem('ciliegio_install_dismissed','1');
+      // Show success message
+      overlay.style.background = 'rgba(0,0,0,0.95)';
+      popup.innerHTML = '';
+      var doneIcon = document.createElement('div');
+      doneIcon.textContent = '✅';
+      doneIcon.style.cssText = 'font-size:56px;margin-bottom:16px';
+      var doneTitle = document.createElement('div');
+      doneTitle.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:20px;margin-bottom:12px';
+      doneTitle.textContent = 'App Installed!';
+      var doneMsg = document.createElement('div');
+      doneMsg.style.cssText = 'color:#ccc;font-size:14px;line-height:1.8;text-align:center';
+      doneMsg.innerHTML = 'Go to your <b style="color:#fff">Home Screen</b><br>and tap the<br><b style="color:#D4AF37">IL CILIEGIO</b> icon<br>to open the app.';
+      popup.appendChild(doneIcon);
+      popup.appendChild(doneTitle);
+      popup.appendChild(doneMsg);
+      // Try to close this browser tab
+      setTimeout(function(){ window.close(); }, 2500);
+    });
+  }
+
+  // iOS: just show the message, no install button possible
+  if(isIOS){
+    var iosInstr = document.createElement('div');
+    iosInstr.style.cssText = 'color:#888;font-size:12px;margin-top:14px;line-height:1.6';
+    iosInstr.innerHTML = 'In Safari: tap <b style="color:#D4AF37">⬆ Share</b> → <b style="color:#D4AF37">Add to Home Screen</b>';
+    popup.appendChild(iosInstr);
+
+    var iosAfter = document.createElement('div');
+    iosAfter.style.cssText = 'color:#D4AF37;font-size:12px;margin-top:10px;line-height:1.6;font-style:italic';
+    iosAfter.innerHTML = 'Once added, <b style="color:#fff">close this page</b> and open the <b style="color:#D4AF37">IL CILIEGIO</b> icon from your Home Screen.';
+    popup.appendChild(iosAfter);
+  }
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(popup);
+})();
+</script>
+
+<script type="text/babel" id="app-script">
+const { useState, useEffect, useRef } = React;
+
+/* ── Constants ─────────────────────────────────────────────── */
+const COUNTRIES = [
+  {name:'AUSTRALIA',      code:'AU', prefix:'+61',  flag:'🇦🇺'},
+  {name:'AUSTRIA',        code:'AT', prefix:'+43',  flag:'🇦🇹'},
+  {name:'BELGIUM',        code:'BE', prefix:'+32',  flag:'🇧🇪'},
+  {name:'BULGARIA',       code:'BG', prefix:'+359', flag:'🇧🇬'},
+  {name:'CANADA',         code:'CA', prefix:'+1',   flag:'🇨🇦'},
+  {name:'CROATIA',        code:'HR', prefix:'+385', flag:'🇭🇷'},
+  {name:'CYPRUS',         code:'CY', prefix:'+357', flag:'🇨🇾'},
+  {name:'CZECH REPUBLIC', code:'CZ', prefix:'+420', flag:'🇨🇿'},
+  {name:'DENMARK',        code:'DK', prefix:'+45',  flag:'🇩🇰'},
+  {name:'ESTONIA',        code:'EE', prefix:'+372', flag:'🇪🇪'},
+  {name:'FINLAND',        code:'FI', prefix:'+358', flag:'🇫🇮'},
+  {name:'FRANCE',         code:'FR', prefix:'+33',  flag:'🇫🇷'},
+  {name:'GERMANY',        code:'DE', prefix:'+49',  flag:'🇩🇪'},
+  {name:'GREECE',         code:'GR', prefix:'+30',  flag:'🇬🇷'},
+  {name:'HUNGARY',        code:'HU', prefix:'+36',  flag:'🇭🇺'},
+  {name:'IRELAND',        code:'IE', prefix:'+353', flag:'🇮🇪'},
+  {name:'ITALY',          code:'IT', prefix:'+39',  flag:'🇮🇹'},
+  {name:'LATVIA',         code:'LV', prefix:'+371', flag:'🇱🇻'},
+  {name:'LITHUANIA',      code:'LT', prefix:'+370', flag:'🇱🇹'},
+  {name:'LUXEMBOURG',     code:'LU', prefix:'+352', flag:'🇱🇺'},
+  {name:'MALTA',          code:'MT', prefix:'+356', flag:'🇲🇹'},
+  {name:'NETHERLANDS',    code:'NL', prefix:'+31',  flag:'🇳🇱'},
+  {name:'NORWAY',         code:'NO', prefix:'+47',  flag:'🇳🇴'},
+  {name:'POLAND',         code:'PL', prefix:'+48',  flag:'🇵🇱'},
+  {name:'PORTUGAL',       code:'PT', prefix:'+351', flag:'🇵🇹'},
+  {name:'ROMANIA',        code:'RO', prefix:'+40',  flag:'🇷🇴'},
+  {name:'SLOVAKIA',       code:'SK', prefix:'+421', flag:'🇸🇰'},
+  {name:'SLOVENIA',       code:'SI', prefix:'+386', flag:'🇸🇮'},
+  {name:'SPAIN',          code:'ES', prefix:'+34',  flag:'🇪🇸'},
+  {name:'SWEDEN',         code:'SE', prefix:'+46',  flag:'🇸🇪'},
+  {name:'SWITZERLAND',    code:'CH', prefix:'+41',  flag:'🇨🇭'},
+  {name:'UNITED KINGDOM', code:'GB', prefix:'+44',  flag:'🇬🇧'},
+  {name:'UNITED STATES',  code:'US', prefix:'+1',   flag:'🇺🇸'},
+  {name:'BRAZIL',         code:'BR', prefix:'+55',  flag:'🇧🇷'},
+  {name:'CHINA',          code:'CN', prefix:'+86',  flag:'🇨🇳'},
+  {name:'HONG KONG',      code:'HK', prefix:'+852', flag:'🇭🇰'},
+  {name:'INDIA',          code:'IN', prefix:'+91',  flag:'🇮🇳'},
+  {name:'ISRAEL',         code:'IL', prefix:'+972', flag:'🇮🇱'},
+  {name:'JAPAN',          code:'JP', prefix:'+81',  flag:'🇯🇵'},
+  {name:'MEXICO',         code:'MX', prefix:'+52',  flag:'🇲🇽'},
+  {name:'NEW ZEALAND',    code:'NZ', prefix:'+64',  flag:'🇳🇿'},
+  {name:'SINGAPORE',      code:'SG', prefix:'+65',  flag:'🇸🇬'},
+  {name:'SOUTH AFRICA',   code:'ZA', prefix:'+27',  flag:'🇿🇦'},
+  {name:'SOUTH KOREA',    code:'KR', prefix:'+82',  flag:'🇰🇷'},
+  {name:'TAIWAN',         code:'TW', prefix:'+886', flag:'🇹🇼'},
+  {name:'UNITED ARAB EMIRATES', code:'AE', prefix:'+971', flag:'🇦🇪'},
+];
+
+const ZONE_MAP = {
+  IT:'ITALIA',GB:'UK',CH:'SWITZERLAND',NO:'NORWAY',
+  DE:'EU_ZONE_1',BE:'EU_ZONE_1',NL:'EU_ZONE_1',LU:'EU_ZONE_1',
+  FR:'EU_ZONE_2',DK:'EU_ZONE_2',AT:'EU_ZONE_2',
+  ES:'EU_ZONE_3',SE:'EU_ZONE_4',PT:'EU_ZONE_4',
+  IE:'EU_ZONE_5',SI:'EU_ZONE_5',
+  FI:'EU_ZONE_6',HR:'EU_ZONE_6',GR:'EU_ZONE_6',
+  CY:'EU_ZONE_7',MT:'EU_ZONE_7',
+  PL:'EU_ZONE_8',CZ:'EU_ZONE_8',SK:'EU_ZONE_8',HU:'EU_ZONE_8',
+  BG:'EU_ZONE_9',EE:'EU_ZONE_9',LV:'EU_ZONE_9',LT:'EU_ZONE_9',RO:'EU_ZONE_9',
+};
+
+const USA_SPECIAL = ['HI','AK','PR','AL','AR','UT','MS','VI'];
+const CA_NO_WINE  = ['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
+  'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
+// Province abbreviations for the same blocked provinces
+const CA_NO_WINE_ABBR = ['NB','NL','NT','NS','NU','PE','SK','YT'];
+const QTY_TIERS   = [3,6,12,18,24,30,36,42,48,54,60];
+const OIL_WEIGHTS = {20:0.5, 21:0.75, 22:1.5, 23:2.0, 24:4.0, 25:6.0};
+const UNIT_KG = 1.5;
+function effectiveUnits(item){
+  const realId = item.id==='5_gift' ? 5 : item.id;
+  const w = OIL_WEIGHTS[realId];
+  if(!w) return item.qty;
+  return Math.ceil(item.qty * w / UNIT_KG);
+}
+const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
+const US_CA_BLOCK = []; // IDs 24,25 now available everywhere
+const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
+  zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
+
+/* ── Helpers ───────────────────────────────────────────────── */
+function shipRate(obj,qty){
+  if(!obj) return 0;
+  const t=QTY_TIERS.find(t=>qty<=t)||QTY_TIERS[QTY_TIERS.length-1];
+  return parseFloat(obj.rates[String(t)])||0;
+}
+function dLabel(key,speed,rateObj){
+  if(!key) return '';
+  // Read from shipping.json if available
+  if(rateObj&&rateObj.delivery) return rateObj.delivery;
+  // Fallback hardcoded
+  if(key.startsWith('EU_')||['UK','SWITZERLAND','NORWAY','ITALIA'].includes(key)) return 'Delivery within 7 working days';
+  if(speed==='EXPRESS'||key.includes('EXPRESS')) return 'Delivery within 9 working days';
+  return 'Delivery within 20 working days';
+}
+function rateKey(code,speed,wine){
+  if(code==='US'){
+    if(wine) return speed==='EXPRESS'?'USA_WINE_EXPRESS':'USA_WINE_STANDARD';
+    return speed==='EXPRESS'?'USA_EXTRA_EXPRESS':'USA_EXTRA_STANDARD';
+  }
+  if(code==='CA') return speed==='EXPRESS'?'CANADA_EXPRESS':'CANADA_STANDARD';
+  return ZONE_MAP[code]||null;
+}
+function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
+
+// Restituisce la label dello scaglione applicato — es. "(4–6 pieces)"
+function tierLabel(qty){
+  if(qty<=0) return '';
+  const steps=[[1,3],[4,6],[7,12],[13,18],[19,24],[25,30],[31,36],[37,42],[43,48],[49,54],[55,60]];
+  for(const [lo,hi] of steps) if(qty>=lo&&qty<=hi) return `(${lo}–${hi} pieces)`;
+  return '(55–60 pieces)';
+}
+// Quanti items interi si possono aggiungere prima che lo scaglione spedizione cambi
+function shippingTierHint(shipQty){
+  if(shipQty<=0) return 0;
+  const currentTier=QTY_TIERS.find(t=>shipQty<=t);
+  if(!currentTier) return 0;
+  return Math.floor(currentTier-shipQty);
+}
+
+/* ── App ───────────────────────────────────────────────────── */
+function App(){
+  const [step,setStep]    = useState(1);
+  const [speed,setSpeed]  = useState('STANDARD');
+  const [cart,setCart]    = useState([]);
+  const [prods,setProds]  = useState([]);
+  const [ship,setShip]    = useState(null);
+  const [loading,setLoad] = useState(true);
+  const [err,setErr]      = useState('');
+  const [form,setForm]    = useState({...BLANK});
+  const [natTxt,setNat]   = useState('');
+  const [giftChoice,setGiftChoice] = useState(null);
+  const [isVendita,setIsVendita]   = useState(()=>localStorage.getItem('ciliegio_vendita')==='1');
+  const [showLogin,setShowLogin]   = useState(false); // null=not asked, true=yes, false=no
+  const [showGiftPopup,setShowGiftPopup] = useState(false);
+  const [showPrivacy,setShowPrivacy]     = useState(false);
+  const [privacyText,setPrivacyText]     = useState('');
+  const [showCAWarn,setShowCAWarn]       = useState(false);
+  const [dutyReminder,setDutyReminder]   = useState(null); // null or message string
+
+  useEffect(()=>{
+    // Payment success: clean URL only (email sent automatically via Stripe webhook)
+    (function(){
+      const p=new URLSearchParams(window.location.search);
+      if(p.get('payment')==='success'||p.get('payment')==='cancel'){
+        sessionStorage.removeItem('ciliegio_pending_order');
+        window.history.replaceState({},'',window.location.pathname);
+      }
+    })();
+
+    Promise.all([
+      fetch(window.CFG.products).then(r=>{if(!r.ok)throw 0;return r.json();}),
+      fetch(window.CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
+      fetch(window.CFG.privacy).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]).then(([p,s,prv])=>{setProds(p.sort((a,b)=>(a.sort||999)-(b.sort||999)));setShip(s);if(prv&&prv.text)setPrivacyText(prv.text);setLoad(false);})
+      .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
+  },[]);
+
+  const reset=()=>{ setStep(1);setCart([]);setSpeed('STANDARD');setForm({...BLANK});setNat('');setGiftChoice(null);setShowGiftPopup(false);setShowPrivacy(false);setShowCAWarn(false); };
+
+  const qty     = cart.reduce((s,i)=>s+i.qty,0);
+  const shipQty = cart.reduce((s,i)=>s+effectiveUnits(i),0);
+  const prod  = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  // Vino O Sparkling → listino USA_WINE (con dazi)
+  const wine  = cart.some(i=>i.category==='WINE'||i.category==='SPARKLING');
+  const aKey  = rateKey(form.natCode,speed,wine);
+  const aRate = ship&&aKey?ship[aKey]:null;
+  const sc    = shipQty>0&&aRate?shipRate(aRate,shipQty):0;
+  const giftActive  = giftChoice===true;
+  const discount      = (!giftActive && qty>=12) ? prod*0.05 : 0;
+  const discounted    = prod - discount;
+  const italyFree     = form.natCode==='IT' && discounted>100;
+  const effectiveSc   = italyFree ? 0 : sc;
+  const duty          = form.natCode==='US'?discounted*0.1:0;
+  const total         = discounted + effectiveSc + duty;
+  const dl    = dLabel(aKey,speed,aRate);
+  const spSel = ['US','CA'].includes(form.natCode);
+  const totals= {qty,shipQty,prod,discount,ship:effectiveSc,duty,final:total};
+
+  const getDutyReminder=(code,hasWine)=>{
+    const msg1 = "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
+    if(code==='US' && !hasWine) return msg1;
+    if(code==='CA') return msg1;
+    if(code==='GB') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 40% of the total value.";
+    if(code==='CH') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 5% of the total value + VAT 7.7%.";
+    if(code==='NO') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around €1 per bottle + VAT 15%.";
+    // All other non-EU extra countries
+    const EU_AND_ITALY = ['IT','DE','BE','NL','LU','FR','DK','AT','ES','SE','PT','IE','SI','FI','HR','GR','CY','MT','PL','CZ','SK','HU','BG','EE','LV','LT','RO'];
+    if(!EU_AND_ITALY.includes(code) && code!=='US') return msg1;
+    return null;
+  };
+
+  const handleSendOrder=()=>{
+    const reminder = getDutyReminder(form.natCode, wine);
+    if(reminder){ setDutyReminder(reminder); return; }
+    sendWA();
+  };
+
+  const buildMsg=(nl,bold)=>{
+    const em=form.emailUser+'@'+form.emailDomain;
+    const b=bold?function(s){return '*'+s+'*';}:function(s){return s;};
+    let m=b('NEW ORDER')+(isVendita?' PAID AT FARM - DIRECT SALE':'')+nl+nl+b('CUSTOMER:')+nl+form.name+' '+form.surname+(isVendita?' [STAFF ORDER]':'')+nl;
+    m+='Nationality: '+form.nationality+nl+'Email: '+em+nl+'Phone: '+form.mobile+nl;
+    const stateAbbr=form.province&&form.state&&form.province!==form.state?' ('+form.province+')':'';
+    m+='Address: '+form.address+', '+form.zip+' '+form.city+', '+form.state+stateAbbr+nl;
+    m+=nl+b('PRODUCTS:')+nl;
+    cart.forEach(function(i){m+='- '+i.qty+'x '+i.name+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'+nl;});
+    m+=nl+'Products Total: €'+prod.toFixed(2);
+    if(discount>0) m+=nl+'Discount (5%): -€'+discount.toFixed(2);
+    if(duty>0) m+=nl+'Import Duties (10%): €'+duty.toFixed(2);
+    m+=nl+'Shipping ('+(aRate?aRate.label:'N/A - to be quoted')+'): €'+effectiveSc.toFixed(2);
+    m+=nl+b('FINAL TOTAL: €'+total.toFixed(2));
+    return m;
+  };;
+  const sendVenditaEmail=()=>{
+    const NL=String.fromCharCode(10);
+    const stateAbbr=form.province&&form.state&&form.province!==form.state?' ('+form.province+')':'';
+    var prodLines=cart.map(function(i){var n=i.name.length>38?i.name.substring(0,38)+'..':i.name;return i.qty+'x '+n+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|');
+    var totalLines='Products Total: €'+prod.toFixed(2);
+    if(discount>0) totalLines+='|Discount (5%): -€'+discount.toFixed(2);
+    if(duty>0) totalLines+='|Import Duties (10%): €'+duty.toFixed(2);
+    totalLines+='|Shipping ('+(aRate?aRate.label:'N/A')+('): €'+effectiveSc.toFixed(2));
+    totalLines+='|FINAL TOTAL: €'+total.toFixed(2);
+    fetch('https://ciliegio-shop.netlify.app/.netlify/functions/create-notification',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:'checkout.session.completed',
+        data:{object:{
+          metadata:{
+            customer_name:form.name+' '+form.surname,
+            customer_email:form.emailUser+'@'+form.emailDomain,
+            customer_phone:form.mobile,
+            customer_address:form.address+', '+form.zip+' '+form.city+', '+form.state+stateAbbr,
+            order_products:prodLines.substring(0,490),
+            order_totals:totalLines.substring(0,490),
+            payment_method:'direct_sale'
+          },
+          customer_email:form.emailUser+'@'+form.emailDomain,
+          amount_total:Math.round(total*100),
+          currency:'eur'
+        }}
+      })
+    }).catch(function(){});
+  };
+  const sendWA=()=>{
+    if(typeof gtag!=='undefined') gtag('event','order_sent',{event_category:'order',event_label:'WhatsApp',value:Math.round(total),currency:'EUR',items_count:qty,nationality:form.natCode});
+    const m=buildMsg('%0A',true);
+    window.open(`https://wa.me/${window.CFG.whatsapp}?text=${m}`,'_blank');
+    if(isVendita) sendVenditaEmail();
+  };
+  const getMailtoUrl=()=>{
+    const NL=String.fromCharCode(10);
+    const subj=encodeURIComponent('New Order - '+form.name+' '+form.surname+' ('+form.nationality+')');
+    const body=encodeURIComponent(buildMsg(NL,false));
+    return 'mailto:'+window.CFG.email+'?subject='+subj+'&body='+body;
+  };
+  const sendEmail=()=>{ if(typeof gtag!=='undefined') gtag('event','order_sent',{event_category:'order',event_label:'Email',value:Math.round(total),currency:'EUR',items_count:qty,nationality:form.natCode}); window.open(getMailtoUrl()); };
+  const goToStripe=async(method)=>{
+    const NL=String.fromCharCode(10);
+    const amount=method==='paypal'?Math.round(total*1.05*100)/100:Math.round(total*100)/100;
+    const waMsg=buildMsg('%0A',true);
+    sessionStorage.setItem('ciliegio_pending_order',JSON.stringify({wa:waMsg,method:method}));
+    if(typeof gtag!=='undefined') gtag('event','checkout_started',{event_category:'payment',event_label:method,value:Math.round(amount)});
+    try{
+      const res=await fetch('https://ciliegio-shop.netlify.app/.netlify/functions/create-checkout',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          total:amount,
+          currency:'eur',
+          customerName:form.name+' '+form.surname,
+          customerEmail:form.emailUser+'@'+form.emailDomain,
+          customerPhone:form.mobile,
+          customerAddress:form.address+', '+form.zip+' '+form.city+', '+form.state+(form.province&&form.province!==form.state?' ('+form.province+')':''),
+          orderProducts:cart.map(function(i){var n=i.name.length>38?i.name.substring(0,38)+'..':i.name;return i.qty+'x '+n+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|').substring(0,490),
+          orderTotals:('Products Total: €'+prod.toFixed(2)+(discount>0?'|Discount (5%): -€'+discount.toFixed(2):'')+(duty>0?'|Import Duties (10%): €'+duty.toFixed(2):'')+('|Shipping ('+(aRate?aRate.label:'N/A')+'): €'+effectiveSc.toFixed(2))+'|FINAL TOTAL: €'+total.toFixed(2)).substring(0,490),
+          method:method,
+        })
+      });
+      const data=await res.json();
+      if(data.url) window.location.href=data.url;
+      else alert('Payment error. Please try again.');
+    }catch(e){ alert('Connection error. Please try again.'); }
+  };
+  const sendSMS=()=>{
+    if(typeof gtag!=='undefined') gtag('event','order_sent',{event_category:'order',event_label:'SMS',value:Math.round(total),currency:'EUR',items_count:qty,nationality:form.natCode});
+    const NL=String.fromCharCode(10);
+    const text=encodeURIComponent(buildMsg(NL,false));
+    const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    const sep=isIOS?'&':'?';
+    window.open('sms:'+window.CFG.whatsapp+sep+'body='+text);
+  };
+
+  if(loading) return(
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center"><div className="text-5xl mb-4 animate-pulse">🍷</div>
+      <p className="gold-text tracking-widest text-sm uppercase">Loading catalog…</p></div>
+    </div>);
+  if(err) return(
+    <div className="min-h-screen bg-black flex items-center justify-center p-8">
+      <div className="text-center"><div className="text-4xl mb-4">⚠️</div>
+      <p className="gold-text text-lg mb-2">Configuration Error</p>
+      <p className="text-gray-400 text-sm">{err}</p></div>
+    </div>);
+
+  return(
+    <div className="min-h-screen bg-black text-white" style={{padding: step===3?'8px':'16px 16px 32px'}}>
+      <div className="w-full" style={{maxWidth: step===3?'100%':'768px', margin:'0 auto'}}>
+
+        {/* Header */}
+        <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
+          <span style={{position:"absolute",right:0,top:0,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px"}}>
+            {isVendita
+              ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
+              :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.82</span>}
+          </span>
+          <button onClick={reset}
+            className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
+            ⌂ Home
+          </button>
+          <img id="logo-img" src="https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/ciliegio_trasparente.png" alt="Il Ciliegio" className="h-16 object-contain"
+            onLoad={()=>{const t=document.getElementById('logo-txt');if(t)t.style.display='none';}}
+            onError={()=>{const i=document.getElementById('logo-img');if(i)i.style.display='none';const t=document.getElementById('logo-txt');if(t)t.style.display='block';}}/>
+          <h1 id="logo-txt" className="text-2xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
+        </div>
+
+        {showPrivacy && <PrivacyPopup text={privacyText} onClose={()=>setShowPrivacy(false)}/>}
+        {showLogin && <LoginPopup onClose={()=>setShowLogin(false)} onLogin={()=>{setIsVendita(true);setShowLogin(false);}}/>}
+        {showCAWarn && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+            <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'360px',width:'100%',padding:'28px',textAlign:'center'}}>
+              <div style={{fontSize:'3rem',marginBottom:'12px'}}>🚫</div>
+              <h2 className="gold-text font-bold uppercase mb-4" style={{fontSize:'15px',letterSpacing:'0.05em'}}>Shipping Restriction</h2>
+              <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.7'}}>
+                Please note that you cannot ship alcohol to your destination province or region!
+              </p>
+              <button onClick={()=>{setShowCAWarn(false);setTimeout(()=>{
+              if(typeof gtag!=='undefined') gtag('event','step_catalog',{event_category:'funnel'});
+              setStep(3);
+            },50);}}
+                className="w-full p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
+                style={{fontSize:'14px',letterSpacing:'0.05em'}}>
+                I Understand
+              </button>
+            </div>
+          </div>
+        )}
+        {dutyReminder && <DutyReminderPopup msg={dutyReminder} onConfirm={()=>{setDutyReminder(null);sendWA();}} onClose={()=>setDutyReminder(null)}/>}
+        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} onNext={()=>{
+              if(typeof gtag!=='undefined') gtag('event','step_registration',{event_category:'funnel',event_label:'Completed registration',nationality:form.natCode});
+              setStep(2);
+            }}/>}
+        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onPrivacy={()=>setShowPrivacy(true)}
+          onConfirm={()=>{
+            const CA_NO_ALCOHOL=['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
+              'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
+            const CA_NO_ALCOHOL_ABBR=['NB','NL','NT','NS','NU','PE','SK','YT'];
+            const caStr=(form.province+' '+form.state).toUpperCase();
+            const caAbbr=form.province.trim().toUpperCase();
+            const blocked=form.natCode==='CA'&&(
+              CA_NO_ALCOHOL.some(p=>caStr.includes(p))||
+              CA_NO_ALCOHOL_ABBR.includes(caAbbr)
+            );
+            if(blocked) setShowCAWarn(true);
+            else{
+              if(typeof gtag!=='undefined') gtag('event','step_catalog',{event_category:'funnel'});
+              setStep(3);
+            }
+          }}/>}
+        {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
+          speed={speed} setSpeed={setSpeed} spSel={spSel}
+          aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
+          totals={totals} onSend={handleSendOrder} onDirectSend={sendWA} onEmail={sendEmail} onSMS={sendSMS} onStripe={goToStripe} getMailtoUrl={getMailtoUrl} isVendita={isVendita} natCode={form.natCode} province={form.province} state={form.state}
+          resetCart={()=>{setCart([]);setGiftChoice(null);setShowGiftPopup(false);}}
+          giftChoice={giftChoice} setGiftChoice={setGiftChoice}
+          showGiftPopup={showGiftPopup} setShowGiftPopup={setShowGiftPopup}/>}
+      </div>
+    </div>
+  );
+}
+
+/* ── FormStep ──────────────────────────────────────────────── */
+function FormStep({form,setForm,natTxt,setNat,onNext}){
+  const [showNat,setShowNat] = useState(false);
+  const [domErr,setDomErr]   = useState(false);
+  const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
+
+  const pickCountry=(c)=>{
+    setForm({...BLANK,nationality:c.name,natCode:c.code,mobile:c.prefix+' '});
+    setNat(c.name); setShowNat(false);
+  };
+
+  const onZipBlur=async(e)=>{
+    const z=e.target.value.trim();
+    if(!z||!form.natCode) return;
+    try{
+      const url='https://nominatim.openstreetmap.org/search?postalcode='+encodeURIComponent(z)+'&countrycodes='+form.natCode.toLowerCase()+'&format=json&addressdetails=1&limit=1';
+      const r=await fetch(url,{headers:{'Accept-Language':'en'}});
+      if(!r.ok) return;
+      const data=await r.json();
+      if(!data.length) return;
+      const a=data[0].address;
+      const city=(a.municipality||a.city||a.town||a.village||a.hamlet||'').toUpperCase();
+      const province=(a.county||a.state_district||a.region||'').toUpperCase();
+      const region=(a.state||'').toUpperCase();
+      setForm(f=>({...f,city,province,state:region}));
+    }catch(_){}
+  };
+
+  const ok=form.nationality&&form.name&&form.surname&&form.address&&
+    form.zip&&form.city&&form.province&&form.state&&
+    form.mobile&&form.emailUser&&form.emailDomain&&validDomain(form.emailDomain);
+
+  return(
+    <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between border-b border-[#D4AF37] pb-2 mb-5 gap-1">
+        <h2 className="text-xl gold-text">Customer Registration</h2>
+        <span className="text-xs gold-text opacity-70 italic">all fields are required</span>
+      </div>
+      <div className="space-y-4">
+
+        {/* Nationality */}
+        <div className="relative">
+          <label className="block text-xs text-gray-400 mb-1">Nationality</label>
+          <input className="w-full p-3 rounded uppercase" type="text"
+            placeholder="Start typing country name…" value={natTxt}
+            onFocus={()=>setShowNat(true)}
+            onChange={e=>{
+              const v=e.target.value.toUpperCase(); setNat(v);
+              if(form.nationality&&v!==form.nationality) setForm(f=>({...f,nationality:'',natCode:''}));
+            }}/>
+          {showNat&&natTxt&&!form.nationality&&(
+            <div className="absolute z-30 w-full mt-1 bg-[#1a1a1a] border gold-border rounded max-h-44 overflow-y-auto">
+              {nations.length>0?nations.map(c=>(
+                <div key={c.code} className="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase text-sm"
+                  onClick={()=>pickCountry(c)}>{c.flag} {c.name} ({c.code})</div>
+              )):<div className="p-3 text-gray-500 text-sm">No country found…</div>}
+            </div>)}
+        </div>
+
+        {/* ZIP — auto-fills city/province/state on blur */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">ZIP Code
+            <span className="ml-2 text-gray-600 italic text-xs">(auto-fills city & region on blur)</span>
+          </label>
+          <input className="w-full p-3 rounded uppercase" type="text"
+            placeholder={form.natCode?"Enter ZIP…":"Select nationality first"}
+            value={form.zip}
+            onChange={e=>setForm(f=>({...f,zip:e.target.value.toUpperCase()}))}
+            onBlur={onZipBlur}/>
+        </div>
+
+        {/* Name / Surname */}
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="block text-xs text-gray-400 mb-1">First Name</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.name}
+              onChange={e=>setForm(f=>({...f,name:e.target.value.toUpperCase()}))}/>
+          </div>
+          <div><label className="block text-xs text-gray-400 mb-1">Last Name</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.surname}
+              onChange={e=>setForm(f=>({...f,surname:e.target.value.toUpperCase()}))}/>
+          </div>
+        </div>
+
+        {/* Address */}
+        <div><label className="block text-xs text-gray-400 mb-1">Full Address</label>
+          <input className="w-full p-3 rounded uppercase" type="text" placeholder="Street, number…"
+            value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value.toUpperCase()}))}/>
+        </div>
+
+        {/* City */}
+        <div><label className="block text-xs text-gray-400 mb-1">City</label>
+          <input className="w-full p-3 rounded uppercase" type="text"
+            value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value.toUpperCase()}))}/>
+        </div>
+
+        {/* Province / State */}
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="block text-xs text-gray-400 mb-1">Province / County</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.province}
+              onChange={e=>setForm(f=>({...f,province:e.target.value.toUpperCase()}))}/>
+          </div>
+          <div><label className="block text-xs text-gray-400 mb-1">State / Region</label>
+            <input className="w-full p-3 rounded uppercase" type="text" value={form.state}
+              onChange={e=>setForm(f=>({...f,state:e.target.value.toUpperCase()}))}/>
+          </div>
+        </div>
+
+        {/* Mobile */}
+        <div><label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
+          <input className="w-full p-3 rounded" type="text" placeholder="+1 234 567 8900"
+            value={form.mobile} onChange={e=>setForm(f=>({...f,mobile:e.target.value.replace(/[^\d+\s]/g,'')}))}/>
+        </div>
+
+        {/* Email */}
+        <div><label className="block text-xs text-gray-400 mb-1">Email Address</label>
+          <div className="flex w-full items-center gap-2">
+            <input type="text" className="min-w-0 flex-1 p-3 rounded text-right lowercase"
+              placeholder="username" value={form.emailUser}
+              onChange={e=>setForm(f=>({...f,emailUser:e.target.value.replace(/\s/g,'').toLowerCase()}))}/>
+            <span className="gold-text font-bold text-xl shrink-0">@</span>
+            <input type="text" className={`min-w-0 flex-1 p-3 rounded lowercase${domErr?' err-field':''}`}
+              placeholder="provider.com" value={form.emailDomain}
+              onChange={e=>{setDomErr(false);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
+              onBlur={e=>{const v=e.target.value.trim();setDomErr(v!==''&&!validDomain(v));}}/>
+          </div>
+          {domErr&&<p className="text-xs text-red-400 mt-1">⚠️ Use format: gmail.com or provider.it</p>}
+        </div>
+      </div>
+
+      <button onClick={onNext} disabled={!ok}
+        className={`w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all
+          ${ok?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+        Continue to Summary
+      </button>
+    </div>
+  );
+}
+
+/* ── SummaryStep ───────────────────────────────────────────── */
+function SummaryStep({form,onEdit,onConfirm,onPrivacy}){
+  return(
+    <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
+      <div className="relative flex items-center justify-center border-b border-[#D4AF37] pb-2 mb-5">
+        <h2 className="text-xl gold-text">Data Summary</h2>
+        <button onClick={onPrivacy} className="absolute right-0 px-3 py-1 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">Privacy</button>
+      </div>
+      <div className="space-y-3 text-sm">
+        {[['Customer',`${form.name} ${form.surname}`],
+          ['Nationality',form.nationality],
+          ['Email',`${form.emailUser}@${form.emailDomain}`],
+          ['Phone',form.mobile],
+          ['Address',<>{form.address}<br/>{form.zip} {form.city}<br/>{form.state}{form.province&&form.province!==form.state?' ('+form.province+')':''}</>],
+        ].map(([l,v],i)=>(
+          <div key={i} className="flex justify-between border-b border-gray-800 pb-2">
+            <span className="text-gray-400">{l}:</span>
+            <span className="font-bold text-right">{v}</span>
+          </div>))}
+      </div>
+      <div className="flex gap-4 mt-8">
+        <button onClick={onEdit} className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">Edit</button>
+        <button onClick={onConfirm} className="flex-1 p-4 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">Confirm &amp; Go to Catalog</button>
+      </div>
+      <p className="text-gray-500 text-center mt-4" style={{fontSize:'11px',lineHeight:'1.5'}}>
+        By continuing to submit your data, you are deemed to have accepted all the privacy terms set forth in the policy available on this page.
+      </p>
+    </div>
+  );
+}
+
+/* ── ProductCard ───────────────────────────────────────────── */
+function ProductCard({p,onAdd,blocked}){
+  const [imgErr,setImgErr]=useState(false);
+  const src=p.img?window.CFG.imgBase+p.img:null;
+  const unavail = p.available===false;
+  const disabled = unavail || blocked;
+  return(
+    <div className={`bg-dark rounded border text-center flex flex-col gap-1 transition-all overflow-hidden${disabled?' border-gray-800 opacity-50':' border-gray-800 hover:border-[#D4AF37]'}`} style={{padding:'6px'}}>
+      {src&&!imgErr
+        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setImgErr(true)} style={disabled?{filter:'grayscale(100%)'}:{}}/>
+        :<div className="prod-img-fallback">🍷</div>}
+      <p className="font-bold leading-tight text-gray-200" style={{fontSize:'10px',lineHeight:'1.2'}}>{p.name}</p>
+      <p className="gold-text font-bold" style={{fontSize:'11px'}}>€{p.price.toFixed(2)}</p>
+      {unavail
+        ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>Out of Stock</div>
+        :blocked
+          ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>Not Available</div>
+          :<button onClick={()=>onAdd(p)}
+            className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
+            style={{fontSize:'10px',padding:'3px 0'}}>
+            + Add
+          </button>}
+    </div>
+  );
+}
+
+/* ── CartPanel ─────────────────────────────────────────────── */
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDirectSend,onEmail,onSMS,onStripe,onPlaceOrder,speed,setSpeed,spSel,noRate,natCode}){
+  const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'100%',gap:'4px',overflow:'hidden'}}>
+
+      {/* Avviso paese non coperto */}
+      {noRate&&(
+        <div className="bg-yellow-950 border border-yellow-700 rounded p-2 shrink-0">
+          <p className="text-yellow-300 font-bold" style={{fontSize:'10px'}}>⚠️ We are not sure we can ship to your country.</p>
+          <p className="text-yellow-500 mt-1" style={{fontSize:'9px'}}>Please complete your order anyway. We will contact you via email as soon as possible with a shipping quote.</p>
+        </div>)}
+
+      {/* Speed selector — tutto su un rigo compatto */}
+      {spSel&&(
+        <div className="border border-gray-700 rounded px-2 py-1 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-gray-500 uppercase shrink-0" style={{fontSize:'9px',letterSpacing:'0.05em'}}>Ship:</span>
+            {['STANDARD','EXPRESS'].map(o=>(
+              <button key={o} onClick={()=>setSpeed(o)}
+                className={`px-2 rounded border font-bold uppercase transition shrink-0
+                  ${speed===o?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}
+                style={{fontSize:'10px',padding:'2px 6px'}}>
+                {o}
+              </button>))}
+            {dl&&<span className="gold-text font-bold" style={{fontSize:'10px'}}>{dl}</span>}
+          </div>
+        </div>)}
+
+      {/* No speed — solo delivery label in oro */}
+      {!spSel&&dl&&(
+        <div className="shrink-0">
+          <span className="gold-text font-bold" style={{fontSize:'10px'}}>⏱ {dl}</span>
+        </div>)}
+
+      <div className="cart-inner"><div className="space-y-1">
+        {cart.length===0
+          ?<p className="text-gray-500 italic text-center py-4" style={{fontSize:'12px'}}>Cart is empty</p>
+          :cart.map(c=>(
+            <div key={c.id} className="flex items-center bg-black rounded px-2 py-1 gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-200 truncate" style={{fontSize:'10px'}}>{c.name}</p>
+                <p className="text-gray-400" style={{fontSize:'10px'}}>
+                  €{c.price.toFixed(2)} ×{c.qty} = <span className="text-gray-300">€{(c.price*c.qty).toFixed(2)}</span>
+                </p>
+              </div>
+              {c.id!=='5_gift'&&<div className="flex gap-1 shrink-0">
+                <button onClick={()=>removeItem(c.id)} className="w-6 h-6 bg-gray-800 rounded hover:bg-red-700 font-bold text-sm">−</button>
+                <button onClick={()=>addItem(c)} className="w-6 h-6 gold-bg rounded font-bold text-sm">+</button>
+              </div>}
+            </div>))}
+      </div></div>
+
+      {/* Totals — always visible, pinned above Send button */}
+      <div className="cart-send">
+      <div className="border-t border-gray-800 pt-2" style={{fontSize:'11px'}}>
+        <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prod.toFixed(2)}</span></div>
+        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>Discount (5%):</span><span>-€{totals.discount.toFixed(2)}</span></div>}
+        {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
+        {italyFreeShip
+          ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>Shipping:</span><span>🎉 Free over €100</span></div>
+          :<div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.shipQty)}</span>€{totals.ship.toFixed(2)}</span></div>}
+        {!italyFreeShip&&aRate&&(()=>{const h=shippingTierHint(totals.shipQty);return h>0?<p className="text-right" style={{color:'#60a5fa',fontSize:'10px',marginTop:'2px'}}>ℹ️ Add {h} more item{h!==1?'s':''} — shipping cost stays the same!</p>:null;})()}
+        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate for this country — you will be contacted via email.</p>}
+        <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
+          <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
+        </div>
+      </div>
+      <button onClick={onPlaceOrder} disabled={cart.length===0}
+        className={`w-full rounded font-bold uppercase transition
+          ${cart.length>0?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+        style={{fontSize:'12px',padding:'9px 0',letterSpacing:'0.05em'}}>
+        🛍️ Place your order
+      </button></div>
+    </div>
+  );
+}
+
+
+
+
+/* ── DutyReminderPopup ─────────────────────────────────────── */
+function DutyReminderPopup({msg,onConfirm,onClose}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'400px',width:'100%',padding:'28px',textAlign:'center'}}>
+        <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>⚠️</div>
+        <h2 className="gold-text font-bold uppercase tracking-widest mb-4" style={{fontSize:'14px'}}>Important Notice</h2>
+        <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.8'}}>{msg}</p>
+        <div style={{display:'flex',gap:'12px'}}>
+          <button onClick={onClose}
+            className="flex-1 p-3 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black font-bold uppercase transition"
+            style={{fontSize:'12px'}}>
+            Cancel
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 p-3 rounded bg-green-600 hover:bg-green-500 text-white font-bold uppercase transition"
+            style={{fontSize:'12px'}}>
+            I Understand — Send Order
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── PrivacyPopup ──────────────────────────────────────────── */
+function PrivacyText({text}){
+  if(!text) return React.createElement('p',{className:'text-gray-500 italic'},'Loading privacy policy…');
+  const NL = String.fromCharCode(10);
+  const lines = text.split(NL);
+  return React.createElement(React.Fragment, null,
+    lines.map((line,i) => line.trim()===''
+      ? React.createElement('br',{key:i})
+      : React.createElement('p',{key:i,className:'mb-2'},line)
+    )
+  );
+}
+
+function PrivacyPopup({text,onClose}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'500px',width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
+        <div className="flex justify-between items-center p-4 border-b border-[#D4AF37]">
+          <h2 className="gold-text font-bold uppercase tracking-widest" style={{fontSize:'14px'}}>Privacy Policy</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black transition font-bold text-lg leading-none">✕</button>
+        </div>
+        <div className="overflow-y-auto p-4 text-gray-300" style={{fontSize:'12px',lineHeight:'1.7',flex:1}}>
+          <PrivacyText text={text}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── GiftPopup ─────────────────────────────────────────────── */
+function GiftPopup({products,onYes,onNo}){
+  const giftProd = products.find(p=>p.id===5);
+  const imgSrc = giftProd ? window.CFG.imgBase + giftProd.img : null;
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'340px',width:'100%',padding:'24px',textAlign:'center'}}>
+        <div className="gold-text font-bold mb-3" style={{fontSize:'14px'}}>🎁 Special Gift!</div>
+        <p className="text-white mb-2" style={{fontSize:'13px',lineHeight:'1.6'}}>
+          Would you like to receive a <span className="gold-text font-bold" style={{fontSize:'16px'}}>FREE BOTTLE</span> of<br/>
+          <span className="gold-text font-bold">Chianti Gran Fondo "Strade Bianche"</span><br/>
+          <span className="gold-text font-bold" style={{fontSize:'16px'}}>LIMITED EDITION</span> 2025 with your order?
+        </p>
+        {imgSrc && <img src={imgSrc} alt="Chianti Gran Fondo" style={{width:'120px',height:'120px',objectFit:'cover',borderRadius:'8px',margin:'0 auto 16px',display:'block'}}/>}
+        <p className="gold-text font-bold mb-4" style={{fontSize:'15px',lineHeight:'1.5'}}>
+          Every 11 items, one free bottle will be added automatically.
+        </p>
+        <div style={{display:'flex',gap:'12px'}}>
+          <button onClick={onNo}
+            className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
+            style={{fontSize:'12px'}}>
+            No thanks
+          </button>
+          <button onClick={onYes}
+            className="flex-1 p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
+            style={{fontSize:'12px'}}>
+            Yes, please! 🎉
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── CatalogStep ───────────────────────────────────────────── */
+function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
+  aRate,aKey,hasDuty,dl,totals,onSend,onDirectSend,onEmail,onSMS,onStripe,getMailtoUrl,isVendita,natCode,province,state,
+  resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
+
+  const [tab,setTab]         = useState('ALL');
+  const [cartErr,setCartErr] = useState('');
+
+  const isUSCA = ['US','CA'].includes(natCode);
+  const isCA   = natCode==='CA';
+  // Check province AND state fields, full names AND abbreviations
+  const caProvinceStr = ((province||'')+' '+(state||'')).toUpperCase();
+  const caProvinceAbbr = province.trim().toUpperCase();
+  const caBlock = isCA&&(province||form.state)&&(
+    CA_NO_WINE.some(p=>caProvinceStr.includes(p)) ||
+    CA_NO_WINE_ABBR.includes(caProvinceAbbr)
+  );
+  const caBlockedCats = caBlock ? ['WINE','SPARKLING','DISTILLATES'] : [];
+
+  // Distillates visible only for Italy + EU countries
+  const EU_AND_ITALY = ['IT', 'DE', 'BE', 'NL', 'LU', 'FR', 'DK', 'AT', 'ES', 'SE', 'PT', 'IE', 'SI', 'FI', 'HR', 'GR', 'CY', 'MT', 'PL', 'CZ', 'SK', 'HU', 'BG', 'EE', 'LV', 'LT', 'RO'];
+  const canSeeDistillates = EU_AND_ITALY.includes(natCode);
+
+  const avail   = (isUSCA
+    ? products.filter(p=>p.category!=='DISTILLATES'&&!US_CA_BLOCK.includes(p.id))
+    : !canSeeDistillates
+      ? products.filter(p=>p.category!=='DISTILLATES')
+      : products
+  ).filter(p=>p.id!=='5_gift');
+  const visCats = (!canSeeDistillates)?CATEGORIES.filter(c=>c!=='DISTILLATES'):CATEGORIES;
+  const tabs    = ['ALL',...visCats];
+  const filtered= tab==='ALL'?avail:avail.filter(p=>p.category===tab);
+  const dCats   = tab==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tab];
+
+  const addItem=(prod)=>{
+    setCartErr('');
+    // Max 36 articoli totali
+    const currentQty=cart.reduce((s,i)=>s+i.qty,0);
+    const currentShipQty=cart.reduce((s,i)=>s+effectiveUnits(i),0);
+    const rateMaxItems = aRate && aRate.max_items ? aRate.max_items : null;
+    const maxItems=(()=>{
+      if(natCode==='IT') return 18;
+      if(!aRate||!aRate.rates) return 60;
+      const keys=Object.keys(aRate.rates).map(Number).filter(n=>!isNaN(n));
+      return keys.length>0?Math.max(...keys):60;
+    })();
+    if(currentShipQty>=maxItems){
+      setCartErr('⚠️ Maximum '+maxItems+' items per order for this destination.');
+      return;
+    }
+    if(isCA){
+      // WINE e SPARKLING sono "alcolici": possono stare assieme ma non con altre categorie
+      const isAlc  = c => c==='WINE'||c==='SPARKLING';
+      const iA     = isAlc(prod.category);
+      const hasAlc = cart.some(i=>isAlc(i.category));
+      const hasOth = cart.some(i=>!isAlc(i.category));
+      if(iA&&hasOth){
+        setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.');
+        return;
+      }
+      if(!iA&&hasAlc){
+        setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.');
+        return;
+      }
+      if(iA&&caBlock){
+        setCartErr(`🚫 Wine/Sparkling cannot be shipped to ${province}.`);
+        return;
+      }
+    }
+    setCart(prev=>{
+      const ex=prev.find(p=>p.id===prod.id);
+      if(ex) return prev.map(p=>p.id===prod.id?{...p,qty:p.qty+1}:p);
+      return [...prev,{...prod,qty:1}];
+    });
+    // After adding, check new qty
+    const newQty = currentQty + 1;
+    const currentNonGiftQtyForPopup = cart.reduce((s,i)=>i.id==='5_gift'?s:s+i.qty,0) + (prod.id==='5_gift'?0:1);
+    if(giftChoice===null && currentNonGiftQtyForPopup===11) {
+      // Don't offer gift to blocked CA provinces (no alcohol shipping)
+      if(caBlock){ setGiftChoice(false); }
+      else { setShowGiftPopup(true); }
+    } else if(giftChoice===true) {
+      // Count only NON-gift items currently in cart
+      const currentNonGiftQty = cart.reduce((s,i)=>i.id==='5_gift'?s:s+i.qty, 0);
+      // Add 1 if the product being added is not a gift
+      const nonGiftQty = currentNonGiftQty + (prod.id==='5_gift'?0:1);
+      const expectedGifts = Math.floor(nonGiftQty / 11);
+      const currentGifts = cart.filter(i=>i.id==='5_gift').reduce((s,i)=>s+i.qty,0);
+      if(expectedGifts > currentGifts){
+        const giftProd = products.find(p=>p.id==='5_gift');
+        if(giftProd) setCart(prev=>{
+          const ex=prev.find(p=>p.id==='5_gift');
+          if(ex) return prev.map(p=>p.id==='5_gift'?{...p,qty:p.qty+1}:p);
+          return [...prev,{...giftProd,qty:1}];
+        });
+      }
+    }
+  };
+  const removeItem=(id)=>{
+    setCartErr('');
+    setCart(prev=>{
+      const updated = prev.map(p=>p.id===id?{...p,qty:p.qty-1}:p).filter(p=>p.qty>0);
+      if(giftChoice===true){
+        const nonGiftQty = updated.reduce((s,i)=>i.id==='5_gift'?s:s+i.qty,0);
+        const expectedGifts = Math.floor(nonGiftQty/11);
+        const currentGifts = updated.filter(i=>i.id==='5_gift').reduce((s,i)=>s+i.qty,0);
+        if(currentGifts > expectedGifts){
+          let toRemove = currentGifts - expectedGifts;
+          return updated.map(p=>{
+            if(p.id==='5_gift' && toRemove>0){ toRemove--; return p.qty-1>0?{...p,qty:p.qty-1}:null; }
+            return p;
+          }).filter(Boolean);
+        }
+      }
+      return updated;
+    });
+  };
+
+  // ── Duty warning popup ──
+  const getDutyWarning=(()=>{
+    const hasWine = cart.some(i=>i.category==='WINE'||i.category==='SPARKLING');
+    const euCodes = ['IT','DE','BE','NL','LU','FR','DK','AT','ES','SE','PT',
+                     'IE','SI','FI','HR','GR','CY','MT','PL','CZ','SK','HU',
+                     'BG','EE','LV','LT','RO'];
+    if(euCodes.includes(natCode)) return null; // no warning for EU+IT
+    if(natCode==='US' && hasWine) return null; // US wine: duties already shown in cart
+    if(natCode==='US') return "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
+    if(natCode==='CA') return "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
+    if(natCode==='GB') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 40% of the total value.";
+    if(natCode==='CH') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 5% of the total value + VAT 7.7%.";
+    if(natCode==='NO') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around €1 per bottle + VAT 15%.";
+    return "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
+  })();
+
+  const [showDutyWarn,setShowDutyWarn] = useState(false);
+  const [pendingAction,setPendingAction] = useState('wa');
+
+  const handleSend=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('wa');}else{onSend();} };
+  const handleEmail=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('email');}else{onEmail();} };
+
+  const [showOrderPopup,setShowOrderPopup] = useState(false);
+  const handlePlaceOrder=()=>{
+    if(getDutyWarning){setShowDutyWarn(true);}
+    else{setShowOrderPopup(true);}
+  };
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onDirectSend:onDirectSend,onEmail:handleEmail,onSMS:onSMS,onStripe:onStripe,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
+
+  const handleGiftYes = () => {
+    setGiftChoice(true);
+    setShowGiftPopup(false);
+    // Use the dedicated 5_gift product from products.json (already price=0)
+    const giftProd = products.find(p=>p.id==='5_gift');
+    if(giftProd) setCart(prev=>{
+      const ex=prev.find(p=>p.id==='5_gift');
+      if(ex) return prev.map(p=>p.id==='5_gift'?{...p,qty:p.qty+1}:p);
+      return [...prev,{...giftProd,qty:1}];
+    });
+  };
+  const handleGiftNo = () => {
+    setGiftChoice(false);
+    setShowGiftPopup(false);
+  };
+
+  const doResetCart=()=>{
+    resetCart();
+    setCartErr('');
+  };
+
+  return(
+    <div className="catalog-page">
+      {showGiftPopup && <GiftPopup products={products} onYes={handleGiftYes} onNo={handleGiftNo}/>}
+      {showOrderPopup&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+          <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>
+            <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>🍷</div>
+            <h2 className="gold-text font-bold mb-3" style={{fontSize:'17px',letterSpacing:'0.04em'}}>Thank you for choosing<br/>IL CILIEGIO!</h2>
+            <p className="text-gray-300 mb-4" style={{fontSize:'12px',lineHeight:'1.8'}}>
+              Your order has been completed.
+            </p>
+            <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>Please proceed to the payment of your order using one of the options below:</p>
+            {isVendita
+              ? <button onClick={()=>{setShowOrderPopup(false);onDirectSend();}}
+                  className="w-full p-3 rounded font-bold uppercase bg-green-600 hover:bg-green-500 text-white transition mb-2"
+                  style={{fontSize:'13px'}}>📲 Send Order via WhatsApp</button>
+              : <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
+                  <button onClick={()=>{setShowOrderPopup(false);onStripe('card');}}
+                    className="flex-1 p-3 rounded font-bold uppercase transition"
+                    style={{fontSize:'11px',background:'#635BFF',color:'#fff',border:'none'}}>
+                    💳 Pay by Card
+                  </button>
+                  <button onClick={()=>{setShowOrderPopup(false);onStripe('paypal');}}
+                    className="flex-1 p-3 rounded font-bold uppercase transition"
+                    style={{fontSize:'11px',background:'#003087',color:'#fff',border:'none'}}>
+                    🅿️ PayPal (+5% comm.)
+                  </button>
+                </div>
+            }
+
+            <button onClick={()=>setShowOrderPopup(false)}
+              className="w-full p-2 rounded border border-gray-700 text-gray-500 hover:border-gray-400 hover:text-gray-300 transition uppercase"
+              style={{fontSize:'11px'}}>← Go Back</button>
+          </div>
+        </div>
+      )}
+      {showDutyWarn && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+          <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>
+            <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>⚠️</div>
+            <h2 className="gold-text font-bold uppercase mb-4" style={{fontSize:'15px',letterSpacing:'0.05em'}}>Important Notice</h2>
+            <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.7'}}>{getDutyWarning}</p>
+            <div style={{display:'flex',gap:'12px'}}>
+              <button onClick={()=>setShowDutyWarn(false)}
+                className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
+                style={{fontSize:'12px'}}>← Go Back</button>
+              <button onClick={()=>{setShowDutyWarn(false);setShowOrderPopup(true);}}
+                className="flex-1 p-3 rounded bg-green-600 hover:bg-green-500 text-white font-bold uppercase transition"
+                style={{fontSize:'12px'}}>I understand →</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {cartErr&&<div className="bg-red-950 border border-red-700 rounded p-2 text-xs text-red-300 shrink-0 mb-1">{cartErr}</div>}
+
+      <div className="catalog-layout">
+
+        {/* ── Catalog column ── */}
+        <div className="catalog-col">
+          {/* Category tabs */}
+          <div className="flex gap-1 flex-wrap mb-2">
+            {tabs.map(t=>(
+              <button key={t} onClick={()=>setTab(t)}
+                className={`px-2 py-1 rounded font-bold uppercase border transition
+                  ${tab===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}
+                style={{fontSize:'10px'}}>
+                {t}
+              </button>))}
+          </div>
+
+          {dCats.map(cat=>{
+            const ps=filtered.filter(p=>p.category===cat);
+            if(!ps.length) return null;
+            return(
+              <div key={cat} className="mb-4">
+                <h2 className="font-bold gold-text border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>{cat}</h2>
+                
+                {/* auto-fill: ~4 cols on mobile (80px min), ~3-4 cols on desktop (120px min) */}
+                <div className="grid gap-2 prod-grid">
+                  {ps.map(p=><ProductCard key={p.id} p={p} onAdd={addItem} blocked={caBlockedCats.includes(p.category)}/>)}
+                </div>
+              </div>);
+          })}
+        </div>
+
+        {/* ── Cart column ── */}
+        <div className="cart-col bg-[#111] rounded border gold-border" style={{padding:'8px'}}>
+          <div className="flex justify-between items-center border-b border-gray-800 pb-1 mb-2">
+            <h2 className="gold-text font-bold" style={{fontSize:'13px'}}>🛒 Cart</h2>
+            {cart.length>0&&<button onClick={doResetCart}
+              className="border border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-400 rounded transition"
+              style={{fontSize:'9px',padding:'2px 6px'}}>✕ Reset</button>}
+          </div>
+          <CartPanel {...panelProps}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginPopup({onClose,onLogin}){
+  const [u,setU]=useState('');
+  const [p,setP]=useState('');
+  const handle=()=>{
+    if(u.trim()==='Vendita'&&p==='Vendita02'){
+      localStorage.setItem('ciliegio_vendita','1');
+      onLogin();
+    } else { onClose(); }
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'300px',width:'100%',padding:'28px',textAlign:'center'}}>
+        <h2 className="gold-text font-bold mb-4" style={{fontSize:'16px'}}>Staff Login</h2>
+        <input type="text" placeholder="Username" value={u} onChange={e=>setU(e.target.value)}
+          className="w-full p-3 rounded mb-3" style={{textAlign:'center'}}/>
+        <input type="password" placeholder="Password" value={p} onChange={e=>setP(e.target.value)}
+          className="w-full p-3 rounded mb-4" style={{textAlign:'center'}}
+          onKeyDown={e=>e.key==='Enter'&&handle()}/>
+        <div style={{display:'flex',gap:'10px'}}>
+          <button onClick={onClose} className="flex-1 p-3 rounded border gold-border gold-text" style={{fontSize:'12px'}}>Cancel</button>
+          <button onClick={handle} className="flex-1 p-3 rounded gold-bg font-bold" style={{fontSize:'12px'}}>Login</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
