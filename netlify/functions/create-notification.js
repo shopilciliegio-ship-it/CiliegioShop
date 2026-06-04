@@ -144,6 +144,10 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
   const totalBottles = products.reduce(function(s, p) { return s + p.qty; }, 0);
   const cartons = Math.max(1, Math.ceil(totalBottles / 6));
 
+  // Adjust shipping cost for MOS: -5€ for 3 or 6 bottles, -10€ for all other quantities
+  const shippingDeduction = (totalBottles === 3 || totalBottles === 6) ? 5 : 10;
+  shippingCost = Math.max(0, parseFloat(shippingCost) - shippingDeduction).toFixed(2);
+
   // Build PDF (A4 portrait)
   const pdfDoc = await PDFDocument.create();
   const page   = pdfDoc.addPage([595, 842]);
