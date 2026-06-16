@@ -24,13 +24,13 @@
       "purpose": "any"
     },
     {
-      "src": "ciliegio_trasparente.png",
+      "src": "ciliegio_maskable_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "ciliegio_trasparente.png",
+      "src": "ciliegio_maskable_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
