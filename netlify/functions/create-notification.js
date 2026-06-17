@@ -98,6 +98,13 @@ function sendEmail(toEmail, toName, subject, html, brevoKey, attachment) {
   });
 }
 
+function safeText(s) {
+  return String(s || '')
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^\x20-\x7E]/g, '?');
+}
+
 async function buildMosPdf(customerName, customerEmail, customerPhone, customerAddress, orderProducts, orderTotals) {
   const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
@@ -162,7 +169,7 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
   const MG = rgb(0.55, 0.55, 0.55);
 
   const txt = function(s, x, y, sz, fn, cl) {
-    page.drawText(String(s || ''), { x: x, y: y, size: sz || 9, font: fn || fontR, color: cl || K });
+    page.drawText(safeText(s), { x: x, y: y, size: sz || 9, font: fn || fontR, color: cl || K });
   };
   const rct = function(x, y, w, h, fill, bc, bw) {
     page.drawRectangle({ x: x, y: y, width: w, height: h,
