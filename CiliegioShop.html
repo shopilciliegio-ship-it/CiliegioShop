@@ -196,6 +196,36 @@
 
   if(sessionStorage.getItem('ciliegio_install_dismissed')) return;
 
+  var _ipLangs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language||'en'];
+  var IP_IT = _ipLangs.some(function(l){ return /^it/i.test(l); });
+  var IP = IP_IT ? {
+    subtitle:'App Shop Online',
+    msg:"Per un'esperienza migliore, installa l'app toccando il bottone Installa. Grazie!",
+    samsungInstr:'Tocca il <b style="color:#D4AF37">☰ menu</b> in basso<br>' +
+      '→ <b style="color:#D4AF37">Aggiungi pagina a</b><br>' +
+      '→ <b style="color:#D4AF37">Schermata Home</b>',
+    samsungAfter:'Poi apri l\'icona <b style="color:#fff">IL CILIEGIO</b> dalla tua Schermata Home.',
+    install:'⬇ Installa',
+    pressX:'Premi ✕ per continuare sul sito',
+    installedTitle:'App Installata!',
+    installedMsg:'Vai alla tua <b style="color:#fff">Schermata Home</b><br>e tocca l\'icona<br><b style="color:#D4AF37">IL CILIEGIO</b><br>per aprire l\'app.',
+    iosInstr:'Su Safari: tocca <b style="color:#D4AF37">⬆ Condividi</b> → <b style="color:#D4AF37">Aggiungi alla schermata Home</b>',
+    iosAfter:'Una volta aggiunta, <b style="color:#fff">chiudi questa pagina</b> e apri l\'icona <b style="color:#D4AF37">IL CILIEGIO</b> dalla tua Schermata Home.',
+  } : {
+    subtitle:'Online Shop App',
+    msg:'To ensure a better App experience, click the Install button. Thanks!',
+    samsungInstr:'Tap the <b style="color:#D4AF37">☰ menu</b> at the bottom<br>' +
+      '→ <b style="color:#D4AF37">Add page to</b><br>' +
+      '→ <b style="color:#D4AF37">Home screen</b>',
+    samsungAfter:'Then open the <b style="color:#fff">IL CILIEGIO</b> icon from your Home Screen.',
+    install:'⬇ Install',
+    pressX:'Press ✕ to continue in the website',
+    installedTitle:'App Installed!',
+    installedMsg:'Go to your <b style="color:#fff">Home Screen</b><br>and tap the<br><b style="color:#D4AF37">IL CILIEGIO</b> icon<br>to open the app.',
+    iosInstr:'In Safari: tap <b style="color:#D4AF37">⬆ Share</b> → <b style="color:#D4AF37">Add to Home Screen</b>',
+    iosAfter:'Once added, <b style="color:#fff">close this page</b> and open the <b style="color:#D4AF37">IL CILIEGIO</b> icon from your Home Screen.',
+  };
+
   var deferredPrompt = null;
 
   // Overlay backdrop
@@ -239,7 +269,7 @@
   // Main title
   var title = document.createElement('div');
   title.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:22px;margin-bottom:6px;letter-spacing:0.05em';
-  title.innerHTML = 'IL CILIEGIO<br><span style="font-size:15px;letter-spacing:0.08em;font-weight:normal">Online Shop App</span>';
+  title.innerHTML = 'IL CILIEGIO<br><span style="font-size:15px;letter-spacing:0.08em;font-weight:normal">'+IP.subtitle+'</span>';
 
   // Divider
   var divider = document.createElement('div');
@@ -248,7 +278,7 @@
   // Message
   var msg = document.createElement('div');
   msg.style.cssText = 'color:#ccc;font-size:14px;line-height:1.7;margin-bottom:4px';
-  msg.textContent = 'To ensure a better App experience, click the Install button. Thanks!';
+  msg.textContent = IP.msg;
 
   popup.appendChild(close);
 
@@ -265,27 +295,24 @@
       // Show manual "Add to Home Screen" instructions instead (creates a shortcut, no WebAPK, no Play Protect).
       var samsungInstr = document.createElement('div');
       samsungInstr.style.cssText = 'color:#888;font-size:13px;margin-top:14px;line-height:1.8;text-align:left';
-      samsungInstr.innerHTML =
-        'Tap the <b style="color:#D4AF37">☰ menu</b> at the bottom<br>' +
-        '→ <b style="color:#D4AF37">Add page to</b><br>' +
-        '→ <b style="color:#D4AF37">Home screen</b>';
+      samsungInstr.innerHTML = IP.samsungInstr;
       popup.appendChild(samsungInstr);
 
       var samsungAfter = document.createElement('div');
       samsungAfter.style.cssText = 'color:#D4AF37;font-size:12px;margin-top:10px;line-height:1.6;font-style:italic';
-      samsungAfter.innerHTML = 'Then open the <b style="color:#fff">IL CILIEGIO</b> icon from your Home Screen.';
+      samsungAfter.innerHTML = IP.samsungAfter;
       popup.appendChild(samsungAfter);
     } else {
       // Chrome on Android — use native PWA install prompt
       var btn = document.createElement('button');
-      btn.textContent = '⬇ Install';
+      btn.textContent = IP.install;
       btn.style.cssText = 'display:block;width:100%;margin-top:18px;background:#D4AF37;color:#000;border:none;padding:14px;border-radius:8px;font-weight:bold;font-size:16px;cursor:pointer;letter-spacing:0.05em';
       btn.style.display = 'none';
       popup.appendChild(btn);
 
       var xhint = document.createElement('div');
       xhint.style.cssText = 'color:#555;font-size:11px;margin-top:10px;text-align:center;line-height:1.4';
-      xhint.textContent = 'Press ✕ to continue in the website';
+      xhint.textContent = IP.pressX;
       popup.appendChild(xhint);
 
       window.addEventListener('beforeinstallprompt', function(e){
@@ -309,10 +336,10 @@
         doneIcon.style.cssText = 'font-size:56px;margin-bottom:16px';
         var doneTitle = document.createElement('div');
         doneTitle.style.cssText = 'color:#D4AF37;font-weight:bold;font-size:20px;margin-bottom:12px';
-        doneTitle.textContent = 'App Installed!';
+        doneTitle.textContent = IP.installedTitle;
         var doneMsg = document.createElement('div');
         doneMsg.style.cssText = 'color:#ccc;font-size:14px;line-height:1.8;text-align:center';
-        doneMsg.innerHTML = 'Go to your <b style="color:#fff">Home Screen</b><br>and tap the<br><b style="color:#D4AF37">IL CILIEGIO</b> icon<br>to open the app.';
+        doneMsg.innerHTML = IP.installedMsg;
         popup.appendChild(doneIcon);
         popup.appendChild(doneTitle);
         popup.appendChild(doneMsg);
@@ -325,12 +352,12 @@
   if(isIOS){
     var iosInstr = document.createElement('div');
     iosInstr.style.cssText = 'color:#888;font-size:12px;margin-top:14px;line-height:1.6';
-    iosInstr.innerHTML = 'In Safari: tap <b style="color:#D4AF37">⬆ Share</b> → <b style="color:#D4AF37">Add to Home Screen</b>';
+    iosInstr.innerHTML = IP.iosInstr;
     popup.appendChild(iosInstr);
 
     var iosAfter = document.createElement('div');
     iosAfter.style.cssText = 'color:#D4AF37;font-size:12px;margin-top:10px;line-height:1.6;font-style:italic';
-    iosAfter.innerHTML = 'Once added, <b style="color:#fff">close this page</b> and open the <b style="color:#D4AF37">IL CILIEGIO</b> icon from your Home Screen.';
+    iosAfter.innerHTML = IP.iosAfter;
     popup.appendChild(iosAfter);
   }
 
@@ -423,6 +450,185 @@ const US_CA_BLOCK = []; // IDs 24,25 now available everywhere
 const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
   zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
 
+/* ── i18n ──────────────────────────────────────────────────── */
+function detectLang(){
+  const langs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language||'en'];
+  for(const l of langs){ if(/^it/i.test(l)) return 'it'; }
+  return 'en';
+}
+const CAT_LABEL = {
+  en:{ALL:'ALL',WINE:'WINE',SPARKLING:'SPARKLING',DISTILLATES:'DISTILLATES','EVO OIL':'EVO OIL',FLOURS:'FLOURS',CEREALS:'CEREALS',LEGUMES:'LEGUMES',SWEETS:'SWEETS'},
+  it:{ALL:'TUTTI',WINE:'VINI',SPARKLING:'SPUMANTI',DISTILLATES:'DISTILLATI','EVO OIL':'OLIO EVO',FLOURS:'FARINE',CEREALS:'CEREALI',LEGUMES:'LEGUMI',SWEETS:'DOLCI'},
+};
+const I18N = {
+  en:{
+    splash:{
+      tagline:'Only on the IL CILIEGIO app, you get:',
+      offer1a:'5% off your order when you buy at least 12 items,',
+      offer1b:"even if they're all different",
+      or:'or',
+      offer2a:'a free bottle of the exclusive',
+      offer2b:'Chianti DOCG GRAN FONDO!',
+      limitedEdition:'LIMITED EDITION',
+      loading:'Loading catalog…',
+    },
+    error:{title:'Configuration Error',msg:'Unable to load data. Check the URLs in window.CFG.'},
+    header:{home:'⌂ Home'},
+    caWarn:{title:'Shipping Restriction',msg:'Please note that you cannot ship alcohol to your destination province or region!',btn:'I Understand'},
+    dutyPopup:{title:'Important Notice',cancel:'Cancel',confirm:'I Understand — Send Order'},
+    form:{
+      title:'Customer Registration', required:'all fields are required',
+      nationality:'Nationality', nationalityPh:'Start typing country name…', noCountry:'No country found…',
+      zip:'ZIP Code', zipHint:'(auto-fills city & region on blur)', zipPh:'Enter ZIP…', zipPhDisabled:'Select nationality first',
+      firstName:'First Name', lastName:'Last Name',
+      address:'Full Address', addressPh:'Street, number…',
+      city:'City',
+      province:'Province / County', state:'State / Region',
+      mobile:'Mobile Number', mobilePh:'+1 234 567 8900',
+      email:'Email Address', emailUserPh:'username', emailDomainPh:'provider.com',
+      emailFormatErr:'⚠️ Use format: gmail.com or provider.it',
+      continue:'Continue to Summary',
+    },
+    summary:{
+      title:'Data Summary', privacy:'Privacy',
+      customer:'Customer', nationality:'Nationality', email:'Email', phone:'Phone', address:'Address',
+      edit:'Edit', confirm:'Confirm & Go to Catalog',
+      disclaimer:'By continuing to submit your data, you are deemed to have accepted all the privacy terms set forth in the policy available on this page.',
+    },
+    cookie:{
+      main:'We only use Google Analytics with your consent, to understand how the app is used. You can accept or decline at any time —',
+      readPrivacy:'read the privacy notice',
+      secondary:'Usiamo Google Analytics solo con il tuo consenso. Puoi accettare o rifiutare in qualsiasi momento.',
+      decline:'Decline', accept:'Accept',
+    },
+    privacy:{title:'Privacy Policy', loading:'Loading privacy policy…'},
+    product:{outOfStock:'Out of Stock', notAvailable:'Not Available', add:'+ Add'},
+    cart:{
+      noRateWarnTitle:'⚠️ We are not sure we can ship to your country.',
+      noRateWarnMsg:'Please complete your order anyway. We will contact you via email as soon as possible with a shipping quote.',
+      ship:'Ship:', empty:'Cart is empty',
+      products:(n)=>`Products (${n}):`, discount:'Discount (5%):', duties:'Duties 10%:',
+      shipping:'Shipping:', freeShip:'🎉 Free over €100',
+      noRate:'⚠️ No shipping rate for this country — you will be contacted via email.',
+      total:'TOTAL:', placeOrder:'🛍️ Place your order',
+      addMoreItems:(h)=>`ℹ️ Add ${h} more item${h!==1?'s':''} — shipping cost stays the same!`,
+      pieces:(lo,hi)=>`(${lo}–${hi} pieces)`,
+      deliveryDays:(n)=>`Delivery within ${n} working days`,
+    },
+    catalog:{
+      cartTitle:'🛒 Cart', reset:'✕ Reset',
+      maxItems:(n)=>`⚠️ Maximum ${n} items per order for this destination.`,
+      caMix:'🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.',
+      caBlocked:(province)=>`🚫 Wine/Sparkling cannot be shipped to ${province}.`,
+      orderPopup:{
+        thanks:'Thank you for choosing', brand:'IL CILIEGIO!',
+        completed:'Your order has been completed.',
+        choosePayment:'Please proceed to the payment of your order using one of the options below:',
+        sendWA:'📲 Send Order via WhatsApp', payCard:'💳 Pay by Card', payPaypal:'🅿️ PayPal (+5% comm.)',
+        goBack:'← Go Back',
+      },
+      dutyWarn:{goBack:'← Go Back', understand:'I understand →'},
+    },
+    duty:{
+      genericUnknown:"Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.",
+      gb:'Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 40% of the total value.',
+      ch:'Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 5% of the total value + VAT 7.7%.',
+      no:'Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around €1 per bottle + VAT 15%.',
+    },
+    gift:{
+      title:'🎁 Special Gift!',
+      line1:'Would you like to receive a', freeBottle:'FREE BOTTLE', of:'of',
+      wineName:'Chianti Gran Fondo "Strade Bianche"',
+      limitedEdition:'LIMITED EDITION', withOrder:'2025 with your order?',
+      everyN:'Every 11 items, one free bottle will be added automatically.',
+      no:'No thanks', yes:'Yes, please! 🎉',
+    },
+  },
+  it:{
+    splash:{
+      tagline:"Solo sull'app IL CILIEGIO ricevi:",
+      offer1a:"il 5% di sconto sul tuo ordine quando acquisti almeno 12 pezzi,",
+      offer1b:'anche se sono tutti diversi tra loro',
+      or:'oppure',
+      offer2a:"una bottiglia in regalo dell'esclusivo",
+      offer2b:'Chianti DOCG GRAN FONDO!',
+      limitedEdition:'EDIZIONE LIMITATA',
+      loading:'Caricamento catalogo…',
+    },
+    error:{title:'Errore di configurazione',msg:"Impossibile caricare i dati. Controlla gli URL in window.CFG."},
+    header:{home:'⌂ Home'},
+    caWarn:{title:'Restrizione di spedizione',msg:'Attenzione: non è possibile spedire alcolici nella tua provincia o regione di destinazione!',btn:'Ho capito'},
+    dutyPopup:{title:'Avviso importante',cancel:'Annulla',confirm:"Ho capito — Invia l'ordine"},
+    form:{
+      title:'Registrazione cliente', required:'tutti i campi sono obbligatori',
+      nationality:'Nazionalità', nationalityPh:'Inizia a digitare il nome del paese…', noCountry:'Nessun paese trovato…',
+      zip:'Codice postale', zipHint:'(compila automaticamente città e regione)', zipPh:'Inserisci il CAP…', zipPhDisabled:'Seleziona prima la nazionalità',
+      firstName:'Nome', lastName:'Cognome',
+      address:'Indirizzo completo', addressPh:'Via, numero…',
+      city:'Città',
+      province:'Provincia / Contea', state:'Stato / Regione',
+      mobile:'Numero di cellulare', mobilePh:'+39 333 1234567',
+      email:'Indirizzo email', emailUserPh:'nomeutente', emailDomainPh:'provider.it',
+      emailFormatErr:'⚠️ Usa il formato: gmail.com o provider.it',
+      continue:'Continua al riepilogo',
+    },
+    summary:{
+      title:'Riepilogo dati', privacy:'Privacy',
+      customer:'Cliente', nationality:'Nazionalità', email:'Email', phone:'Telefono', address:'Indirizzo',
+      edit:'Modifica', confirm:'Conferma e vai al catalogo',
+      disclaimer:"Continuando a inviare i tuoi dati, accetti tutti i termini sulla privacy indicati nell'informativa disponibile in questa pagina.",
+    },
+    cookie:{
+      main:'Usiamo Google Analytics solo con il tuo consenso, per capire come viene usata l’app. Puoi accettare o rifiutare in qualsiasi momento —',
+      readPrivacy:"leggi l'informativa",
+      secondary:'We only use Google Analytics with your consent. You can accept or decline at any time.',
+      decline:'Rifiuta', accept:'Accetta',
+    },
+    privacy:{title:'Informativa Privacy', loading:"Caricamento informativa privacy…"},
+    product:{outOfStock:'Esaurito', notAvailable:'Non disponibile', add:'+ Aggiungi'},
+    cart:{
+      noRateWarnTitle:'⚠️ Non siamo sicuri di poter spedire nel tuo paese.',
+      noRateWarnMsg:"Completa comunque il tuo ordine. Ti contatteremo via email il prima possibile con un preventivo di spedizione.",
+      ship:'Spedizione:', empty:'Il carrello è vuoto',
+      products:(n)=>`Prodotti (${n}):`, discount:'Sconto (5%):', duties:'Dazi 10%:',
+      shipping:'Spedizione:', freeShip:'🎉 Gratis sopra €100',
+      noRate:'⚠️ Nessuna tariffa di spedizione per questo paese — sarai contattato via email.',
+      total:'TOTALE:', placeOrder:'🛍️ Effettua il tuo ordine',
+      addMoreItems:(h)=>`ℹ️ Aggiungi altr${h!==1?'i':'o'} ${h} pezz${h!==1?'i':'o'} — il costo di spedizione resta lo stesso!`,
+      pieces:(lo,hi)=>`(${lo}–${hi} pezzi)`,
+      deliveryDays:(n)=>`Consegna in ${n} giorni lavorativi`,
+    },
+    catalog:{
+      cartTitle:'🛒 Carrello', reset:'✕ Reset',
+      maxItems:(n)=>`⚠️ Massimo ${n} pezzi per ordine per questa destinazione.`,
+      caMix:'🍷 In Canada, vino/spumante non può essere spedito con altri prodotti. Effettua un ordine separato.',
+      caBlocked:(province)=>`🚫 Vino/Spumante non può essere spedito a ${province}.`,
+      orderPopup:{
+        thanks:'Grazie per aver scelto', brand:'IL CILIEGIO!',
+        completed:'Il tuo ordine è stato completato.',
+        choosePayment:"Procedi al pagamento del tuo ordine usando una delle opzioni qui sotto:",
+        sendWA:"📲 Invia l'ordine via WhatsApp", payCard:'💳 Paga con carta', payPaypal:'🅿️ PayPal (+5% comm.)',
+        goBack:'← Torna indietro',
+      },
+      dutyWarn:{goBack:'← Torna indietro', understand:'Ho capito →'},
+    },
+    duty:{
+      genericUnknown:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — siamo spiacenti, non sappiamo indicare in anticipo l'importo.",
+      gb:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — il costo sarà di circa il 40% del valore totale.",
+      ch:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — il costo sarà di circa il 5% del valore totale + IVA 7,7%.",
+      no:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — il costo sarà di circa €1 a bottiglia + IVA 15%.",
+    },
+    gift:{
+      title:'🎁 Regalo speciale!',
+      line1:'Vuoi ricevere una', freeBottle:'BOTTIGLIA IN REGALO', of:'di',
+      wineName:'Chianti Gran Fondo "Strade Bianche"',
+      limitedEdition:'EDIZIONE LIMITATA', withOrder:'2025 con il tuo ordine?',
+      everyN:'Ogni 11 pezzi, una bottiglia in regalo verrà aggiunta automaticamente.',
+      no:'No grazie', yes:'Sì, grazie! 🎉',
+    },
+  },
+};
+
 /* ── Helpers ───────────────────────────────────────────────── */
 function shipRate(obj,qty){
   if(!obj) return 0;
@@ -438,6 +644,12 @@ function dLabel(key,speed,rateObj){
   if(speed==='EXPRESS'||key.includes('EXPRESS')) return 'Delivery within 9 working days';
   return 'Delivery within 20 working days';
 }
+// dLabel/shipping.json always return English ("Delivery within N working days") — reformat for display only
+function deliveryLabel(label,lang){
+  if(!label||lang==='en') return label;
+  const m=label.match(/(\d+)/);
+  return m?I18N.it.cart.deliveryDays(m[1]):label;
+}
 function rateKey(code,speed,wine){
   if(code==='US'){
     if(wine) return speed==='EXPRESS'?'USA_WINE_EXPRESS':'USA_WINE_STANDARD';
@@ -449,11 +661,12 @@ function rateKey(code,speed,wine){
 function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 
 // Restituisce la label dello scaglione applicato — es. "(4–6 pieces)"
-function tierLabel(qty){
+function tierLabel(qty,lang){
+  const pieces = I18N[lang||'en'].cart.pieces;
   if(qty<=0) return '';
   const steps=[[1,3],[4,6],[7,12],[13,18],[19,24],[25,30],[31,36],[37,42],[43,48],[49,54],[55,60]];
-  for(const [lo,hi] of steps) if(qty>=lo&&qty<=hi) return `(${lo}–${hi} pieces)`;
-  return '(55–60 pieces)';
+  for(const [lo,hi] of steps) if(qty>=lo&&qty<=hi) return pieces(lo,hi);
+  return pieces(55,60);
 }
 // Quanti items interi si possono aggiungere prima che lo scaglione spedizione cambi
 function shippingTierHint(shipQty){
@@ -465,6 +678,8 @@ function shippingTierHint(shipQty){
 
 /* ── App ───────────────────────────────────────────────────── */
 function App(){
+  const [lang]             = useState(detectLang);
+  const L = I18N[lang];
   const [step,setStep]    = useState(1);
   const [speed,setSpeed]  = useState('STANDARD');
   const [cart,setCart]    = useState([]);
@@ -479,7 +694,7 @@ function App(){
   const [showLogin,setShowLogin]   = useState(false); // null=not asked, true=yes, false=no
   const [showGiftPopup,setShowGiftPopup] = useState(false);
   const [showPrivacy,setShowPrivacy]     = useState(false);
-  const [privacyText,setPrivacyText]     = useState('');
+  const [privacyJson,setPrivacyJson]     = useState(null);
   const [showCAWarn,setShowCAWarn]       = useState(false);
   const [dutyReminder,setDutyReminder]   = useState(null); // null or message string
   const [cookieConsent,setCookieConsent] = useState(()=>localStorage.getItem('ciliegio_cookie_consent'));
@@ -505,8 +720,8 @@ function App(){
       fetch(window.CFG.products).then(r=>{if(!r.ok)throw 0;return r.json();}),
       fetch(window.CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
       fetch(window.CFG.privacy).then(r=>r.ok?r.json():null).catch(()=>null),
-    ]).then(([p,s,prv])=>{setProds(p.sort((a,b)=>(a.sort||999)-(b.sort||999)));setShip(s);if(prv&&prv.text)setPrivacyText(prv.text);setLoad(false);})
-      .catch(()=>{setErr('Unable to load data. Check the URLs in window.CFG.');setLoad(false);});
+    ]).then(([p,s,prv])=>{setProds(p.sort((a,b)=>(a.sort||999)-(b.sort||999)));setShip(s);if(prv)setPrivacyJson(prv);setLoad(false);})
+      .catch(()=>{setErr(L.error.msg);setLoad(false);});
     return ()=>clearTimeout(splashTimer);
   },[]);
 
@@ -527,17 +742,17 @@ function App(){
   const effectiveSc   = italyFree ? 0 : sc;
   const duty          = form.natCode==='US'?discounted*0.1:0;
   const total         = discounted + effectiveSc + duty;
-  const dl    = dLabel(aKey,speed,aRate);
+  const dl    = deliveryLabel(dLabel(aKey,speed,aRate),lang);
   const spSel = ['US','CA'].includes(form.natCode);
   const totals= {qty,shipQty,prod,discount,ship:effectiveSc,duty,final:total};
 
   const getDutyReminder=(code,hasWine)=>{
-    const msg1 = "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
+    const msg1 = L.duty.genericUnknown;
     if(code==='US' && !hasWine) return msg1;
     if(code==='CA') return msg1;
-    if(code==='GB') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 40% of the total value.";
-    if(code==='CH') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 5% of the total value + VAT 7.7%.";
-    if(code==='NO') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around €1 per bottle + VAT 15%.";
+    if(code==='GB') return L.duty.gb;
+    if(code==='CH') return L.duty.ch;
+    if(code==='NO') return L.duty.no;
     // All other non-EU extra countries
     const EU_AND_ITALY = ['IT','DE','BE','NL','LU','FR','DK','AT','ES','SE','PT','IE','SI','FI','HR','GR','CY','MT','PL','CZ','SK','HU','BG','EE','LV','LT','RO'];
     if(!EU_AND_ITALY.includes(code) && code!=='US') return msg1;
@@ -649,16 +864,16 @@ function App(){
   if(loading||!splashReady) return(
     <div className="min-h-screen bg-black flex flex-col items-center justify-center" style={{padding:'40px 32px',textAlign:'center'}}>
       <img src="https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/ciliegio_trasparente.png" alt="Il Ciliegio" style={{height:'100px',objectFit:'contain',marginBottom:'36px'}}/>
-      <p style={{color:'#D4AF37',fontSize:'16px',fontWeight:'bold',letterSpacing:'0.04em',lineHeight:'1.8',marginBottom:'22px'}}>Only on the IL CILIEGIO app, you get:</p>
-      <p style={{color:'#fff',fontSize:'14px',lineHeight:'1.85',marginBottom:'18px'}}>5% off your order when you buy at least 12 items,<br/>even if they're all different</p>
-      <p style={{color:'#666',fontSize:'13px',marginBottom:'18px'}}>or</p>
-      <p style={{color:'#fff',fontSize:'14px',lineHeight:'1.85'}}>a free bottle of the exclusive <span style={{color:'#D4AF37',fontWeight:'bold'}}>LIMITED EDITION</span><br/>Chianti DOCG GRAN FONDO!</p>
-      {loading&&<p style={{color:'#D4AF37',fontSize:'11px',marginTop:'48px',opacity:0.45,textTransform:'uppercase',letterSpacing:'0.12em'}}>Loading catalog…</p>}
+      <p style={{color:'#D4AF37',fontSize:'16px',fontWeight:'bold',letterSpacing:'0.04em',lineHeight:'1.8',marginBottom:'22px'}}>{L.splash.tagline}</p>
+      <p style={{color:'#fff',fontSize:'14px',lineHeight:'1.85',marginBottom:'18px'}}>{L.splash.offer1a}<br/>{L.splash.offer1b}</p>
+      <p style={{color:'#666',fontSize:'13px',marginBottom:'18px'}}>{L.splash.or}</p>
+      <p style={{color:'#fff',fontSize:'14px',lineHeight:'1.85'}}>{L.splash.offer2a} <span style={{color:'#D4AF37',fontWeight:'bold'}}>{L.splash.limitedEdition}</span><br/>{L.splash.offer2b}</p>
+      {loading&&<p style={{color:'#D4AF37',fontSize:'11px',marginTop:'48px',opacity:0.45,textTransform:'uppercase',letterSpacing:'0.12em'}}>{L.splash.loading}</p>}
     </div>);
   if(err) return(
     <div className="min-h-screen bg-black flex items-center justify-center p-8">
       <div className="text-center"><div className="text-4xl mb-4">⚠️</div>
-      <p className="gold-text text-lg mb-2">Configuration Error</p>
+      <p className="gold-text text-lg mb-2">{L.error.title}</p>
       <p className="text-gray-400 text-sm">{err}</p></div>
     </div>);
 
@@ -675,7 +890,7 @@ function App(){
           </span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
-            ⌂ Home
+            {L.header.home}
           </button>
           <img id="logo-img" src="https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/ciliegio_trasparente.png" alt="Il Ciliegio" className="h-16 object-contain"
             onLoad={()=>{const t=document.getElementById('logo-txt');if(t)t.style.display='none';}}
@@ -683,15 +898,15 @@ function App(){
           <h1 id="logo-txt" className="text-2xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
         </div>
 
-        {showPrivacy && <PrivacyPopup text={privacyText} onClose={()=>setShowPrivacy(false)}/>}
+        {showPrivacy && <PrivacyPopup text={privacyJson?privacyJson[lang]:''} lang={lang} onClose={()=>setShowPrivacy(false)}/>}
         {showLogin && <LoginPopup onClose={()=>setShowLogin(false)} onLogin={()=>{setIsVendita(true);setShowLogin(false);}}/>}
         {showCAWarn && (
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
             <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'360px',width:'100%',padding:'28px',textAlign:'center'}}>
               <div style={{fontSize:'3rem',marginBottom:'12px'}}>🚫</div>
-              <h2 className="gold-text font-bold uppercase mb-4" style={{fontSize:'15px',letterSpacing:'0.05em'}}>Shipping Restriction</h2>
+              <h2 className="gold-text font-bold uppercase mb-4" style={{fontSize:'15px',letterSpacing:'0.05em'}}>{L.caWarn.title}</h2>
               <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.7'}}>
-                Please note that you cannot ship alcohol to your destination province or region!
+                {L.caWarn.msg}
               </p>
               <button onClick={()=>{setShowCAWarn(false);setTimeout(()=>{
               if(typeof gtag!=='undefined') gtag('event','step_catalog',{event_category:'funnel'});
@@ -699,17 +914,17 @@ function App(){
             },50);}}
                 className="w-full p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
                 style={{fontSize:'14px',letterSpacing:'0.05em'}}>
-                I Understand
+                {L.caWarn.btn}
               </button>
             </div>
           </div>
         )}
-        {dutyReminder && <DutyReminderPopup msg={dutyReminder} onConfirm={()=>{setDutyReminder(null);sendWA();}} onClose={()=>setDutyReminder(null)}/>}
-        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} onNext={()=>{
+        {dutyReminder && <DutyReminderPopup msg={dutyReminder} lang={lang} onConfirm={()=>{setDutyReminder(null);sendWA();}} onClose={()=>setDutyReminder(null)}/>}
+        {step===1 && <FormStep form={form} setForm={setForm} natTxt={natTxt} setNat={setNat} lang={lang} onNext={()=>{
               if(typeof gtag!=='undefined') gtag('event','step_registration',{event_category:'funnel',event_label:'Completed registration',nationality:form.natCode});
               setStep(2);
             }}/>}
-        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onPrivacy={()=>setShowPrivacy(true)}
+        {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onPrivacy={()=>setShowPrivacy(true)} lang={lang}
           cookieConsent={cookieConsent}
           onCookieAccept={()=>{localStorage.setItem('ciliegio_cookie_consent','accepted');if(window.enableAnalytics)window.enableAnalytics();setCookieConsent('accepted');}}
           onCookieReject={()=>{localStorage.setItem('ciliegio_cookie_consent','rejected');setCookieConsent('rejected');}}
@@ -729,7 +944,7 @@ function App(){
               setStep(3);
             }
           }}/>}
-        {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart}
+        {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart} lang={lang}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
           totals={totals} onSend={handleSendOrder} onDirectSend={sendWA} onEmail={sendEmail} onSMS={sendSMS} onStripe={goToStripe} getMailtoUrl={getMailtoUrl} isVendita={isVendita} natCode={form.natCode} province={form.province} state={form.state}
@@ -742,7 +957,8 @@ function App(){
 }
 
 /* ── FormStep ──────────────────────────────────────────────── */
-function FormStep({form,setForm,natTxt,setNat,onNext}){
+function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
+  const L = I18N[lang];
   const [showNat,setShowNat] = useState(false);
   const [domErr,setDomErr]   = useState(false);
   const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
@@ -776,16 +992,16 @@ function FormStep({form,setForm,natTxt,setNat,onNext}){
   return(
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
       <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between border-b border-[#D4AF37] pb-2 mb-5 gap-1">
-        <h2 className="text-xl gold-text">Customer Registration</h2>
-        <span className="text-xs gold-text opacity-70 italic">all fields are required</span>
+        <h2 className="text-xl gold-text">{L.form.title}</h2>
+        <span className="text-xs gold-text opacity-70 italic">{L.form.required}</span>
       </div>
       <div className="space-y-4">
 
         {/* Nationality */}
         <div className="relative">
-          <label className="block text-xs text-gray-400 mb-1">Nationality</label>
+          <label className="block text-xs text-gray-400 mb-1">{L.form.nationality}</label>
           <input className="w-full p-3 rounded uppercase" type="text"
-            placeholder="Start typing country name…" value={natTxt}
+            placeholder={L.form.nationalityPh} value={natTxt}
             onFocus={()=>setShowNat(true)}
             onChange={e=>{
               const v=e.target.value.toUpperCase(); setNat(v);
@@ -796,17 +1012,17 @@ function FormStep({form,setForm,natTxt,setNat,onNext}){
               {nations.length>0?nations.map(c=>(
                 <div key={c.code} className="p-3 hover:bg-[#333] cursor-pointer flex items-center gap-2 uppercase text-sm"
                   onClick={()=>pickCountry(c)}>{c.flag} {c.name} ({c.code})</div>
-              )):<div className="p-3 text-gray-500 text-sm">No country found…</div>}
+              )):<div className="p-3 text-gray-500 text-sm">{L.form.noCountry}</div>}
             </div>)}
         </div>
 
         {/* ZIP — auto-fills city/province/state on blur */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1">ZIP Code
-            <span className="ml-2 text-gray-600 italic text-xs">(auto-fills city & region on blur)</span>
+          <label className="block text-xs text-gray-400 mb-1">{L.form.zip}
+            <span className="ml-2 text-gray-600 italic text-xs">{L.form.zipHint}</span>
           </label>
           <input className="w-full p-3 rounded uppercase" type="text"
-            placeholder={form.natCode?"Enter ZIP…":"Select nationality first"}
+            placeholder={form.natCode?L.form.zipPh:L.form.zipPhDisabled}
             value={form.zip}
             onChange={e=>setForm(f=>({...f,zip:e.target.value.toUpperCase()}))}
             onBlur={onZipBlur}/>
@@ -814,86 +1030,87 @@ function FormStep({form,setForm,natTxt,setNat,onNext}){
 
         {/* Name / Surname */}
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="block text-xs text-gray-400 mb-1">First Name</label>
+          <div><label className="block text-xs text-gray-400 mb-1">{L.form.firstName}</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.name}
               onChange={e=>setForm(f=>({...f,name:e.target.value.toUpperCase()}))}/>
           </div>
-          <div><label className="block text-xs text-gray-400 mb-1">Last Name</label>
+          <div><label className="block text-xs text-gray-400 mb-1">{L.form.lastName}</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.surname}
               onChange={e=>setForm(f=>({...f,surname:e.target.value.toUpperCase()}))}/>
           </div>
         </div>
 
         {/* Address */}
-        <div><label className="block text-xs text-gray-400 mb-1">Full Address</label>
-          <input className="w-full p-3 rounded uppercase" type="text" placeholder="Street, number…"
+        <div><label className="block text-xs text-gray-400 mb-1">{L.form.address}</label>
+          <input className="w-full p-3 rounded uppercase" type="text" placeholder={L.form.addressPh}
             value={form.address} onChange={e=>setForm(f=>({...f,address:e.target.value.toUpperCase()}))}/>
         </div>
 
         {/* City */}
-        <div><label className="block text-xs text-gray-400 mb-1">City</label>
+        <div><label className="block text-xs text-gray-400 mb-1">{L.form.city}</label>
           <input className="w-full p-3 rounded uppercase" type="text"
             value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value.toUpperCase()}))}/>
         </div>
 
         {/* Province / State */}
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="block text-xs text-gray-400 mb-1">Province / County</label>
+          <div><label className="block text-xs text-gray-400 mb-1">{L.form.province}</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.province}
               onChange={e=>setForm(f=>({...f,province:e.target.value.toUpperCase()}))}/>
           </div>
-          <div><label className="block text-xs text-gray-400 mb-1">State / Region</label>
+          <div><label className="block text-xs text-gray-400 mb-1">{L.form.state}</label>
             <input className="w-full p-3 rounded uppercase" type="text" value={form.state}
               onChange={e=>setForm(f=>({...f,state:e.target.value.toUpperCase()}))}/>
           </div>
         </div>
 
         {/* Mobile */}
-        <div><label className="block text-xs text-gray-400 mb-1">Mobile Number</label>
-          <input className="w-full p-3 rounded" type="text" placeholder="+1 234 567 8900"
+        <div><label className="block text-xs text-gray-400 mb-1">{L.form.mobile}</label>
+          <input className="w-full p-3 rounded" type="text" placeholder={L.form.mobilePh}
             value={form.mobile} onChange={e=>setForm(f=>({...f,mobile:e.target.value.replace(/[^\d+\s]/g,'')}))}/>
         </div>
 
         {/* Email */}
-        <div><label className="block text-xs text-gray-400 mb-1">Email Address</label>
+        <div><label className="block text-xs text-gray-400 mb-1">{L.form.email}</label>
           <div className="flex w-full items-center gap-2">
             <input type="text" className="min-w-0 flex-1 p-3 rounded text-right lowercase"
-              placeholder="username" value={form.emailUser}
+              placeholder={L.form.emailUserPh} value={form.emailUser}
               onChange={e=>setForm(f=>({...f,emailUser:e.target.value.replace(/\s/g,'').toLowerCase()}))}/>
             <span className="gold-text font-bold text-xl shrink-0">@</span>
             <input type="text" className={`min-w-0 flex-1 p-3 rounded lowercase${domErr?' err-field':''}`}
-              placeholder="provider.com" value={form.emailDomain}
+              placeholder={L.form.emailDomainPh} value={form.emailDomain}
               onChange={e=>{setDomErr(false);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
               onBlur={e=>{const v=e.target.value.trim();setDomErr(v!==''&&!validDomain(v));}}/>
           </div>
-          {domErr&&<p className="text-xs text-red-400 mt-1">⚠️ Use format: gmail.com or provider.it</p>}
+          {domErr&&<p className="text-xs text-red-400 mt-1">{L.form.emailFormatErr}</p>}
         </div>
       </div>
 
       <button onClick={onNext} disabled={!ok}
         className={`w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all
           ${ok?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-        Continue to Summary
+        {L.form.continue}
       </button>
     </div>
   );
 }
 
 /* ── SummaryStep ───────────────────────────────────────────── */
-function SummaryStep({form,onEdit,onConfirm,onPrivacy,cookieConsent,onCookieAccept,onCookieReject}){
+function SummaryStep({form,onEdit,onConfirm,onPrivacy,cookieConsent,onCookieAccept,onCookieReject,lang}){
+  const L = I18N[lang];
   const cookieDecided = !!cookieConsent;
   return(
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
       <div className="relative flex items-center justify-center border-b border-[#D4AF37] pb-2 mb-5">
-        <h2 className="text-xl gold-text">Data Summary</h2>
-        <button onClick={onPrivacy} className="absolute right-0 px-3 py-1 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">Privacy</button>
+        <h2 className="text-xl gold-text">{L.summary.title}</h2>
+        <button onClick={onPrivacy} className="absolute right-0 px-3 py-1 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">{L.summary.privacy}</button>
       </div>
       <div className="space-y-3 text-sm">
-        {[['Customer',`${form.name} ${form.surname}`],
-          ['Nationality',form.nationality],
-          ['Email',`${form.emailUser}@${form.emailDomain}`],
-          ['Phone',form.mobile],
-          ['Address',<>{form.address}<br/>{form.zip} {form.city}<br/>{form.state}{form.province&&form.province!==form.state?' ('+form.province+')':''}</>],
+        {[[L.summary.customer,`${form.name} ${form.surname}`],
+          [L.summary.nationality,form.nationality],
+          [L.summary.email,`${form.emailUser}@${form.emailDomain}`],
+          [L.summary.phone,form.mobile],
+          [L.summary.address,<>{form.address}<br/>{form.zip} {form.city}<br/>{form.state}{form.province&&form.province!==form.state?' ('+form.province+')':''}</>],
         ].map(([l,v],i)=>(
           <div key={i} className="flex justify-between border-b border-gray-800 pb-2">
             <span className="text-gray-400">{l}:</span>
@@ -901,24 +1118,25 @@ function SummaryStep({form,onEdit,onConfirm,onPrivacy,cookieConsent,onCookieAcce
           </div>))}
       </div>
       <div className="flex gap-4 mt-8">
-        <button onClick={onEdit} className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">Edit</button>
+        <button onClick={onEdit} className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">{L.summary.edit}</button>
         <button onClick={onConfirm} disabled={!cookieDecided}
           className={`flex-1 p-4 rounded uppercase font-bold text-xs tracking-widest transition-all
             ${cookieDecided?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-          Confirm &amp; Go to Catalog
+          {L.summary.confirm}
         </button>
       </div>
       <p className="text-gray-500 text-center mt-4" style={{fontSize:'11px',lineHeight:'1.5'}}>
-        By continuing to submit your data, you are deemed to have accepted all the privacy terms set forth in the policy available on this page.
+        {L.summary.disclaimer}
       </p>
 
-      {!cookieDecided && <CookieConsentBlock onAccept={onCookieAccept} onReject={onCookieReject} onPrivacy={onPrivacy}/>}
+      {!cookieDecided && <CookieConsentBlock onAccept={onCookieAccept} onReject={onCookieReject} onPrivacy={onPrivacy} lang={lang}/>}
     </div>
   );
 }
 
 /* ── ProductCard ───────────────────────────────────────────── */
-function ProductCard({p,onAdd,blocked}){
+function ProductCard({p,onAdd,blocked,lang}){
+  const L = I18N[lang];
   const [imgErr,setImgErr]=useState(false);
   const src=p.img?window.CFG.imgBase+p.img:null;
   const unavail = p.available===false;
@@ -931,20 +1149,21 @@ function ProductCard({p,onAdd,blocked}){
       <p className="font-bold leading-tight text-gray-200" style={{fontSize:'10px',lineHeight:'1.2'}}>{p.name}</p>
       <p className="gold-text font-bold" style={{fontSize:'11px'}}>€{p.price.toFixed(2)}</p>
       {unavail
-        ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>Out of Stock</div>
+        ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>{L.product.outOfStock}</div>
         :blocked
-          ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>Not Available</div>
+          ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>{L.product.notAvailable}</div>
           :<button onClick={()=>onAdd(p)}
             className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition"
             style={{fontSize:'10px',padding:'3px 0'}}>
-            + Add
+            {L.product.add}
           </button>}
     </div>
   );
 }
 
 /* ── CartPanel ─────────────────────────────────────────────── */
-function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDirectSend,onEmail,onSMS,onStripe,onPlaceOrder,speed,setSpeed,spSel,noRate,natCode}){
+function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDirectSend,onEmail,onSMS,onStripe,onPlaceOrder,speed,setSpeed,spSel,noRate,natCode,lang}){
+  const L = I18N[lang];
   const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',gap:'4px',overflow:'hidden'}}>
@@ -952,15 +1171,15 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
       {/* Avviso paese non coperto */}
       {noRate&&(
         <div className="bg-yellow-950 border border-yellow-700 rounded p-2 shrink-0">
-          <p className="text-yellow-300 font-bold" style={{fontSize:'10px'}}>⚠️ We are not sure we can ship to your country.</p>
-          <p className="text-yellow-500 mt-1" style={{fontSize:'9px'}}>Please complete your order anyway. We will contact you via email as soon as possible with a shipping quote.</p>
+          <p className="text-yellow-300 font-bold" style={{fontSize:'10px'}}>{L.cart.noRateWarnTitle}</p>
+          <p className="text-yellow-500 mt-1" style={{fontSize:'9px'}}>{L.cart.noRateWarnMsg}</p>
         </div>)}
 
       {/* Speed selector — tutto su un rigo compatto */}
       {spSel&&(
         <div className="border border-gray-700 rounded px-2 py-1 shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-gray-500 uppercase shrink-0" style={{fontSize:'9px',letterSpacing:'0.05em'}}>Ship:</span>
+            <span className="text-gray-500 uppercase shrink-0" style={{fontSize:'9px',letterSpacing:'0.05em'}}>{L.cart.ship}</span>
             {['STANDARD','EXPRESS'].map(o=>(
               <button key={o} onClick={()=>setSpeed(o)}
                 className={`px-2 rounded border font-bold uppercase transition shrink-0
@@ -980,7 +1199,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
 
       <div className="cart-inner"><div className="space-y-1">
         {cart.length===0
-          ?<p className="text-gray-500 italic text-center py-4" style={{fontSize:'12px'}}>Cart is empty</p>
+          ?<p className="text-gray-500 italic text-center py-4" style={{fontSize:'12px'}}>{L.cart.empty}</p>
           :cart.map(c=>(
             <div key={c.id} className="flex items-center bg-black rounded px-2 py-1 gap-2">
               <div className="flex-1 min-w-0">
@@ -999,23 +1218,23 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
       {/* Totals — always visible, pinned above Send button */}
       <div className="cart-send">
       <div className="border-t border-gray-800 pt-2" style={{fontSize:'11px'}}>
-        <div className="flex justify-between text-gray-400"><span>Products ({totals.qty}):</span><span>€{totals.prod.toFixed(2)}</span></div>
-        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>Discount (5%):</span><span>-€{totals.discount.toFixed(2)}</span></div>}
-        {hasDuty&&<div className="flex justify-between text-gray-400"><span>Duties 10%:</span><span>€{totals.duty.toFixed(2)}</span></div>}
+        <div className="flex justify-between text-gray-400"><span>{L.cart.products(totals.qty)}</span><span>€{totals.prod.toFixed(2)}</span></div>
+        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>{L.cart.discount}</span><span>-€{totals.discount.toFixed(2)}</span></div>}
+        {hasDuty&&<div className="flex justify-between text-gray-400"><span>{L.cart.duties}</span><span>€{totals.duty.toFixed(2)}</span></div>}
         {italyFreeShip
-          ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>Shipping:</span><span>🎉 Free over €100</span></div>
-          :<div className="flex justify-between text-gray-400"><span>Shipping:</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.shipQty)}</span>€{totals.ship.toFixed(2)}</span></div>}
-        {!italyFreeShip&&aRate&&(()=>{const h=shippingTierHint(totals.shipQty);return h>0?<p className="text-right" style={{color:'#60a5fa',fontSize:'10px',marginTop:'2px'}}>ℹ️ Add {h} more item{h!==1?'s':''} — shipping cost stays the same!</p>:null;})()}
-        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>⚠️ No shipping rate for this country — you will be contacted via email.</p>}
+          ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>{L.cart.shipping}</span><span>{L.cart.freeShip}</span></div>
+          :<div className="flex justify-between text-gray-400"><span>{L.cart.shipping}</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.shipQty,lang)}</span>€{totals.ship.toFixed(2)}</span></div>}
+        {!italyFreeShip&&aRate&&(()=>{const h=shippingTierHint(totals.shipQty);return h>0?<p className="text-right" style={{color:'#60a5fa',fontSize:'10px',marginTop:'2px'}}>{L.cart.addMoreItems(h)}</p>:null;})()}
+        {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>{L.cart.noRate}</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
-          <span>TOTAL:</span><span>€{totals.final.toFixed(2)}</span>
+          <span>{L.cart.total}</span><span>€{totals.final.toFixed(2)}</span>
         </div>
       </div>
       <button onClick={onPlaceOrder} disabled={cart.length===0}
         className={`w-full rounded font-bold uppercase transition
           ${cart.length>0?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
         style={{fontSize:'12px',padding:'9px 0',letterSpacing:'0.05em'}}>
-        🛍️ Place your order
+        {L.cart.placeOrder}
       </button></div>
     </div>
   );
@@ -1025,23 +1244,24 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
 
 
 /* ── DutyReminderPopup ─────────────────────────────────────── */
-function DutyReminderPopup({msg,onConfirm,onClose}){
+function DutyReminderPopup({msg,onConfirm,onClose,lang}){
+  const L = I18N[lang];
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
       <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'400px',width:'100%',padding:'28px',textAlign:'center'}}>
         <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>⚠️</div>
-        <h2 className="gold-text font-bold uppercase tracking-widest mb-4" style={{fontSize:'14px'}}>Important Notice</h2>
+        <h2 className="gold-text font-bold uppercase tracking-widest mb-4" style={{fontSize:'14px'}}>{L.dutyPopup.title}</h2>
         <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.8'}}>{msg}</p>
         <div style={{display:'flex',gap:'12px'}}>
           <button onClick={onClose}
             className="flex-1 p-3 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black font-bold uppercase transition"
             style={{fontSize:'12px'}}>
-            Cancel
+            {L.dutyPopup.cancel}
           </button>
           <button onClick={onConfirm}
             className="flex-1 p-3 rounded bg-green-600 hover:bg-green-500 text-white font-bold uppercase transition"
             style={{fontSize:'12px'}}>
-            I Understand — Send Order
+            {L.dutyPopup.confirm}
           </button>
         </div>
       </div>
@@ -1050,26 +1270,27 @@ function DutyReminderPopup({msg,onConfirm,onClose}){
 }
 
 /* ── CookieConsentBlock ────────────────────────────────────── */
-function CookieConsentBlock({onAccept,onReject,onPrivacy}){
+function CookieConsentBlock({onAccept,onReject,onPrivacy,lang}){
+  const L = I18N[lang];
   return(
     <div style={{marginTop:'20px',padding:'14px',border:'1px solid #333',borderRadius:'8px',background:'#111'}}>
       <p style={{color:'#ddd',fontSize:'12px',lineHeight:'1.6',margin:'0 0 6px 0'}}>
-        We only use Google Analytics with your consent, to understand how the app is used. You can accept or decline at any time — <span style={{textDecoration:'underline',cursor:'pointer'}} onClick={onPrivacy}>read the privacy notice</span>.
+        {L.cookie.main} <span style={{textDecoration:'underline',cursor:'pointer'}} onClick={onPrivacy}>{L.cookie.readPrivacy}</span>.
       </p>
       <p style={{color:'#777',fontSize:'10px',lineHeight:'1.5',margin:'0 0 12px 0'}}>
-        Usiamo Google Analytics solo con il tuo consenso. Puoi accettare o rifiutare in qualsiasi momento.
+        {L.cookie.secondary}
       </p>
       <div style={{display:'flex',gap:'8px'}}>
-        <button onClick={onReject} className="flex-1 px-4 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">Decline</button>
-        <button onClick={onAccept} className="flex-1 px-4 py-2 rounded gold-bg font-bold uppercase text-xs tracking-widest hover:bg-yellow-600 transition">Accept</button>
+        <button onClick={onReject} className="flex-1 px-4 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">{L.cookie.decline}</button>
+        <button onClick={onAccept} className="flex-1 px-4 py-2 rounded gold-bg font-bold uppercase text-xs tracking-widest hover:bg-yellow-600 transition">{L.cookie.accept}</button>
       </div>
     </div>
   );
 }
 
 /* ── PrivacyPopup ──────────────────────────────────────────── */
-function PrivacyText({text}){
-  if(!text) return React.createElement('p',{className:'text-gray-500 italic'},'Loading privacy policy…');
+function PrivacyText({text,lang}){
+  if(!text) return React.createElement('p',{className:'text-gray-500 italic'},I18N[lang].privacy.loading);
   const NL = String.fromCharCode(10);
   const lines = text.split(NL);
   return React.createElement(React.Fragment, null,
@@ -1080,16 +1301,17 @@ function PrivacyText({text}){
   );
 }
 
-function PrivacyPopup({text,onClose}){
+function PrivacyPopup({text,onClose,lang}){
+  const L = I18N[lang];
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
       <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'500px',width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
         <div className="flex justify-between items-center p-4 border-b border-[#D4AF37]">
-          <h2 className="gold-text font-bold uppercase tracking-widest" style={{fontSize:'14px'}}>Privacy Policy</h2>
+          <h2 className="gold-text font-bold uppercase tracking-widest" style={{fontSize:'14px'}}>{L.privacy.title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black transition font-bold text-lg leading-none">✕</button>
         </div>
         <div className="overflow-y-auto p-4 text-gray-300" style={{fontSize:'12px',lineHeight:'1.7',flex:1}}>
-          <PrivacyText text={text}/>
+          <PrivacyText text={text} lang={lang}/>
         </div>
       </div>
     </div>
@@ -1097,32 +1319,33 @@ function PrivacyPopup({text,onClose}){
 }
 
 /* ── GiftPopup ─────────────────────────────────────────────── */
-function GiftPopup({products,onYes,onNo}){
+function GiftPopup({products,onYes,onNo,lang}){
+  const L = I18N[lang];
   const giftProd = products.find(p=>p.id===5);
   const imgSrc = giftProd ? window.CFG.imgBase + giftProd.img : null;
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
       <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'340px',width:'100%',padding:'24px',textAlign:'center'}}>
-        <div className="gold-text font-bold mb-3" style={{fontSize:'14px'}}>🎁 Special Gift!</div>
+        <div className="gold-text font-bold mb-3" style={{fontSize:'14px'}}>{L.gift.title}</div>
         <p className="text-white mb-2" style={{fontSize:'13px',lineHeight:'1.6'}}>
-          Would you like to receive a <span className="gold-text font-bold" style={{fontSize:'16px'}}>FREE BOTTLE</span> of<br/>
-          <span className="gold-text font-bold">Chianti Gran Fondo "Strade Bianche"</span><br/>
-          <span className="gold-text font-bold" style={{fontSize:'16px'}}>LIMITED EDITION</span> 2025 with your order?
+          {L.gift.line1} <span className="gold-text font-bold" style={{fontSize:'16px'}}>{L.gift.freeBottle}</span> {L.gift.of}<br/>
+          <span className="gold-text font-bold">{L.gift.wineName}</span><br/>
+          <span className="gold-text font-bold" style={{fontSize:'16px'}}>{L.gift.limitedEdition}</span> {L.gift.withOrder}
         </p>
         {imgSrc && <img src={imgSrc} alt="Chianti Gran Fondo" style={{width:'120px',height:'120px',objectFit:'cover',borderRadius:'8px',margin:'0 auto 16px',display:'block'}}/>}
         <p className="gold-text font-bold mb-4" style={{fontSize:'15px',lineHeight:'1.5'}}>
-          Every 11 items, one free bottle will be added automatically.
+          {L.gift.everyN}
         </p>
         <div style={{display:'flex',gap:'12px'}}>
           <button onClick={onNo}
             className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
             style={{fontSize:'12px'}}>
-            No thanks
+            {L.gift.no}
           </button>
           <button onClick={onYes}
             className="flex-1 p-3 rounded gold-bg font-bold uppercase hover:bg-yellow-600 transition"
             style={{fontSize:'12px'}}>
-            Yes, please! 🎉
+            {L.gift.yes}
           </button>
         </div>
       </div>
@@ -1133,7 +1356,8 @@ function GiftPopup({products,onYes,onNo}){
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   aRate,aKey,hasDuty,dl,totals,onSend,onDirectSend,onEmail,onSMS,onStripe,getMailtoUrl,isVendita,natCode,province,state,
-  resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup}){
+  resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup,lang}){
+  const L = I18N[lang];
 
   const [tab,setTab]         = useState('ALL');
   const [cartErr,setCartErr] = useState('');
@@ -1177,7 +1401,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
       return keys.length>0?Math.max(...keys):60;
     })();
     if(currentShipQty>=maxItems){
-      setCartErr('⚠️ Maximum '+maxItems+' items per order for this destination.');
+      setCartErr(L.catalog.maxItems(maxItems));
       return;
     }
     if(isCA){
@@ -1187,15 +1411,15 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
       const hasAlc = cart.some(i=>isAlc(i.category));
       const hasOth = cart.some(i=>!isAlc(i.category));
       if(iA&&hasOth){
-        setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.');
+        setCartErr(L.catalog.caMix);
         return;
       }
       if(!iA&&hasAlc){
-        setCartErr('🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.');
+        setCartErr(L.catalog.caMix);
         return;
       }
       if(iA&&caBlock){
-        setCartErr(`🚫 Wine/Sparkling cannot be shipped to ${province}.`);
+        setCartErr(L.catalog.caBlocked(province));
         return;
       }
     }
@@ -1256,12 +1480,12 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
                      'BG','EE','LV','LT','RO'];
     if(euCodes.includes(natCode)) return null; // no warning for EU+IT
     if(natCode==='US' && hasWine) return null; // US wine: duties already shown in cart
-    if(natCode==='US') return "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
-    if(natCode==='CA') return "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
-    if(natCode==='GB') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 40% of the total value.";
-    if(natCode==='CH') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 5% of the total value + VAT 7.7%.";
-    if(natCode==='NO') return "Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around €1 per bottle + VAT 15%.";
-    return "Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.";
+    if(natCode==='US') return L.duty.genericUnknown;
+    if(natCode==='CA') return L.duty.genericUnknown;
+    if(natCode==='GB') return L.duty.gb;
+    if(natCode==='CH') return L.duty.ch;
+    if(natCode==='NO') return L.duty.no;
+    return L.duty.genericUnknown;
   })();
 
   const [showDutyWarn,setShowDutyWarn] = useState(false);
@@ -1275,7 +1499,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     if(getDutyWarning){setShowDutyWarn(true);}
     else{setShowOrderPopup(true);}
   };
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onDirectSend:onDirectSend,onEmail:handleEmail,onSMS:onSMS,onStripe:onStripe,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode};
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onDirectSend:onDirectSend,onEmail:handleEmail,onSMS:onSMS,onStripe:onStripe,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode,lang};
 
   const handleGiftYes = () => {
     setGiftChoice(true);
@@ -1300,37 +1524,37 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
 
   return(
     <div className="catalog-page">
-      {showGiftPopup && <GiftPopup products={products} onYes={handleGiftYes} onNo={handleGiftNo}/>}
+      {showGiftPopup && <GiftPopup products={products} onYes={handleGiftYes} onNo={handleGiftNo} lang={lang}/>}
       {showOrderPopup&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
           <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>
             <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>🍷</div>
-            <h2 className="gold-text font-bold mb-3" style={{fontSize:'17px',letterSpacing:'0.04em'}}>Thank you for choosing<br/>IL CILIEGIO!</h2>
+            <h2 className="gold-text font-bold mb-3" style={{fontSize:'17px',letterSpacing:'0.04em'}}>{L.catalog.orderPopup.thanks}<br/>{L.catalog.orderPopup.brand}</h2>
             <p className="text-gray-300 mb-4" style={{fontSize:'12px',lineHeight:'1.8'}}>
-              Your order has been completed.
+              {L.catalog.orderPopup.completed}
             </p>
-            <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>Please proceed to the payment of your order using one of the options below:</p>
+            <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>{L.catalog.orderPopup.choosePayment}</p>
             {isVendita
               ? <button onClick={()=>{setShowOrderPopup(false);onDirectSend();}}
                   className="w-full p-3 rounded font-bold uppercase bg-green-600 hover:bg-green-500 text-white transition mb-2"
-                  style={{fontSize:'13px'}}>📲 Send Order via WhatsApp</button>
+                  style={{fontSize:'13px'}}>{L.catalog.orderPopup.sendWA}</button>
               : <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
                   <button onClick={()=>{setShowOrderPopup(false);onStripe('card');}}
                     className="flex-1 p-3 rounded font-bold uppercase transition"
                     style={{fontSize:'11px',background:'#635BFF',color:'#fff',border:'none'}}>
-                    💳 Pay by Card
+                    {L.catalog.orderPopup.payCard}
                   </button>
                   <button onClick={()=>{setShowOrderPopup(false);onStripe('paypal');}}
                     className="flex-1 p-3 rounded font-bold uppercase transition"
                     style={{fontSize:'11px',background:'#003087',color:'#fff',border:'none'}}>
-                    🅿️ PayPal (+5% comm.)
+                    {L.catalog.orderPopup.payPaypal}
                   </button>
                 </div>
             }
 
             <button onClick={()=>setShowOrderPopup(false)}
               className="w-full p-2 rounded border border-gray-700 text-gray-500 hover:border-gray-400 hover:text-gray-300 transition uppercase"
-              style={{fontSize:'11px'}}>← Go Back</button>
+              style={{fontSize:'11px'}}>{L.catalog.orderPopup.goBack}</button>
           </div>
         </div>
       )}
@@ -1338,15 +1562,15 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
           <div className="bg-dark border gold-border rounded-lg shadow-xl" style={{maxWidth:'380px',width:'100%',padding:'28px',textAlign:'center'}}>
             <div style={{fontSize:'2.5rem',marginBottom:'12px'}}>⚠️</div>
-            <h2 className="gold-text font-bold uppercase mb-4" style={{fontSize:'15px',letterSpacing:'0.05em'}}>Important Notice</h2>
+            <h2 className="gold-text font-bold uppercase mb-4" style={{fontSize:'15px',letterSpacing:'0.05em'}}>{L.dutyPopup.title}</h2>
             <p className="text-gray-300 mb-6" style={{fontSize:'13px',lineHeight:'1.7'}}>{getDutyWarning}</p>
             <div style={{display:'flex',gap:'12px'}}>
               <button onClick={()=>setShowDutyWarn(false)}
                 className="flex-1 p-3 rounded border gold-border gold-text font-bold uppercase hover:bg-[#D4AF37] hover:text-black transition"
-                style={{fontSize:'12px'}}>← Go Back</button>
+                style={{fontSize:'12px'}}>{L.catalog.dutyWarn.goBack}</button>
               <button onClick={()=>{setShowDutyWarn(false);setShowOrderPopup(true);}}
                 className="flex-1 p-3 rounded bg-green-600 hover:bg-green-500 text-white font-bold uppercase transition"
-                style={{fontSize:'12px'}}>I understand →</button>
+                style={{fontSize:'12px'}}>{L.catalog.dutyWarn.understand}</button>
             </div>
           </div>
         </div>
@@ -1364,7 +1588,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
                 className={`px-2 py-1 rounded font-bold uppercase border transition
                   ${tab===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}
                 style={{fontSize:'10px'}}>
-                {t}
+                {CAT_LABEL[lang][t]}
               </button>))}
           </div>
 
@@ -1373,11 +1597,11 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
             if(!ps.length) return null;
             return(
               <div key={cat} className="mb-4">
-                <h2 className="font-bold gold-text border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>{cat}</h2>
-                
+                <h2 className="font-bold gold-text border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>{CAT_LABEL[lang][cat]}</h2>
+
                 {/* auto-fill: ~4 cols on mobile (80px min), ~3-4 cols on desktop (120px min) */}
                 <div className="grid gap-2 prod-grid">
-                  {ps.map(p=><ProductCard key={p.id} p={p} onAdd={addItem} blocked={caBlockedCats.includes(p.category)}/>)}
+                  {ps.map(p=><ProductCard key={p.id} p={p} onAdd={addItem} blocked={caBlockedCats.includes(p.category)} lang={lang}/>)}
                 </div>
               </div>);
           })}
@@ -1386,10 +1610,10 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
         {/* ── Cart column ── */}
         <div className="cart-col bg-[#111] rounded border gold-border" style={{padding:'8px'}}>
           <div className="flex justify-between items-center border-b border-gray-800 pb-1 mb-2">
-            <h2 className="gold-text font-bold" style={{fontSize:'13px'}}>🛒 Cart</h2>
+            <h2 className="gold-text font-bold" style={{fontSize:'13px'}}>{L.catalog.cartTitle}</h2>
             {cart.length>0&&<button onClick={doResetCart}
               className="border border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-400 rounded transition"
-              style={{fontSize:'9px',padding:'2px 6px'}}>✕ Reset</button>}
+              style={{fontSize:'9px',padding:'2px 6px'}}>{L.catalog.reset}</button>}
           </div>
           <CartPanel {...panelProps}/>
         </div>
