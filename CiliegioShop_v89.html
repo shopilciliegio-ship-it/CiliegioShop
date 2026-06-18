@@ -196,35 +196,89 @@
 
   if(sessionStorage.getItem('ciliegio_install_dismissed')) return;
 
-  var _ipLangs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language||'en'];
-  var IP_IT = _ipLangs.some(function(l){ return /^it/i.test(l); });
-  var IP = IP_IT ? {
-    subtitle:'App Shop Online',
-    msg:"Per un'esperienza migliore, installa l'app toccando il bottone Installa. Grazie!",
-    samsungInstr:'Tocca il <b style="color:#D4AF37">☰ menu</b> in basso<br>' +
-      '→ <b style="color:#D4AF37">Aggiungi pagina a</b><br>' +
-      '→ <b style="color:#D4AF37">Schermata Home</b>',
-    samsungAfter:'Poi apri l\'icona <b style="color:#fff">IL CILIEGIO</b> dalla tua Schermata Home.',
-    install:'⬇ Installa',
-    pressX:'Premi ✕ per continuare sul sito',
-    installedTitle:'App Installata!',
-    installedMsg:'Vai alla tua <b style="color:#fff">Schermata Home</b><br>e tocca l\'icona<br><b style="color:#D4AF37">IL CILIEGIO</b><br>per aprire l\'app.',
-    iosInstr:'Su Safari: tocca <b style="color:#D4AF37">⬆ Condividi</b> → <b style="color:#D4AF37">Aggiungi alla schermata Home</b>',
-    iosAfter:'Una volta aggiunta, <b style="color:#fff">chiudi questa pagina</b> e apri l\'icona <b style="color:#D4AF37">IL CILIEGIO</b> dalla tua Schermata Home.',
-  } : {
-    subtitle:'Online Shop App',
-    msg:'To ensure a better App experience, click the Install button. Thanks!',
-    samsungInstr:'Tap the <b style="color:#D4AF37">☰ menu</b> at the bottom<br>' +
-      '→ <b style="color:#D4AF37">Add page to</b><br>' +
-      '→ <b style="color:#D4AF37">Home screen</b>',
-    samsungAfter:'Then open the <b style="color:#fff">IL CILIEGIO</b> icon from your Home Screen.',
-    install:'⬇ Install',
-    pressX:'Press ✕ to continue in the website',
-    installedTitle:'App Installed!',
-    installedMsg:'Go to your <b style="color:#fff">Home Screen</b><br>and tap the<br><b style="color:#D4AF37">IL CILIEGIO</b> icon<br>to open the app.',
-    iosInstr:'In Safari: tap <b style="color:#D4AF37">⬆ Share</b> → <b style="color:#D4AF37">Add to Home Screen</b>',
-    iosAfter:'Once added, <b style="color:#fff">close this page</b> and open the <b style="color:#D4AF37">IL CILIEGIO</b> icon from your Home Screen.',
+  var IP_DICT = {
+    it:{
+      subtitle:'App Shop Online',
+      msg:"Per un'esperienza migliore, installa l'app toccando il bottone Installa. Grazie!",
+      samsungInstr:'Tocca il <b style="color:#D4AF37">☰ menu</b> in basso<br>' +
+        '→ <b style="color:#D4AF37">Aggiungi pagina a</b><br>' +
+        '→ <b style="color:#D4AF37">Schermata Home</b>',
+      samsungAfter:'Poi apri l\'icona <b style="color:#fff">IL CILIEGIO</b> dalla tua Schermata Home.',
+      install:'⬇ Installa',
+      pressX:'Premi ✕ per continuare sul sito',
+      installedTitle:'App Installata!',
+      installedMsg:'Vai alla tua <b style="color:#fff">Schermata Home</b><br>e tocca l\'icona<br><b style="color:#D4AF37">IL CILIEGIO</b><br>per aprire l\'app.',
+      iosInstr:'Su Safari: tocca <b style="color:#D4AF37">⬆ Condividi</b> → <b style="color:#D4AF37">Aggiungi alla schermata Home</b>',
+      iosAfter:'Una volta aggiunta, <b style="color:#fff">chiudi questa pagina</b> e apri l\'icona <b style="color:#D4AF37">IL CILIEGIO</b> dalla tua Schermata Home.',
+    },
+    en:{
+      subtitle:'Online Shop App',
+      msg:'To ensure a better App experience, click the Install button. Thanks!',
+      samsungInstr:'Tap the <b style="color:#D4AF37">☰ menu</b> at the bottom<br>' +
+        '→ <b style="color:#D4AF37">Add page to</b><br>' +
+        '→ <b style="color:#D4AF37">Home screen</b>',
+      samsungAfter:'Then open the <b style="color:#fff">IL CILIEGIO</b> icon from your Home Screen.',
+      install:'⬇ Install',
+      pressX:'Press ✕ to continue in the website',
+      installedTitle:'App Installed!',
+      installedMsg:'Go to your <b style="color:#fff">Home Screen</b><br>and tap the<br><b style="color:#D4AF37">IL CILIEGIO</b> icon<br>to open the app.',
+      iosInstr:'In Safari: tap <b style="color:#D4AF37">⬆ Share</b> → <b style="color:#D4AF37">Add to Home Screen</b>',
+      iosAfter:'Once added, <b style="color:#fff">close this page</b> and open the <b style="color:#D4AF37">IL CILIEGIO</b> icon from your Home Screen.',
+    },
+    de:{
+      subtitle:'Online Shop App',
+      msg:'Für ein besseres App-Erlebnis tippen Sie auf die Schaltfläche Installieren. Danke!',
+      samsungInstr:'Tippen Sie unten auf das <b style="color:#D4AF37">☰ Menü</b><br>' +
+        '→ <b style="color:#D4AF37">Seite hinzufügen zu</b><br>' +
+        '→ <b style="color:#D4AF37">Startbildschirm</b>',
+      samsungAfter:'Öffnen Sie dann das Symbol <b style="color:#fff">IL CILIEGIO</b> von Ihrem Startbildschirm.',
+      install:'⬇ Installieren',
+      pressX:'Tippen Sie auf ✕, um auf der Website fortzufahren',
+      installedTitle:'App installiert!',
+      installedMsg:'Gehen Sie zu Ihrem <b style="color:#fff">Startbildschirm</b><br>und tippen Sie auf das Symbol<br><b style="color:#D4AF37">IL CILIEGIO</b><br>um die App zu öffnen.',
+      iosInstr:'In Safari: Tippen Sie auf <b style="color:#D4AF37">⬆ Teilen</b> → <b style="color:#D4AF37">Zum Home-Bildschirm</b>',
+      iosAfter:'Nach dem Hinzufügen <b style="color:#fff">schließen Sie diese Seite</b> und öffnen Sie das Symbol <b style="color:#D4AF37">IL CILIEGIO</b> von Ihrem Startbildschirm.',
+    },
+    fr:{
+      subtitle:'Application boutique en ligne',
+      msg:"Pour une meilleure expérience, appuyez sur le bouton Installer. Merci !",
+      samsungInstr:'Appuyez sur le <b style="color:#D4AF37">☰ menu</b> en bas<br>' +
+        '→ <b style="color:#D4AF37">Ajouter la page à</b><br>' +
+        '→ <b style="color:#D4AF37">Écran d\'accueil</b>',
+      samsungAfter:'Ouvrez ensuite l\'icône <b style="color:#fff">IL CILIEGIO</b> depuis votre écran d\'accueil.',
+      install:'⬇ Installer',
+      pressX:'Appuyez sur ✕ pour continuer sur le site',
+      installedTitle:'Application installée !',
+      installedMsg:'Allez sur votre <b style="color:#fff">écran d\'accueil</b><br>et appuyez sur l\'icône<br><b style="color:#D4AF37">IL CILIEGIO</b><br>pour ouvrir l\'application.',
+      iosInstr:'Sur Safari : appuyez sur <b style="color:#D4AF37">⬆ Partager</b> → <b style="color:#D4AF37">Sur l\'écran d\'accueil</b>',
+      iosAfter:'Une fois ajoutée, <b style="color:#fff">fermez cette page</b> et ouvrez l\'icône <b style="color:#D4AF37">IL CILIEGIO</b> depuis votre écran d\'accueil.',
+    },
+    es:{
+      subtitle:'App de la tienda online',
+      msg:'Para una mejor experiencia, toca el botón Instalar. ¡Gracias!',
+      samsungInstr:'Toca el <b style="color:#D4AF37">☰ menú</b> en la parte inferior<br>' +
+        '→ <b style="color:#D4AF37">Añadir página a</b><br>' +
+        '→ <b style="color:#D4AF37">Pantalla de inicio</b>',
+      samsungAfter:'Luego abre el icono <b style="color:#fff">IL CILIEGIO</b> desde tu pantalla de inicio.',
+      install:'⬇ Instalar',
+      pressX:'Toca ✕ para continuar en el sitio web',
+      installedTitle:'¡App instalada!',
+      installedMsg:'Ve a tu <b style="color:#fff">pantalla de inicio</b><br>y toca el icono<br><b style="color:#D4AF37">IL CILIEGIO</b><br>para abrir la app.',
+      iosInstr:'En Safari: toca <b style="color:#D4AF37">⬆ Compartir</b> → <b style="color:#D4AF37">Añadir a pantalla de inicio</b>',
+      iosAfter:'Una vez añadida, <b style="color:#fff">cierra esta página</b> y abre el icono <b style="color:#D4AF37">IL CILIEGIO</b> desde tu pantalla de inicio.',
+    },
   };
+  var _savedLang = null;
+  try { _savedLang = localStorage.getItem('ciliegio_lang'); } catch(e){}
+  var _ipLang = (_savedLang && IP_DICT[_savedLang]) ? _savedLang : (function(){
+    var langs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language||'en'];
+    for(var i=0;i<langs.length;i++){
+      var code = langs[i].slice(0,2).toLowerCase();
+      if(IP_DICT[code]) return code;
+    }
+    return 'en';
+  })();
+  var IP = IP_DICT[_ipLang];
 
   var deferredPrompt = null;
 
@@ -451,14 +505,25 @@ const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
   zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
 
 /* ── i18n ──────────────────────────────────────────────────── */
+const SUPPORTED_LANGS = ['it','en','de','fr','es'];
+const LANG_NAMES = {it:'Italiano', en:'English', de:'Deutsch', fr:'Français', es:'Español'};
+const LANG_FLAGS = {it:'🇮🇹', en:'🇬🇧', de:'🇩🇪', fr:'🇫🇷', es:'🇪🇸'};
 function detectLang(){
+  const saved = localStorage.getItem('ciliegio_lang');
+  if(saved && SUPPORTED_LANGS.includes(saved)) return saved;
   const langs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language||'en'];
-  for(const l of langs){ if(/^it/i.test(l)) return 'it'; }
+  for(const l of langs){
+    const code = l.slice(0,2).toLowerCase();
+    if(SUPPORTED_LANGS.includes(code)) return code;
+  }
   return 'en';
 }
 const CAT_LABEL = {
   en:{ALL:'ALL',WINE:'WINE',SPARKLING:'SPARKLING',DISTILLATES:'DISTILLATES','EVO OIL':'EVO OIL',FLOURS:'FLOURS',CEREALS:'CEREALS',LEGUMES:'LEGUMES',SWEETS:'SWEETS'},
   it:{ALL:'TUTTI',WINE:'VINI',SPARKLING:'SPUMANTI',DISTILLATES:'DISTILLATI','EVO OIL':'OLIO EVO',FLOURS:'FARINE',CEREALS:'CEREALI',LEGUMES:'LEGUMI',SWEETS:'DOLCI'},
+  de:{ALL:'ALLE',WINE:'WEIN',SPARKLING:'SCHAUMWEIN',DISTILLATES:'SPIRITUOSEN','EVO OIL':'OLIVENÖL',FLOURS:'MEHL',CEREALS:'GETREIDE',LEGUMES:'HÜLSENFRÜCHTE',SWEETS:'SÜSSWAREN'},
+  fr:{ALL:'TOUS',WINE:'VINS',SPARKLING:'MOUSSEUX',DISTILLATES:'SPIRITUEUX','EVO OIL':"HUILE D'OLIVE",FLOURS:'FARINES',CEREALS:'CÉRÉALES',LEGUMES:'LÉGUMINEUSES',SWEETS:'DOUCEURS'},
+  es:{ALL:'TODOS',WINE:'VINOS',SPARKLING:'ESPUMOSOS',DISTILLATES:'DESTILADOS','EVO OIL':'ACEITE DE OLIVA',FLOURS:'HARINAS',CEREALS:'CEREALES',LEGUMES:'LEGUMBRES',SWEETS:'DULCES'},
 };
 const I18N = {
   en:{
@@ -627,6 +692,255 @@ const I18N = {
       no:'No grazie', yes:'Sì, grazie! 🎉',
     },
   },
+  de:{
+    splash:{
+      tagline:'Nur in der IL CILIEGIO App erhalten Sie:',
+      offer1a:'5% Rabatt auf Ihre Bestellung ab mindestens 12 Artikeln,',
+      offer1b:'auch wenn sie alle unterschiedlich sind',
+      or:'oder',
+      offer2a:'eine Gratisflasche des exklusiven',
+      offer2b:'Chianti DOCG GRAN FONDO!',
+      limitedEdition:'LIMITIERTE EDITION',
+      loading:'Katalog wird geladen…',
+    },
+    error:{title:'Konfigurationsfehler',msg:'Daten konnten nicht geladen werden. Überprüfen Sie die URLs in window.CFG.'},
+    header:{home:'⌂ Start'},
+    caWarn:{title:'Versandbeschränkung',msg:'Bitte beachten Sie, dass wir keinen Alkohol in Ihre Provinz oder Region versenden können!',btn:'Verstanden'},
+    dutyPopup:{title:'Wichtiger Hinweis',cancel:'Abbrechen',confirm:'Verstanden — Bestellung senden'},
+    form:{
+      title:'Kundenregistrierung', required:'alle Felder sind erforderlich',
+      nationality:'Nationalität', nationalityPh:'Land eingeben…', noCountry:'Kein Land gefunden…',
+      zip:'Postleitzahl', zipHint:'(füllt Stadt & Region automatisch aus)', zipPh:'PLZ eingeben…', zipPhDisabled:'Zuerst Nationalität wählen',
+      firstName:'Vorname', lastName:'Nachname',
+      address:'Vollständige Adresse', addressPh:'Straße, Hausnummer…',
+      city:'Stadt',
+      province:'Provinz / Landkreis', state:'Bundesland / Region',
+      mobile:'Mobiltelefonnummer', mobilePh:'+49 151 23456789',
+      email:'E-Mail-Adresse', emailUserPh:'benutzername', emailDomainPh:'anbieter.de',
+      emailFormatErr:'⚠️ Format verwenden: gmail.com oder anbieter.de',
+      continue:'Weiter zur Übersicht',
+    },
+    summary:{
+      title:'Datenübersicht', privacy:'Datenschutz',
+      customer:'Kunde', nationality:'Nationalität', email:'E-Mail', phone:'Telefon', address:'Adresse',
+      edit:'Bearbeiten', confirm:'Bestätigen & zum Katalog',
+      disclaimer:'Mit dem Absenden Ihrer Daten erklären Sie sich mit allen Datenschutzbestimmungen einverstanden, die in der auf dieser Seite verfügbaren Richtlinie aufgeführt sind.',
+    },
+    cookie:{
+      main:'Wir verwenden Google Analytics nur mit Ihrer Zustimmung, um die Nutzung der App zu verstehen. Sie können jederzeit zustimmen oder ablehnen —',
+      readPrivacy:'Datenschutzerklärung lesen',
+      secondary:'We only use Google Analytics with your consent. You can accept or decline at any time.',
+      decline:'Ablehnen', accept:'Zustimmen',
+    },
+    privacy:{title:'Datenschutzerklärung', loading:'Datenschutzerklärung wird geladen…'},
+    product:{outOfStock:'Ausverkauft', notAvailable:'Nicht verfügbar', add:'+ Hinzufügen'},
+    cart:{
+      noRateWarnTitle:'⚠️ Wir sind nicht sicher, ob wir in Ihr Land versenden können.',
+      noRateWarnMsg:'Schließen Sie Ihre Bestellung trotzdem ab. Wir werden Sie so schnell wie möglich per E-Mail mit einem Versandangebot kontaktieren.',
+      ship:'Versand:', empty:'Der Warenkorb ist leer',
+      products:(n)=>`Produkte (${n}):`, discount:'Rabatt (5%):', duties:'Zölle 10%:',
+      shipping:'Versand:', freeShip:'🎉 Kostenlos ab €100',
+      noRate:'⚠️ Kein Versandtarif für dieses Land — Sie werden per E-Mail kontaktiert.',
+      total:'GESAMT:', placeOrder:'🛍️ Bestellung aufgeben',
+      addMoreItems:(h)=>`ℹ️ Fügen Sie noch ${h} Artikel hinzu — die Versandkosten bleiben gleich!`,
+      pieces:(lo,hi)=>`(${lo}–${hi} Stück)`,
+      deliveryDays:(n)=>`Lieferung innerhalb von ${n} Werktagen`,
+    },
+    catalog:{
+      cartTitle:'🛒 Warenkorb', reset:'✕ Zurücksetzen',
+      maxItems:(n)=>`⚠️ Maximal ${n} Artikel pro Bestellung für dieses Ziel.`,
+      caMix:'🍷 In Kanada können Wein/Sekt nicht zusammen mit anderen Produkten versendet werden. Bitte separat bestellen.',
+      caBlocked:(province)=>`🚫 Wein/Sekt kann nicht nach ${province} versendet werden.`,
+      orderPopup:{
+        thanks:'Danke, dass Sie sich für', brand:'IL CILIEGIO entschieden haben!',
+        completed:'Ihre Bestellung wurde abgeschlossen.',
+        choosePayment:'Bitte fahren Sie mit der Zahlung Ihrer Bestellung fort, indem Sie eine der folgenden Optionen wählen:',
+        sendWA:'📲 Bestellung per WhatsApp senden', payCard:'💳 Mit Karte zahlen', payPaypal:'🅿️ PayPal (+5% Gebühr)',
+        goBack:'← Zurück',
+      },
+      dutyWarn:{goBack:'← Zurück', understand:'Verstanden →'},
+    },
+    duty:{
+      genericUnknown:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — wir können die Höhe leider nicht im Voraus angeben.',
+      gb:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — die Kosten betragen etwa 40% des Gesamtwerts.',
+      ch:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — die Kosten betragen etwa 5% des Gesamtwerts + 7,7% MwSt.',
+      no:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — die Kosten betragen etwa €1 pro Flasche + 15% MwSt.',
+    },
+    gift:{
+      title:'🎁 Besonderes Geschenk!',
+      line1:'Möchten Sie eine', freeBottle:'GRATISFLASCHE', of:'erhalten von',
+      wineName:'Chianti Gran Fondo "Strade Bianche"',
+      limitedEdition:'LIMITIERTE EDITION', withOrder:'2025 mit Ihrer Bestellung?',
+      everyN:'Alle 11 Artikel wird automatisch eine Gratisflasche hinzugefügt.',
+      no:'Nein, danke', yes:'Ja, gerne! 🎉',
+    },
+  },
+  fr:{
+    splash:{
+      tagline:"Uniquement sur l'app IL CILIEGIO, profitez de :",
+      offer1a:"5% de réduction sur votre commande à partir de 12 articles,",
+      offer1b:"même s'ils sont tous différents",
+      or:'ou',
+      offer2a:"une bouteille gratuite de l'exclusive",
+      offer2b:'Chianti DOCG GRAN FONDO !',
+      limitedEdition:'ÉDITION LIMITÉE',
+      loading:'Chargement du catalogue…',
+    },
+    error:{title:'Erreur de configuration',msg:'Impossible de charger les données. Vérifiez les URL dans window.CFG.'},
+    header:{home:'⌂ Accueil'},
+    caWarn:{title:'Restriction de livraison',msg:"Veuillez noter que nous ne pouvons pas expédier d'alcool vers votre province ou région de destination !",btn:'Compris'},
+    dutyPopup:{title:'Avis important',cancel:'Annuler',confirm:'Compris — Envoyer la commande'},
+    form:{
+      title:'Inscription client', required:'tous les champs sont obligatoires',
+      nationality:'Nationalité', nationalityPh:'Commencez à taper le nom du pays…', noCountry:'Aucun pays trouvé…',
+      zip:'Code postal', zipHint:'(remplit automatiquement la ville et la région)', zipPh:'Entrez le code postal…', zipPhDisabled:"Sélectionnez d'abord la nationalité",
+      firstName:'Prénom', lastName:'Nom',
+      address:'Adresse complète', addressPh:'Rue, numéro…',
+      city:'Ville',
+      province:'Province / Comté', state:'État / Région',
+      mobile:'Numéro de portable', mobilePh:'+33 6 12 34 56 78',
+      email:'Adresse email', emailUserPh:"nom d'utilisateur", emailDomainPh:'fournisseur.fr',
+      emailFormatErr:'⚠️ Utilisez le format : gmail.com ou fournisseur.fr',
+      continue:'Continuer vers le récapitulatif',
+    },
+    summary:{
+      title:'Récapitulatif des données', privacy:'Confidentialité',
+      customer:'Client', nationality:'Nationalité', email:'Email', phone:'Téléphone', address:'Adresse',
+      edit:'Modifier', confirm:'Confirmer et aller au catalogue',
+      disclaimer:'En continuant à soumettre vos données, vous êtes réputé avoir accepté toutes les conditions de confidentialité énoncées dans la politique disponible sur cette page.',
+    },
+    cookie:{
+      main:"Nous utilisons Google Analytics uniquement avec votre consentement, pour comprendre comment l'application est utilisée. Vous pouvez accepter ou refuser à tout moment —",
+      readPrivacy:'lire la politique de confidentialité',
+      secondary:'We only use Google Analytics with your consent. You can accept or decline at any time.',
+      decline:'Refuser', accept:'Accepter',
+    },
+    privacy:{title:'Politique de confidentialité', loading:'Chargement de la politique de confidentialité…'},
+    product:{outOfStock:'Épuisé', notAvailable:'Non disponible', add:'+ Ajouter'},
+    cart:{
+      noRateWarnTitle:"⚠️ Nous ne sommes pas certains de pouvoir livrer dans votre pays.",
+      noRateWarnMsg:'Veuillez tout de même finaliser votre commande. Nous vous contacterons par email dès que possible avec un devis de livraison.',
+      ship:'Livraison :', empty:'Le panier est vide',
+      products:(n)=>`Produits (${n}) :`, discount:'Réduction (5%) :', duties:'Droits de douane 10% :',
+      shipping:'Livraison :', freeShip:'🎉 Gratuit au-dessus de 100€',
+      noRate:'⚠️ Aucun tarif de livraison pour ce pays — vous serez contacté par email.',
+      total:'TOTAL :', placeOrder:'🛍️ Passer votre commande',
+      addMoreItems:(h)=>`ℹ️ Ajoutez ${h} article${h!==1?'s':''} de plus — les frais de livraison restent les mêmes !`,
+      pieces:(lo,hi)=>`(${lo}–${hi} pièces)`,
+      deliveryDays:(n)=>`Livraison en ${n} jours ouvrés`,
+    },
+    catalog:{
+      cartTitle:'🛒 Panier', reset:'✕ Réinitialiser',
+      maxItems:(n)=>`⚠️ Maximum ${n} articles par commande pour cette destination.`,
+      caMix:"🍷 Au Canada, le vin/mousseux ne peut pas être expédié avec d'autres produits. Veuillez passer une commande séparée.",
+      caBlocked:(province)=>`🚫 Le vin/mousseux ne peut pas être expédié vers ${province}.`,
+      orderPopup:{
+        thanks:"Merci d'avoir choisi", brand:'IL CILIEGIO !',
+        completed:'Votre commande a été finalisée.',
+        choosePayment:'Veuillez procéder au paiement de votre commande en utilisant une des options ci-dessous :',
+        sendWA:'📲 Envoyer la commande via WhatsApp', payCard:'💳 Payer par carte', payPaypal:'🅿️ PayPal (+5% de frais)',
+        goBack:'← Retour',
+      },
+      dutyWarn:{goBack:'← Retour', understand:'Compris →'},
+    },
+    duty:{
+      genericUnknown:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — nous sommes désolés, nous ne connaissons pas le montant à l'avance.",
+      gb:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — ce coût sera d'environ 40% de la valeur totale.",
+      ch:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — ce coût sera d'environ 5% de la valeur totale + TVA 7,7%.",
+      no:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — ce coût sera d'environ 1€ par bouteille + TVA 15%.",
+    },
+    gift:{
+      title:'🎁 Cadeau spécial !',
+      line1:'Souhaitez-vous recevoir une', freeBottle:'BOUTEILLE GRATUITE', of:'de',
+      wineName:'Chianti Gran Fondo "Strade Bianche"',
+      limitedEdition:'ÉDITION LIMITÉE', withOrder:'2025 avec votre commande ?',
+      everyN:'Toutes les 11 articles, une bouteille gratuite sera ajoutée automatiquement.',
+      no:'Non merci', yes:'Oui, avec plaisir ! 🎉',
+    },
+  },
+  es:{
+    splash:{
+      tagline:'Solo en la app IL CILIEGIO, obtienes:',
+      offer1a:'5% de descuento en tu pedido al comprar al menos 12 artículos,',
+      offer1b:'incluso si son todos diferentes',
+      or:'o',
+      offer2a:'una botella gratis del exclusivo',
+      offer2b:'¡Chianti DOCG GRAN FONDO!',
+      limitedEdition:'EDICIÓN LIMITADA',
+      loading:'Cargando catálogo…',
+    },
+    error:{title:'Error de configuración',msg:'No se pudieron cargar los datos. Comprueba las URL en window.CFG.'},
+    header:{home:'⌂ Inicio'},
+    caWarn:{title:'Restricción de envío',msg:'Ten en cuenta que no podemos enviar alcohol a tu provincia o región de destino.',btn:'Entendido'},
+    dutyPopup:{title:'Aviso importante',cancel:'Cancelar',confirm:'Entendido — Enviar pedido'},
+    form:{
+      title:'Registro de cliente', required:'todos los campos son obligatorios',
+      nationality:'Nacionalidad', nationalityPh:'Empieza a escribir el nombre del país…', noCountry:'No se encontró ningún país…',
+      zip:'Código postal', zipHint:'(rellena automáticamente ciudad y región)', zipPh:'Introduce el código postal…', zipPhDisabled:'Selecciona primero la nacionalidad',
+      firstName:'Nombre', lastName:'Apellido',
+      address:'Dirección completa', addressPh:'Calle, número…',
+      city:'Ciudad',
+      province:'Provincia / Condado', state:'Estado / Región',
+      mobile:'Número de móvil', mobilePh:'+34 612 345 678',
+      email:'Correo electrónico', emailUserPh:'usuario', emailDomainPh:'proveedor.es',
+      emailFormatErr:'⚠️ Usa el formato: gmail.com o proveedor.es',
+      continue:'Continuar al resumen',
+    },
+    summary:{
+      title:'Resumen de datos', privacy:'Privacidad',
+      customer:'Cliente', nationality:'Nacionalidad', email:'Correo', phone:'Teléfono', address:'Dirección',
+      edit:'Editar', confirm:'Confirmar e ir al catálogo',
+      disclaimer:'Al continuar enviando tus datos, se considera que has aceptado todos los términos de privacidad establecidos en la política disponible en esta página.',
+    },
+    cookie:{
+      main:'Solo usamos Google Analytics con tu consentimiento, para entender cómo se usa la app. Puedes aceptar o rechazar en cualquier momento —',
+      readPrivacy:'leer la política de privacidad',
+      secondary:'We only use Google Analytics with your consent. You can accept or decline at any time.',
+      decline:'Rechazar', accept:'Aceptar',
+    },
+    privacy:{title:'Política de privacidad', loading:'Cargando política de privacidad…'},
+    product:{outOfStock:'Agotado', notAvailable:'No disponible', add:'+ Añadir'},
+    cart:{
+      noRateWarnTitle:'⚠️ No estamos seguros de poder enviar a tu país.',
+      noRateWarnMsg:'Completa tu pedido de todas formas. Te contactaremos por correo lo antes posible con un presupuesto de envío.',
+      ship:'Envío:', empty:'El carrito está vacío',
+      products:(n)=>`Productos (${n}):`, discount:'Descuento (5%):', duties:'Aranceles 10%:',
+      shipping:'Envío:', freeShip:'🎉 Gratis por encima de 100€',
+      noRate:'⚠️ No hay tarifa de envío para este país — te contactaremos por correo.',
+      total:'TOTAL:', placeOrder:'🛍️ Realizar tu pedido',
+      addMoreItems:(h)=>`ℹ️ Añade ${h} artículo${h!==1?'s':''} más — ¡el coste de envío se mantiene igual!`,
+      pieces:(lo,hi)=>`(${lo}–${hi} piezas)`,
+      deliveryDays:(n)=>`Entrega en ${n} días laborables`,
+    },
+    catalog:{
+      cartTitle:'🛒 Carrito', reset:'✕ Reiniciar',
+      maxItems:(n)=>`⚠️ Máximo ${n} artículos por pedido para este destino.`,
+      caMix:'🍷 En Canadá, el vino/espumoso no se puede enviar con otros productos. Realiza un pedido separado.',
+      caBlocked:(province)=>`🚫 El vino/espumoso no se puede enviar a ${province}.`,
+      orderPopup:{
+        thanks:'Gracias por elegir', brand:'¡IL CILIEGIO!',
+        completed:'Tu pedido se ha completado.',
+        choosePayment:'Procede al pago de tu pedido usando una de las opciones a continuación:',
+        sendWA:'📲 Enviar pedido por WhatsApp', payCard:'💳 Pagar con tarjeta', payPaypal:'🅿️ PayPal (+5% comisión)',
+        goBack:'← Volver',
+      },
+      dutyWarn:{goBack:'← Volver', understand:'Entendido →'},
+    },
+    duty:{
+      genericUnknown:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — lo sentimos, no sabemos indicar el importe de antemano.',
+      gb:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — el coste será de aproximadamente el 40% del valor total.',
+      ch:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — el coste será de aproximadamente el 5% del valor total + IVA 7,7%.',
+      no:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — el coste será de aproximadamente €1 por botella + IVA 15%.',
+    },
+    gift:{
+      title:'🎁 ¡Regalo especial!',
+      line1:'¿Quieres recibir una', freeBottle:'BOTELLA GRATIS', of:'de',
+      wineName:'Chianti Gran Fondo "Strade Bianche"',
+      limitedEdition:'EDICIÓN LIMITADA', withOrder:'2025 con tu pedido?',
+      everyN:'Cada 11 artículos, se añadirá automáticamente una botella gratis.',
+      no:'No, gracias', yes:'¡Sí, por favor! 🎉',
+    },
+  },
 };
 
 /* ── Helpers ───────────────────────────────────────────────── */
@@ -648,7 +962,7 @@ function dLabel(key,speed,rateObj){
 function deliveryLabel(label,lang){
   if(!label||lang==='en') return label;
   const m=label.match(/(\d+)/);
-  return m?I18N.it.cart.deliveryDays(m[1]):label;
+  return m?I18N[lang].cart.deliveryDays(m[1]):label;
 }
 function rateKey(code,speed,wine){
   if(code==='US'){
@@ -678,7 +992,8 @@ function shippingTierHint(shipQty){
 
 /* ── App ───────────────────────────────────────────────────── */
 function App(){
-  const [lang]             = useState(detectLang);
+  const [lang,setLangState] = useState(detectLang);
+  const setLang = (l)=>{ localStorage.setItem('ciliegio_lang',l); setLangState(l); };
   const L = I18N[lang];
   const [step,setStep]    = useState(1);
   const [speed,setSpeed]  = useState('STANDARD');
@@ -883,7 +1198,8 @@ function App(){
 
         {/* Header */}
         <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
-          <span style={{position:"absolute",right:0,top:0,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px"}}>
+          <span style={{position:"absolute",right:0,top:0,fontSize:"10px",display:"flex",alignItems:"center",gap:"8px"}}>
+            <LanguageSelector lang={lang} setLang={setLang}/>
             {isVendita
               ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
               :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.89</span>}
@@ -898,7 +1214,7 @@ function App(){
           <h1 id="logo-txt" className="text-2xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
         </div>
 
-        {showPrivacy && <PrivacyPopup text={privacyJson?privacyJson[lang]:''} lang={lang} onClose={()=>setShowPrivacy(false)}/>}
+        {showPrivacy && <PrivacyPopup text={privacyJson?(privacyJson[lang]||privacyJson.en):''} lang={lang} onClose={()=>setShowPrivacy(false)}/>}
         {showLogin && <LoginPopup onClose={()=>setShowLogin(false)} onLogin={()=>{setIsVendita(true);setShowLogin(false);}}/>}
         {showCAWarn && (
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
@@ -1265,6 +1581,33 @@ function DutyReminderPopup({msg,onConfirm,onClose,lang}){
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── LanguageSelector ──────────────────────────────────────── */
+function LanguageSelector({lang,setLang}){
+  const [open,setOpen] = useState(false);
+  return(
+    <div className="relative">
+      <button onClick={()=>setOpen(o=>!o)}
+        className="rounded border gold-border hover:bg-[#D4AF37] transition"
+        style={{fontSize:'14px',padding:'2px 6px',lineHeight:1}}>
+        {LANG_FLAGS[lang]}
+      </button>
+      {open && (
+        <>
+          <div onClick={()=>setOpen(false)} style={{position:'fixed',inset:0,zIndex:40}}/>
+          <div className="absolute right-0 mt-1 bg-[#1a1a1a] border gold-border rounded shadow-xl overflow-hidden" style={{minWidth:'130px',zIndex:50}}>
+            {SUPPORTED_LANGS.map(l=>(
+              <div key={l} onClick={()=>{setLang(l);setOpen(false);}}
+                className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#333] text-left ${l===lang?'gold-text font-bold':'text-gray-300'}`}
+                style={{fontSize:'12px'}}>
+                <span style={{fontSize:'15px'}}>{LANG_FLAGS[l]}</span>{LANG_NAMES[l]}
+              </div>))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
