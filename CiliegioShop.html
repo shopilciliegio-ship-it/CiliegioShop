@@ -683,10 +683,6 @@ function App(){
           <h1 id="logo-txt" className="text-2xl font-bold gold-text tracking-widest" style={{display:'none'}}>IL CILIEGIO</h1>
         </div>
 
-        {!cookieConsent && <CookieBanner
-          onAccept={()=>{localStorage.setItem('ciliegio_cookie_consent','accepted');if(window.enableAnalytics)window.enableAnalytics();setCookieConsent('accepted');}}
-          onReject={()=>{localStorage.setItem('ciliegio_cookie_consent','rejected');setCookieConsent('rejected');}}
-          onPrivacy={()=>setShowPrivacy(true)}/>}
         {showPrivacy && <PrivacyPopup text={privacyText} onClose={()=>setShowPrivacy(false)}/>}
         {showLogin && <LoginPopup onClose={()=>setShowLogin(false)} onLogin={()=>{setIsVendita(true);setShowLogin(false);}}/>}
         {showCAWarn && (
@@ -714,6 +710,9 @@ function App(){
               setStep(2);
             }}/>}
         {step===2 && <SummaryStep form={form} onEdit={()=>setStep(1)} onPrivacy={()=>setShowPrivacy(true)}
+          cookieConsent={cookieConsent}
+          onCookieAccept={()=>{localStorage.setItem('ciliegio_cookie_consent','accepted');if(window.enableAnalytics)window.enableAnalytics();setCookieConsent('accepted');}}
+          onCookieReject={()=>{localStorage.setItem('ciliegio_cookie_consent','rejected');setCookieConsent('rejected');}}
           onConfirm={()=>{
             const CA_NO_ALCOHOL=['NEW BRUNSWICK','NEWFOUNDLAND','NORTHWEST TERRITORIES',
               'NOVA SCOTIA','NUNAVUT','PRINCE EDWARD ISLAND','SASKATCHEWAN','YUKON'];
@@ -881,7 +880,8 @@ function FormStep({form,setForm,natTxt,setNat,onNext}){
 }
 
 /* ── SummaryStep ───────────────────────────────────────────── */
-function SummaryStep({form,onEdit,onConfirm,onPrivacy}){
+function SummaryStep({form,onEdit,onConfirm,onPrivacy,cookieConsent,onCookieAccept,onCookieReject}){
+  const cookieDecided = !!cookieConsent;
   return(
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
       <div className="relative flex items-center justify-center border-b border-[#D4AF37] pb-2 mb-5">
@@ -902,11 +902,17 @@ function SummaryStep({form,onEdit,onConfirm,onPrivacy}){
       </div>
       <div className="flex gap-4 mt-8">
         <button onClick={onEdit} className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">Edit</button>
-        <button onClick={onConfirm} className="flex-1 p-4 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">Confirm &amp; Go to Catalog</button>
+        <button onClick={onConfirm} disabled={!cookieDecided}
+          className={`flex-1 p-4 rounded uppercase font-bold text-xs tracking-widest transition-all
+            ${cookieDecided?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+          Confirm &amp; Go to Catalog
+        </button>
       </div>
       <p className="text-gray-500 text-center mt-4" style={{fontSize:'11px',lineHeight:'1.5'}}>
         By continuing to submit your data, you are deemed to have accepted all the privacy terms set forth in the policy available on this page.
       </p>
+
+      {!cookieDecided && <CookieConsentBlock onAccept={onCookieAccept} onReject={onCookieReject} onPrivacy={onPrivacy}/>}
     </div>
   );
 }
@@ -1043,19 +1049,19 @@ function DutyReminderPopup({msg,onConfirm,onClose}){
   );
 }
 
-/* ── CookieBanner ──────────────────────────────────────────── */
-function CookieBanner({onAccept,onReject,onPrivacy}){
+/* ── CookieConsentBlock ────────────────────────────────────── */
+function CookieConsentBlock({onAccept,onReject,onPrivacy}){
   return(
-    <div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:1200,background:'#0d0d0d',borderTop:'1px solid #D4AF37',boxShadow:'0 -6px 20px rgba(0,0,0,0.6)',padding:'14px 16px',paddingBottom:'calc(14px + env(safe-area-inset-bottom,0px))'}}>
-      <div style={{maxWidth:'768px',margin:'0 auto',display:'flex',flexWrap:'wrap',alignItems:'center',gap:'12px',justifyContent:'space-between'}}>
-        <p style={{color:'#ccc',fontSize:'11px',lineHeight:'1.6',flex:'1 1 260px',margin:0}}>
-          Usiamo Google Analytics solo con il tuo consenso, per capire come viene usata l'app. Puoi accettare o rifiutare in qualsiasi momento — <span style={{textDecoration:'underline',cursor:'pointer'}} onClick={onPrivacy}>leggi l'informativa</span>.<br/>
-          <span style={{opacity:0.6}}>We only use Google Analytics with your consent. You can accept or decline.</span>
-        </p>
-        <div style={{display:'flex',gap:'8px',flexShrink:0}}>
-          <button onClick={onReject} className="px-4 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">Rifiuta</button>
-          <button onClick={onAccept} className="px-4 py-2 rounded gold-bg font-bold uppercase text-xs tracking-widest hover:bg-yellow-600 transition">Accetta</button>
-        </div>
+    <div style={{marginTop:'20px',padding:'14px',border:'1px solid #333',borderRadius:'8px',background:'#111'}}>
+      <p style={{color:'#ddd',fontSize:'12px',lineHeight:'1.6',margin:'0 0 6px 0'}}>
+        We only use Google Analytics with your consent, to understand how the app is used. You can accept or decline at any time — <span style={{textDecoration:'underline',cursor:'pointer'}} onClick={onPrivacy}>read the privacy notice</span>.
+      </p>
+      <p style={{color:'#777',fontSize:'10px',lineHeight:'1.5',margin:'0 0 12px 0'}}>
+        Usiamo Google Analytics solo con il tuo consenso. Puoi accettare o rifiutare in qualsiasi momento.
+      </p>
+      <div style={{display:'flex',gap:'8px'}}>
+        <button onClick={onReject} className="flex-1 px-4 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">Decline</button>
+        <button onClick={onAccept} className="flex-1 px-4 py-2 rounded gold-bg font-bold uppercase text-xs tracking-widest hover:bg-yellow-600 transition">Accept</button>
       </div>
     </div>
   );
