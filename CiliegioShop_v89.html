@@ -507,7 +507,38 @@ const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
 /* ── i18n ──────────────────────────────────────────────────── */
 const SUPPORTED_LANGS = ['it','en','de','fr','es'];
 const LANG_NAMES = {it:'Italiano', en:'English', de:'Deutsch', fr:'Français', es:'Español'};
-const LANG_FLAGS = {it:'🇮🇹', en:'🇬🇧', de:'🇩🇪', fr:'🇫🇷', es:'🇪🇸'};
+// Bandiere disegnate via SVG (non dipendono dal font emoji del dispositivo)
+function FlagIcon({code,size}){
+  const w=size||20, h=Math.round(w*0.72);
+  const flags = {
+    it:[['#009246',0,0,1/3],['#fff',1/3,0,1/3],['#ce2b37',2/3,0,1/3]], // vertical stripes
+    fr:[['#0055A4',0,0,1/3],['#fff',1/3,0,1/3],['#EF4135',2/3,0,1/3]],
+    de:null, es:null, en:null,
+  };
+  if(code==='de'){
+    return(<svg width={w} height={h} viewBox="0 0 3 2" style={{borderRadius:'2px',display:'block'}}>
+      <rect width="3" height="2" fill="#000"/><rect width="3" height="1.333" y="0.667" fill="#DD0000"/><rect width="3" height="0.667" y="1.333" fill="#FFCE00"/>
+    </svg>);
+  }
+  if(code==='es'){
+    return(<svg width={w} height={h} viewBox="0 0 3 2" style={{borderRadius:'2px',display:'block'}}>
+      <rect width="3" height="2" fill="#AA151B"/><rect width="3" height="1" y="0.5" fill="#F1BF00"/>
+    </svg>);
+  }
+  if(code==='en'){
+    return(<svg width={w} height={h} viewBox="0 0 30 20" style={{borderRadius:'2px',display:'block'}}>
+      <rect width="30" height="20" fill="#00247d"/>
+      <path d="M0,0 L30,20 M30,0 L0,20" stroke="#fff" strokeWidth="4"/>
+      <path d="M0,0 L30,20 M30,0 L0,20" stroke="#cf142b" strokeWidth="2"/>
+      <path d="M15,0 V20 M0,10 H30" stroke="#fff" strokeWidth="6"/>
+      <path d="M15,0 V20 M0,10 H30" stroke="#cf142b" strokeWidth="3.6"/>
+    </svg>);
+  }
+  const stripes = flags[code];
+  return(<svg width={w} height={h} viewBox="0 0 3 2" style={{borderRadius:'2px',display:'block'}}>
+    {stripes.map(([c,x],i)=><rect key={i} x={x*3} width={1} height={2} fill={c}/>)}
+  </svg>);
+}
 function detectLang(){
   const saved = localStorage.getItem('ciliegio_lang');
   if(saved && SUPPORTED_LANGS.includes(saved)) return saved;
@@ -1198,11 +1229,13 @@ function App(){
 
         {/* Header */}
         <div className="relative text-center mb-4 flex flex-col items-center" style={{paddingTop:"env(safe-area-inset-top,0px)"}}>
-          <span style={{position:"absolute",right:0,top:0,fontSize:"10px",display:"flex",alignItems:"center",gap:"8px"}}>
+          <span style={{position:"absolute",right:0,top:0,display:"flex",alignItems:"center",gap:"8px"}}>
+            <span style={{fontSize:"10px"}}>
+              {isVendita
+                ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
+                :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.89</span>}
+            </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
-            {isVendita
-              ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
-              :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.89</span>}
           </span>
           <button onClick={reset}
             className="absolute left-0 top-0 px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
@@ -1591,9 +1624,8 @@ function LanguageSelector({lang,setLang}){
   return(
     <div className="relative">
       <button onClick={()=>setOpen(o=>!o)}
-        className="rounded border gold-border hover:bg-[#D4AF37] transition"
-        style={{fontSize:'14px',padding:'2px 6px',lineHeight:1}}>
-        {LANG_FLAGS[lang]}
+        className="px-3 py-2 rounded border gold-border gold-text text-xs uppercase tracking-widest hover:bg-[#D4AF37] hover:text-black transition font-bold">
+        <FlagIcon code={lang} size={20}/>
       </button>
       {open && (
         <>
@@ -1603,7 +1635,7 @@ function LanguageSelector({lang,setLang}){
               <div key={l} onClick={()=>{setLang(l);setOpen(false);}}
                 className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#333] text-left ${l===lang?'gold-text font-bold':'text-gray-300'}`}
                 style={{fontSize:'12px'}}>
-                <span style={{fontSize:'15px'}}>{LANG_FLAGS[l]}</span>{LANG_NAMES[l]}
+                <FlagIcon code={l} size={18}/>{LANG_NAMES[l]}
               </div>))}
           </div>
         </>
