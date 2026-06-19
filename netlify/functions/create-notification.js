@@ -1,6 +1,6 @@
 const https  = require('https');
 const crypto = require('crypto');
-const { getStore } = require('@netlify/blobs');
+const { getStore, connectLambda } = require('@netlify/blobs');
 
 async function consumePromo(code) {
   if (!code) return;
@@ -320,6 +320,8 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
+
+  connectLambda(event);
 
   const brevoKey      = process.env.BREVO_API_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

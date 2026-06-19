@@ -1193,7 +1193,7 @@ function App(){
     if(duty>0) totalLines+='|Import Duties (10%): €'+duty.toFixed(2);
     totalLines+='|Shipping ('+(aRate?aRate.label:'N/A')+('): €'+effectiveSc.toFixed(2));
     totalLines+='|FINAL TOTAL: €'+total.toFixed(2);
-    fetch('https://ciliegio-shop.netlify.app/.netlify/functions/create-notification',{
+    fetch('/.netlify/functions/create-notification',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -1236,7 +1236,7 @@ function App(){
     sessionStorage.setItem('ciliegio_pending_order',JSON.stringify({wa:waMsg,method:method}));
     if(typeof gtag!=='undefined') gtag('event','checkout_started',{event_category:'payment',event_label:method,value:Math.round(amount)});
     try{
-      const res=await fetch('https://ciliegio-shop.netlify.app/.netlify/functions/create-checkout',{
+      const res=await fetch('/.netlify/functions/create-checkout',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
@@ -1859,7 +1859,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     if(!code) return;
     setPromoMsg(''); setPromoLoading(true);
     try{
-      const res = await fetch('https://ciliegio-shop.netlify.app/.netlify/functions/redeem-promo',{
+      const res = await fetch('/.netlify/functions/redeem-promo',{
         method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({code})
       });
       const data = await res.json();
@@ -2407,7 +2407,7 @@ function PromoManager({onClose}){
   const [msg,setMsg]           = useState('');
   const [loading,setLoading]   = useState(false);
 
-  const call = (key,action,extra)=>fetch('https://ciliegio-shop.netlify.app/.netlify/functions/manage-promo',{
+  const call = (key,action,extra)=>fetch('/.netlify/functions/manage-promo',{
     method:'POST', headers:{'Content-Type':'application/json'},
     body:JSON.stringify({adminKey:key,action,...extra})
   }).then(r=>r.json());

@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs');
+const { getStore, connectLambda } = require('@netlify/blobs');
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
 
@@ -29,6 +29,7 @@ exports.handler = async (event) => {
   const code = normalizeCode(body.code);
   if (!code) return json(400, { valid: false, reason: 'notfound' });
 
+  connectLambda(event);
   const store = getStore('promos');
 
   try {

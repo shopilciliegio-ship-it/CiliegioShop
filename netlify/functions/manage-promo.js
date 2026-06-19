@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs');
+const { getStore, connectLambda } = require('@netlify/blobs');
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
 const MAX_CODE_LEN = 24;
@@ -70,6 +70,7 @@ exports.handler = async (event) => {
 
   if (body.adminKey !== adminKey) return json(401, { error: 'Chiave amministratore non corretta.' });
 
+  connectLambda(event);
   const store = getStore('promos');
   const action = body.action;
 
