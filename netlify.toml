@@ -3,6 +3,11 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/wineclub"
+  to = "/CiliegioShop.html?club=1"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/CiliegioShop.html"
   status = 200
