@@ -1,5 +1,18 @@
 const https  = require('https');
 const crypto = require('crypto');
+const { getStore } = require('@netlify/blobs');
+
+async function consumePromo(code) {
+  if (!code) return;
+  try {
+    const store = getStore('promos');
+    const promo = await store.get(code, { type: 'json' });
+    if (!promo) return;
+    promo.usesCount = (promo.usesCount || 0) + 1;
+    if (promo.maxUses != null && promo.usesCount >= promo.maxUses) promo.active = false;
+    await store.setJSON(code, promo);
+  } catch (e) { console.error('Promo consume error:', e.message); }
+}
 
 function verifyStripeSignature(payload, sig, secret) {
   try {
@@ -331,9 +344,12 @@ exports.handler = async (event) => {
     const orderProducts   = m.order_products   || '';
     const orderTotals     = m.order_totals     || '';
     const paymentMethod   = m.payment_method   || 'card';
+    const promoCode       = m.promo_code       || '';
     const amount          = (s.amount_total / 100).toFixed(2);
     const currency        = (s.currency || 'eur').toUpperCase();
     const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : 'Credit Card';
+
+    await consumePromo(promoCode);
 
     const subjectShop     = '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
     const subjectCustomer = '🍷 Order confirmed — Il Ciliegio Shop';
