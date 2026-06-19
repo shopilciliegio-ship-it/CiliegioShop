@@ -84,6 +84,23 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     header + body + footer + '</div>';
 }
 
+function buildClubEventHtml(title, facts) {
+  var gold = '#D4AF37';
+  var rows = Object.keys(facts).map(function(k) {
+    return '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:140px"><strong>' + k + '</strong></td>' +
+      '<td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + (facts[k] || '—') + '</td></tr>';
+  }).join('');
+  return '<div style="max-width:600px;margin:0 auto;border:1px solid #ddd;border-radius:4px;overflow:hidden;font-family:Arial,sans-serif">' +
+    '<div style="background:#111;padding:24px 20px;text-align:center">' +
+    '<div style="color:' + gold + ';font-size:24px;font-weight:bold;letter-spacing:3px;font-family:Georgia,serif">IL CILIEGIO</div>' +
+    '<div style="color:#888;font-size:11px;letter-spacing:4px;margin-top:4px">WINE CLUB</div></div>' +
+    '<div style="padding:24px 20px">' +
+    '<h2 style="color:' + gold + ';font-size:17px;margin:0 0 16px 0">' + title + '</h2>' +
+    '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + rows + '</table></div>' +
+    '<div style="background:#f5f5f5;padding:12px;text-align:center;font-size:11px;color:#888;border-top:2px solid ' + gold + '">' +
+    'Il Ciliegio — Azienda Agricola | <a href="mailto:shop@ilciliegio.com" style="color:' + gold + '">shop@ilciliegio.com</a></div></div>';
+}
+
 function sendEmail(toEmail, toName, subject, html, brevoKey, attachment) {
   return new Promise(function(resolve) {
     const data = {
@@ -334,6 +351,71 @@ exports.handler = async (event) => {
   let stripeEvent;
   try { stripeEvent = JSON.parse(event.body); }
   catch(e) { return { statusCode: 400, body: 'Bad JSON' }; }
+
+  if (stripeEvent.type === 'checkout.session.completed' && stripeEvent.data.object.mode === 'subscription') {
+    const s = stripeEvent.data.object;
+    const m = s.metadata || {};
+    const customerName    = m.customer_name    || 'Unknown';
+    const customerEmail   = m.customer_email   || s.customer_email || '';
+    const customerPhone   = m.customer_phone   || '';
+    const customerAddress = m.customer_address || '';
+    const tier             = m.wine_club_tier   || '';
+    const amount           = (s.amount_total / 100).toFixed(2);
+    const currency         = (s.currency || 'eur').toUpperCase();
+
+    if (brevoKey) {
+      const html = buildClubEventHtml('🍷 Nuovo abbonato Wine Club', {
+        'Cliente': customerName, 'Email': customerEmail, 'Telefono': customerPhone,
+        'Indirizzo': customerAddress, 'Tier': tier, 'Importo (ogni 4 mesi)': amount + ' ' + currency,
+      });
+      await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', '🍷 Nuovo abbonato Wine Club — ' + customerName, html, brevoKey);
+      await sendEmail('shop.ilciliegio@gmail.com', 'Il Ciliegio CRM', '🍷 Nuovo abbonato Wine Club — ' + customerName, html, brevoKey);
+    }
+    console.log('Wine Club subscription started:', customerName, tier);
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ received: true }) };
+  }
+
+  if (stripeEvent.type === 'invoice.payment_succeeded') {
+    const inv = stripeEvent.data.object;
+    if (inv.billing_reason === 'subscription_cycle' || inv.billing_reason === 'subscription_create') {
+      const lineMeta = (inv.lines && inv.lines.data[0] && inv.lines.data[0].metadata) || {};
+      const isRenewal = inv.billing_reason === 'subscription_cycle';
+      if (brevoKey) {
+        const html = buildClubEventHtml(isRenewal ? '🔁 Rinnovo Wine Club — prepara la spedizione' : '🍷 Primo pagamento Wine Club confermato', {
+          'Cliente': lineMeta.customer_name || inv.customer_email || 'N/A',
+          'Email': inv.customer_email || '',
+          'Tier': lineMeta.wine_club_tier || '',
+          'Importo': (inv.amount_paid / 100).toFixed(2) + ' ' + (inv.currency || 'eur').toUpperCase(),
+        });
+        if (isRenewal) await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', '🔁 Rinnovo Wine Club', html, brevoKey);
+      }
+    }
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ received: true }) };
+  }
+
+  if (stripeEvent.type === 'invoice.payment_failed') {
+    const inv = stripeEvent.data.object;
+    if (brevoKey) {
+      const html = buildClubEventHtml('⚠️ Pagamento Wine Club fallito', {
+        'Email': inv.customer_email || '',
+        'Importo': (inv.amount_due / 100).toFixed(2) + ' ' + (inv.currency || 'eur').toUpperCase(),
+      });
+      await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', '⚠️ Pagamento Wine Club fallito', html, brevoKey);
+    }
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ received: true }) };
+  }
+
+  if (stripeEvent.type === 'customer.subscription.deleted') {
+    const sub = stripeEvent.data.object;
+    const m = sub.metadata || {};
+    if (brevoKey) {
+      const html = buildClubEventHtml('Abbonamento Wine Club cancellato', {
+        'Cliente': m.customer_name || 'N/A', 'Indirizzo': m.customer_address || '', 'Tier': m.wine_club_tier || '',
+      });
+      await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', 'Abbonamento Wine Club cancellato', html, brevoKey);
+    }
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ received: true }) };
+  }
 
   if (stripeEvent.type === 'checkout.session.completed') {
     const s = stripeEvent.data.object;
