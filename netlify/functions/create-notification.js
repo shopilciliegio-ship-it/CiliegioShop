@@ -132,11 +132,12 @@ function safeText(s) {
   return String(s || '')
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/[^\x20-\x7E]/g, '?');
+    .replace(/[^\x20-\x7E€]/g, '?');
 }
 
 async function buildMosPdf(customerName, customerEmail, customerPhone, customerAddress, orderProducts, orderTotals) {
-  const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+  const { PDFDocument, StandardFonts, PDFName } = require('pdf-lib');
+  const mosTemplateBase64 = require('./mos-template');
 
   // Name → firstName, lastName, shipment code (PATTAROL)
   const nameParts = customerName.trim().split(/\s+/);
@@ -150,7 +151,7 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
     const parts = customerAddress.split(/,\s*/);
     street = parts[0] || '';
     if (parts.length >= 2) {
-      const m = parts[1].trim().match(/^(\d+)\s+(.+)$/);
+      const m = parts[1].trim().match(/^(\d[\d-]*\d|\d)\s+(.+)$/);
       if (m) { zip = m[1]; city = m[2]; }
       else   { city = parts[1].trim(); }
     }
@@ -185,146 +186,71 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
   const shippingDeduction = (totalBottles === 3 || totalBottles === 6) ? 5 : 10;
   shippingCost = Math.max(0, parseFloat(shippingCost) - shippingDeduction).toFixed(2);
 
-  // Build PDF (A4 portrait)
-  const pdfDoc = await PDFDocument.create();
-  const page   = pdfDoc.addPage([595, 842]);
-  const W = 595, H = 842;
-  const fontR = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  // Load the real Fieramente MOS form and fill its fields directly
+  const pdfDoc  = await PDFDocument.load(Buffer.from(mosTemplateBase64, 'base64'));
+  const measureFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const form    = pdfDoc.getForm();
 
-  const K  = rgb(0, 0, 0);
-  const W_ = rgb(1, 1, 1);
-  const LG = rgb(0.92, 0.92, 0.92);
-  const DG = rgb(0.15, 0.15, 0.15);
-  const MG = rgb(0.55, 0.55, 0.55);
-
-  const txt = function(s, x, y, sz, fn, cl) {
-    page.drawText(safeText(s), { x: x, y: y, size: sz || 9, font: fn || fontR, color: cl || K });
+  // Shrinks the font (down to a floor) so the value fits the field's own width,
+  // since these single-line fields don't wrap and would otherwise overflow the box.
+  const setTxt = function(fieldName, value, size) {
+    const field = form.getTextField(fieldName);
+    const text  = safeText(value || '');
+    const maxW  = field.acroField.getWidgets()[0].getRectangle().width - 6;
+    let fontSize = size || 9;
+    while (fontSize > 5 && measureFont.widthOfTextAtSize(text, fontSize) > maxW) fontSize -= 0.5;
+    field.setFontSize(fontSize);
+    field.setText(text);
+    // Widgets carry their own /DA (usually the original template's fixed size),
+    // which otherwise wins over the field-level size we just set.
+    field.acroField.getWidgets().forEach(function(w) { w.dict.delete(PDFName.of('DA')); });
   };
-  const rct = function(x, y, w, h, fill, bc, bw) {
-    page.drawRectangle({ x: x, y: y, width: w, height: h,
-      ...(fill !== null && fill !== undefined ? { color: fill } : {}),
-      ...(bc   !== null && bc   !== undefined ? { borderColor: bc, borderWidth: bw || 0.5 } : {}) });
-  };
-  const hln = function(x1, y, x2, th) {
-    page.drawLine({ start: { x: x1, y: y }, end: { x: x2, y: y }, thickness: th || 0.5, color: MG });
-  };
-  const vln = function(x, y1, y2, th) {
-    page.drawLine({ start: { x: x, y: y1 }, end: { x: x, y: y2 }, thickness: th || 0.5, color: MG });
+  const setChk = function(fieldName, checked) {
+    const field = form.getCheckBox(fieldName);
+    if (checked) field.check(); else field.uncheck();
   };
 
-  let y = H - 35;
+  setTxt('text_2othq', shipmentCode, 12);                                    // SHIPMENT CODE
+  setTxt('text_4ezat', (firstName + ' ' + lastName).trim().toUpperCase());   // NAME
+  setTxt('text_6daor', street.toUpperCase());                                // ADDRESS
+  setTxt('text_7ktyf', city.toUpperCase());                                  // CITY
+  setTxt('text_8iwze', zip);                                                 // ZIP CODE
+  setTxt('text_9wqbl', stateCountry.toUpperCase());                          // STATE / COUNTRY
+  setTxt('text_10cfnx', customerPhone);                                      // PHONE
+  setTxt('text_11idhv', customerEmail);                                      // EMAIL
 
-  // Header
-  txt('FIERAMENTE', 30, y, 20, fontB, DG);
-  txt('MERCHANT ORDER SHEET', 30, y - 14, 8, fontR, MG);
-  txt('www.fieramente.biz', 30, y - 24, 8, fontR, rgb(0.3, 0.3, 0.7));
-  rct(390, y - 22, 175, 28, LG, MG, 0.5);
-  txt('SHIPMENT CODE', 397, y - 10, 7, fontR, MG);
-  txt(shipmentCode, 397, y - 22, 12, fontB, K);
-  y -= 45;
-
-  hln(30, y, W - 30, 0.5);
-  y -= 12;
-
-  // Sender box
-  rct(30, y - 55, 175, 58, LG, MG, 0.5);
-  txt('SENDER', 36, y - 8,  7, fontR, MG);
-  txt('SIENA WINE SRL',                    36, y - 20, 8, fontB, K);
-  txt('Via Uopini, 94',                    36, y - 31, 8, fontR, K);
-  txt('Monteriggioni - 53035 - Siena',     36, y - 42, 8, fontR, K);
-  txt('P.IVA 01511110528  SDI 5RUO82D',   36, y - 53, 7, fontR, MG);
-  y -= 70;
-
-  // Recipient header bar
-  rct(30, y - 2, W - 60, 14, DG);
-  txt('RECIPIENT', 36, y + 1, 8, fontB, W_);
-  y -= 16;
-
-  // Field helper: label above, value on underline
-  const fld = function(label, val, fx, fy, fw, keepCase) {
-    txt(label, fx, fy + 10, 7, fontR, MG);
-    hln(fx, fy, fx + fw, 0.5);
-    txt(keepCase ? (val || '') : (val || '').toUpperCase(), fx, fy + 1, 9, fontB, K);
-  };
-
-  fld('FIRST NAME', firstName, 30, y, 240);
-  fld('LAST NAME',  lastName,  285, y, W - 315);
-  y -= 24;
-  fld('ADDRESS', street, 30, y, W - 60);
-  y -= 24;
-  fld('CITY',           city,         30,  y, 210);
-  fld('ZIP CODE',       zip,          255, y, 110);
-  fld('STATE / COUNTRY', stateCountry, 380, y, W - 410);
-  y -= 24;
-  fld('PHONE', customerPhone, 30,  y, 250);
-  fld('EMAIL', customerEmail, 295, y, W - 325, true);
-  y -= 32;
-
-  hln(30, y, W - 30, 0.5);
-  y -= 10;
-
-  // Products table header
-  rct(30, y - 2, W - 60, 14, DG);
-  txt('QTY',                         36,  y + 1, 8, fontB, W_);
-  txt('DESCRIPTION OF THE GOODS',   110,  y + 1, 8, fontB, W_);
-  txt('VALUE',                       510,  y + 1, 8, fontB, W_);
-  y -= 16;
-
-  const RH = 16, C1 = 105, C2 = 505;
-  const emptyR  = products.length > 12 ? 1 : 2;
-  const totalR  = products.length + emptyR;
-  const tableTopY = y;
-
-  for (var i = 0; i < totalR; i++) {
-    const ry = y - i * RH;
-    if (i % 2 === 0) rct(30, ry - RH + 2, W - 60, RH, LG);
-    hln(30, ry - RH + 2, W - 30, 0.3);
-    vln(C1, ry - RH + 2, ry + 2, 0.3);
-    vln(C2, ry - RH + 2, ry + 2, 0.3);
-    if (i < products.length) {
-      const p = products[i];
-      txt(String(p.qty), 55, ry - RH + 5, 9, fontB, K);
-      const nm = p.name.length > 65 ? p.name.slice(0, 65) + '..' : p.name;
-      txt(nm.toUpperCase(), 110, ry - RH + 5, 9, fontR, K);
-      if (p.lineValue > 0) txt('€ ' + p.lineValue.toFixed(2), 508, ry - RH + 5, 9, fontR, K);
-    }
+  // Product rows: template has 8 fixed rows (qty / description / value each)
+  const rowFields = [
+    ['text_12bmpo', 'text_13aijv', 'text_14tbmq'],
+    ['text_15rbv',  'text_16uqhq', 'text_17hwko'],
+    ['text_18oigy', 'text_19wznr', 'text_20cepq'],
+    ['text_21mjuv', 'text_22sjlf', 'text_23ojur'],
+    ['text_24koai', 'text_25nqpu', 'text_26ygjl'],
+    ['text_27gutj', 'text_28gjvu', 'text_29tixe'],
+    ['text_30tpqc', 'text_31fnze', 'text_32ayuh'],
+    ['text_33otru', 'text_35udmd', 'text_36ktod']
+  ];
+  const rows = products.slice(0, rowFields.length - 1);
+  if (products.length > rowFields.length - 1) {
+    const overflow = products.slice(rowFields.length - 1);
+    rows.push({
+      qty: overflow.reduce(function(s, p) { return s + p.qty; }, 0),
+      name: overflow.map(function(p) { return p.qty + 'x ' + p.name; }).join('; '),
+      lineValue: overflow.reduce(function(s, p) { return s + p.lineValue; }, 0)
+    });
   }
-  rct(30, tableTopY - totalR * RH + 2, W - 60, 26 + totalR * RH, null, MG, 0.5);
-  y = tableTopY - totalR * RH - 13;
+  rows.forEach(function(p, i) {
+    const qf = rowFields[i][0], df = rowFields[i][1], vf = rowFields[i][2];
+    setTxt(qf, String(p.qty));
+    setTxt(df, p.name.toUpperCase());
+    if (p.lineValue > 0) setTxt(vf, '€ ' + p.lineValue.toFixed(2));
+  });
 
-  // Shipping instructions header
-  rct(30, y - 2, W - 60, 14, DG);
-  txt('SHIPPING INSTRUCTIONS', 36, y + 1, 8, fontB, W_);
-  y -= 24;
-
-  // Checkboxes
-  const isStd = shippingType === 'STANDARD';
-  const isExp = !isStd;
-  rct(30,  y, 12, 12, isStd ? DG : W_, MG, 1);
-  if (isStd) txt('X', 33, y + 2, 8, fontB, W_);
-  txt('STANDARD', 48, y + 2, 9, fontB, K);
-
-  rct(140, y, 12, 12, isExp ? DG : W_, MG, 1);
-  if (isExp) txt('X', 143, y + 2, 8, fontB, W_);
-  txt('EXPRESS 30', 158, y + 2, 9, fontB, K);
-  y -= 28;
-
-  // Shipping cost + cartons
-  rct(30,  y - 10, 195, 32, LG, MG, 0.5);
-  txt('TOTAL SHIPPING CHARGES', 36, y + 14, 7, fontR, MG);
-  txt('€ ' + shippingCost, 36, y - 5, 11, fontB, K);
-
-  rct(245, y - 10, 140, 32, LG, MG, 0.5);
-  txt('NUMBER OF CARTONS', 250, y + 14, 7, fontR, MG);
-  txt(String(cartons), 250, y - 5, 11, fontB, K);
-  y -= 52;
-
-  // Footer
-  const d  = new Date();
-  const ds = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
-  txt('Date: ' + ds, 30, y, 8, fontR, MG);
-  txt('Il Ciliegio — Azienda Agricola  |  shop@ilciliegio.com', 30, y - 14, 8, fontR, MG);
+  setChk('checkbox_39nucj', true);                                 // INVOICE TO SENDER/WINERY
+  setChk('checkbox_69dycu', shippingType === 'STANDARD');           // STANDARD
+  setChk('checkbox_70pzpv', shippingType === 'EXPRESS 30');         // EXPRESS 30
+  setTxt('text_75yffy', '€ ' + shippingCost);                       // TOTAL SHIPPING CHARGES
+  setTxt('text_76wlyk', String(cartons));                          // NUMBER OF CARTONS
 
   const pdfBytes = await pdfDoc.save();
   return {
