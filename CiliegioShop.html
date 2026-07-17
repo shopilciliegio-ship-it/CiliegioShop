@@ -2738,9 +2738,9 @@ function ClubPricingPanel(){
         <div>
           <p className="text-gray-400 mb-3" style={{fontSize:'12px'}}>Inserisci la chiave amministratore (la stessa impostata su Netlify come <code>PROMO_ADMIN_KEY</code> per le promo).</p>
           <div style={{display:'flex',gap:'8px'}}>
-            <input type="password" value={keyInput} onChange={e=>setKeyInput(e.target.value)}
+            <input type="text" autoComplete="off" value={keyInput} onChange={e=>setKeyInput(e.target.value)}
               onKeyDown={e=>e.key==='Enter'&&unlockWithKey()}
-              className="flex-1 p-2 rounded" style={{fontSize:'12px'}} placeholder="Chiave server"/>
+              className="flex-1 p-2 rounded" style={{fontSize:'12px',WebkitTextSecurity:'disc'}} placeholder="Chiave server"/>
             <button onClick={unlockWithKey} className="px-4 rounded gold-bg font-bold" style={{fontSize:'12px'}}>Sblocca</button>
           </div>
         </div>
@@ -2898,9 +2898,9 @@ function PromoManager({onClose}){
             <div>
               <p className="text-gray-400 mb-3" style={{fontSize:'12px'}}>Inserisci la chiave amministratore (impostata su Netlify come <code>PROMO_ADMIN_KEY</code>, diversa dalla password Admin di accesso).</p>
               <div style={{display:'flex',gap:'8px'}}>
-                <input type="password" value={keyInput} onChange={e=>setKeyInput(e.target.value)}
+                <input type="text" autoComplete="off" value={keyInput} onChange={e=>setKeyInput(e.target.value)}
                   onKeyDown={e=>e.key==='Enter'&&unlockWithKey()}
-                  className="flex-1 p-2 rounded" style={{fontSize:'12px'}} placeholder="Chiave server"/>
+                  className="flex-1 p-2 rounded" style={{fontSize:'12px',WebkitTextSecurity:'disc'}} placeholder="Chiave server"/>
                 <button onClick={unlockWithKey} className="px-4 rounded gold-bg font-bold" style={{fontSize:'12px'}}>Sblocca</button>
               </div>
               {msg&&<p className="mt-2" style={{fontSize:'11px',color:'#f87171'}}>{msg}</p>}
