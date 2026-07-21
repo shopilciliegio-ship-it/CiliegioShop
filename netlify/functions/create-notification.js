@@ -14,6 +14,26 @@ async function consumePromo(code) {
   } catch (e) { console.error('Promo consume error:', e.message); }
 }
 
+// Guards against two customers producing the same shipment code (e.g. two
+// "Sala" family members): appends 2, 3, ... until a free code is found, and
+// persists the choice so later orders keep avoiding it.
+async function uniqueShipmentCode(baseCode) {
+  try {
+    const store = getStore('shipment-codes');
+    let code = baseCode;
+    let n = 2;
+    while (await store.get(code) != null) {
+      code = baseCode + n;
+      n++;
+    }
+    await store.set(code, new Date().toISOString());
+    return code;
+  } catch (e) {
+    console.error('Shipment code dedup error:', e.message);
+    return baseCode;
+  }
+}
+
 function verifyStripeSignature(payload, sig, secret) {
   try {
     const parts = sig.split(',');
@@ -143,7 +163,8 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
   const nameParts = customerName.trim().split(/\s+/);
   const lastName  = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
   const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : '';
-  const shipmentCode = (lastName + (firstName ? firstName[0] : '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const baseShipmentCode = (lastName + (firstName ? firstName[0] : '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const shipmentCode = await uniqueShipmentCode(baseShipmentCode);
 
   // Address: "Via Roma 1, 53100 Siena, Italy" or "Via Roma 1, 53100 Siena, Italy (SI)"
   let street = '', zip = '', city = '', stateCountry = '';
