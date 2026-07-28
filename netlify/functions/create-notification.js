@@ -399,7 +399,7 @@ exports.handler = async (event) => {
 
     if (brevoKey) {
       await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subjectShop, shopHtml, brevoKey, mosAttachment);
-      await sendEmail('shop.ilciliegio@gmail.com', 'Il Ciliegio CRM', subjectShop, shopHtml, brevoKey);
+      await sendEmail('shop.ilciliegio@gmail.com', 'Il Ciliegio CRM', subjectShop, shopHtml, brevoKey, mosAttachment);
       if (customerEmail) {
         await sendEmail(customerEmail, customerName, subjectCustomer, customerHtml, brevoKey);
       }
