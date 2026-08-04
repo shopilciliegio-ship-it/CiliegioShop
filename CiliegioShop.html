@@ -1150,35 +1150,84 @@ function notifyAdminError(context,details){
   }catch(_){}
 }
 
-// Forward-checks that street+zip+city+region, taken together, resolve to a
-// real place on OpenStreetMap. Catches the "garbled address" case that
-// filled() (empty-check only) and the zip→city autofill (freely overwritable
-// by the customer) both miss. Fails OPEN on our own network/API errors —
-// an outage on our side must never block a legitimate order — but reports
-// those failures via notifyAdminError so they don't vanish silently.
+function normCity(s){ return (s||'').toUpperCase().normalize('NFKD').replace(/[^\w\s]/g,'').trim(); }
+function normZip(s){ return (s||'').replace(/\s/g,'').toUpperCase(); }
+// Nominatim spreads "the town name" across several possible fields depending
+// on how granular the match is (city/town/village for the place itself,
+// municipality sometimes being a supra-comune union rather than the actual
+// comune) — so a match is "does the typed city appear in ANY of them",
+// not "does it equal one specific field".
+function cityCandidates(a){
+  return [a.city,a.town,a.village,a.municipality,a.hamlet,a.suburb].filter(Boolean).map(normCity);
+}
+
+// Two independent checks, run in sequence, instead of one combined query.
+// A combined street+postalcode+city query lets Nominatim silently ignore
+// whichever field doesn't fit and snap to the others — so a wrong ZIP with a
+// right city (or vice versa) was passing before. Here:
+//  1) ZIP and città are checked against EACH OTHER via two separate
+//     single-field lookups (ZIP alone, city alone) — if they don't agree,
+//     we can tell which one is the real place and which is the typo.
+//  2) Only once ZIP/città are confirmed consistent do we check the street
+//     itself exists there. A typo'd street reliably returns zero results
+//     from Nominatim (no silent "close enough" snapping at this level).
+// Fails OPEN on our own network/API errors — an outage on our side must
+// never block a legitimate order — but reports those via notifyAdminError.
 async function verifyAddressPlausible(form){
-  const norm=s=>(s||'').toUpperCase().normalize('NFKD').replace(/[^\w\s]/g,'').trim();
   try{
-    const url='https://nominatim.openstreetmap.org/search?'+
+    const capUrl='https://nominatim.openstreetmap.org/search?postalcode='+encodeURIComponent(form.zip)+
+      '&countrycodes='+form.natCode.toLowerCase()+'&format=json&addressdetails=1&limit=1';
+    const capRes=await fetch(capUrl,{headers:{'Accept-Language':'en'}});
+    if(!capRes.ok) throw new Error('HTTP '+capRes.status);
+    const capData=await capRes.json();
+    const capHit=capData.length?capData[0]:null;
+
+    const wantCity=normCity(form.city);
+    const capCityOk=!!capHit&&cityCandidates(capHit.address).includes(wantCity);
+
+    if(!capCityOk){
+      const cityUrl='https://nominatim.openstreetmap.org/search?city='+encodeURIComponent(form.city)+
+        '&countrycodes='+form.natCode.toLowerCase()+'&format=json&addressdetails=1&limit=1';
+      const cityRes=await fetch(cityUrl,{headers:{'Accept-Language':'en'}});
+      const cityData=cityRes.ok?await cityRes.json():[];
+      const cityHit=cityData.length?cityData[0]:null;
+
+      let suggestion=null;
+      if(cityHit&&cityHit.address.postcode){
+        // The typed city IS a real place — the ZIP is the likely mistake.
+        suggestion={
+          address:form.address.toUpperCase(), zip:normZip(cityHit.address.postcode),
+          city:form.city.toUpperCase(),
+          province:(cityHit.address.county||cityHit.address.state_district||form.province).toUpperCase(),
+          state:(cityHit.address.state||form.state).toUpperCase(),
+        };
+      }else if(capHit){
+        // The ZIP resolves fine, but the typed city doesn't exist as such —
+        // the CITY is the likely mistake.
+        const a=capHit.address;
+        const label=a.city||a.town||a.village||a.hamlet||a.municipality||form.city;
+        suggestion={
+          address:form.address.toUpperCase(), zip:normZip(form.zip),
+          city:label.toUpperCase(),
+          province:(a.county||a.state_district||form.province).toUpperCase(),
+          state:(a.state||form.state).toUpperCase(),
+        };
+      }
+      return {ok:false,reason:'cap-city-mismatch',suggestion};
+    }
+
+    const streetUrl='https://nominatim.openstreetmap.org/search?'+
       'street='+encodeURIComponent(form.address)+
       '&postalcode='+encodeURIComponent(form.zip)+
       '&city='+encodeURIComponent(form.city)+
-      '&state='+encodeURIComponent(form.province||form.state)+
       '&countrycodes='+form.natCode.toLowerCase()+
-      '&format=json&addressdetails=1&limit=1';
-    const r=await fetch(url,{headers:{'Accept-Language':'en'}});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data=await r.json();
-    if(!data.length) return {ok:false,reason:'not-found',suggestion:await findAddressSuggestion(form)};
-    const a=data[0].address||{};
-    const gotCity=norm(a.municipality||a.city||a.town||a.village||a.hamlet);
-    const gotZip=(a.postcode||'').replace(/\s/g,'').toUpperCase();
-    const wantCity=norm(form.city);
-    const wantZip=(form.zip||'').replace(/\s/g,'').toUpperCase();
-    const cityMatch=!!gotCity&&!!wantCity&&(gotCity.includes(wantCity)||wantCity.includes(gotCity));
-    const zipMatch=!!gotZip&&!!wantZip&&(gotZip===wantZip||gotZip.startsWith(wantZip)||wantZip.startsWith(gotZip));
-    if(cityMatch||zipMatch) return {ok:true};
-    return {ok:false,reason:'mismatch',suggestion:await findAddressSuggestion(form)};
+      '&format=json&limit=1';
+    const streetRes=await fetch(streetUrl,{headers:{'Accept-Language':'en'}});
+    if(!streetRes.ok) throw new Error('HTTP '+streetRes.status);
+    const streetData=await streetRes.json();
+    if(streetData.length) return {ok:true};
+
+    return {ok:false,reason:'street-not-found',suggestion:await findAddressSuggestion(form)};
   }catch(e){
     notifyAdminError('address-verify-failed',{form,error:String(e&&e.message||e)});
     return {ok:true,reason:'network-error'};
