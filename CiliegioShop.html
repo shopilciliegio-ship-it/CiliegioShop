@@ -584,6 +584,10 @@ const I18N = {
       mobile:'Mobile Number', mobilePh:'+1 234 567 8900',
       email:'Email Address', emailUserPh:'username', emailDomainPh:'provider.com',
       emailFormatErr:'⚠️ Use format: gmail.com or provider.it',
+      checking:'Verifying address…',
+      addrWarnMsg:"⚠️ We couldn't verify this address online. Please double-check street, ZIP code, city and region before continuing.",
+      addrWarnFix:'Fix address', addrWarnConfirm:'Yes, the data is correct — continue anyway',
+      addrSuggestLabel:'Did you mean:', addrSuggestUse:'Use this address',
       continue:'Continue to Summary',
     },
     summary:{
@@ -689,6 +693,10 @@ const I18N = {
       mobile:'Numero di cellulare', mobilePh:'+39 333 1234567',
       email:'Indirizzo email', emailUserPh:'nomeutente', emailDomainPh:'provider.it',
       emailFormatErr:'⚠️ Usa il formato: gmail.com o provider.it',
+      checking:'Verifica indirizzo…',
+      addrWarnMsg:"⚠️ Non siamo riusciti a verificare questo indirizzo online. Controlla via, CAP, città e regione prima di continuare.",
+      addrWarnFix:'Correggi indirizzo', addrWarnConfirm:'Sì, i dati sono corretti — procedi comunque',
+      addrSuggestLabel:'Forse intendevi:', addrSuggestUse:'Usa questo indirizzo',
       continue:'Continua al riepilogo',
     },
     summary:{
@@ -794,6 +802,10 @@ const I18N = {
       mobile:'Mobiltelefonnummer', mobilePh:'+49 151 23456789',
       email:'E-Mail-Adresse', emailUserPh:'benutzername', emailDomainPh:'anbieter.de',
       emailFormatErr:'⚠️ Format verwenden: gmail.com oder anbieter.de',
+      checking:'Adresse wird überprüft…',
+      addrWarnMsg:'⚠️ Wir konnten diese Adresse online nicht verifizieren. Bitte überprüfen Sie Straße, Postleitzahl, Stadt und Region, bevor Sie fortfahren.',
+      addrWarnFix:'Adresse korrigieren', addrWarnConfirm:'Ja, die Angaben sind korrekt — trotzdem fortfahren',
+      addrSuggestLabel:'Meinten Sie:', addrSuggestUse:'Diese Adresse verwenden',
       continue:'Weiter zur Übersicht',
     },
     summary:{
@@ -899,6 +911,10 @@ const I18N = {
       mobile:'Numéro de portable', mobilePh:'+33 6 12 34 56 78',
       email:'Adresse email', emailUserPh:"nom d'utilisateur", emailDomainPh:'fournisseur.fr',
       emailFormatErr:'⚠️ Utilisez le format : gmail.com ou fournisseur.fr',
+      checking:'Vérification de l’adresse…',
+      addrWarnMsg:"⚠️ Nous n'avons pas pu vérifier cette adresse en ligne. Merci de revérifier la rue, le code postal, la ville et la région avant de continuer.",
+      addrWarnFix:"Corriger l'adresse", addrWarnConfirm:'Oui, les données sont correctes — continuer quand même',
+      addrSuggestLabel:'Vouliez-vous dire :', addrSuggestUse:'Utiliser cette adresse',
       continue:'Continuer vers le récapitulatif',
     },
     summary:{
@@ -1004,6 +1020,10 @@ const I18N = {
       mobile:'Número de móvil', mobilePh:'+34 612 345 678',
       email:'Correo electrónico', emailUserPh:'usuario', emailDomainPh:'proveedor.es',
       emailFormatErr:'⚠️ Usa el formato: gmail.com o proveedor.es',
+      checking:'Verificando dirección…',
+      addrWarnMsg:'⚠️ No pudimos verificar esta dirección en línea. Comprueba calle, código postal, ciudad y región antes de continuar.',
+      addrWarnFix:'Corregir dirección', addrWarnConfirm:'Sí, los datos son correctos — continuar de todos modos',
+      addrSuggestLabel:'¿Quisiste decir:', addrSuggestUse:'Usar esta dirección',
       continue:'Continuar al resumen',
     },
     summary:{
@@ -1116,6 +1136,124 @@ function rateKey(code,speed,wine){
 }
 function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 function filled(v){ return !!(v&&v.trim()); }
+
+// Fire-and-forget admin alert for lookups that fail silently to the customer
+// (network errors, unexpected API shape) so they show up somewhere instead of
+// only in a browser console nobody reads.
+function notifyAdminError(context,details){
+  try{
+    fetch('/.netlify/functions/notify-error',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({context,details,url:location.href,ts:new Date().toISOString()})
+    }).catch(()=>{});
+  }catch(_){}
+}
+
+// Forward-checks that street+zip+city+region, taken together, resolve to a
+// real place on OpenStreetMap. Catches the "garbled address" case that
+// filled() (empty-check only) and the zip→city autofill (freely overwritable
+// by the customer) both miss. Fails OPEN on our own network/API errors —
+// an outage on our side must never block a legitimate order — but reports
+// those failures via notifyAdminError so they don't vanish silently.
+async function verifyAddressPlausible(form){
+  const norm=s=>(s||'').toUpperCase().normalize('NFKD').replace(/[^\w\s]/g,'').trim();
+  try{
+    const url='https://nominatim.openstreetmap.org/search?'+
+      'street='+encodeURIComponent(form.address)+
+      '&postalcode='+encodeURIComponent(form.zip)+
+      '&city='+encodeURIComponent(form.city)+
+      '&state='+encodeURIComponent(form.province||form.state)+
+      '&countrycodes='+form.natCode.toLowerCase()+
+      '&format=json&addressdetails=1&limit=1';
+    const r=await fetch(url,{headers:{'Accept-Language':'en'}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    if(!data.length) return {ok:false,reason:'not-found',suggestion:await findAddressSuggestion(form)};
+    const a=data[0].address||{};
+    const gotCity=norm(a.municipality||a.city||a.town||a.village||a.hamlet);
+    const gotZip=(a.postcode||'').replace(/\s/g,'').toUpperCase();
+    const wantCity=norm(form.city);
+    const wantZip=(form.zip||'').replace(/\s/g,'').toUpperCase();
+    const cityMatch=!!gotCity&&!!wantCity&&(gotCity.includes(wantCity)||wantCity.includes(gotCity));
+    const zipMatch=!!gotZip&&!!wantZip&&(gotZip===wantZip||gotZip.startsWith(wantZip)||wantZip.startsWith(gotZip));
+    if(cityMatch||zipMatch) return {ok:true};
+    return {ok:false,reason:'mismatch',suggestion:await findAddressSuggestion(form)};
+  }catch(e){
+    notifyAdminError('address-verify-failed',{form,error:String(e&&e.message||e)});
+    return {ok:true,reason:'network-error'};
+  }
+}
+
+function normStreetWord(s){
+  return (s||'').toUpperCase().normalize('NFKD').replace(/[^A-Z0-9\s]/g,'')
+    .replace(/\b(VIA|VIALE|PIAZZA|PIAZZALE|CORSO|VICOLO|STRADA|LARGO|LOCALITA|FRAZIONE|LOC)\b/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+function levenshtein(a,b){
+  const m=a.length,n=b.length;
+  const d=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) d[i][0]=i;
+  for(let j=0;j<=n;j++) d[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[m][n];
+}
+function streetSimilarity(a,b){
+  a=normStreetWord(a); b=normStreetWord(b);
+  if(!a||!b) return 0;
+  return 1-levenshtein(a,b)/Math.max(a.length,b.length);
+}
+
+// "Did you mean" — only called once the strict check above has already
+// failed. Geocodes the typed city for a location bias, then asks Photon
+// (OSM-based, typo-tolerant, free/no-key) for nearby streets. A candidate is
+// only proposed if BOTH its city matches what the customer typed AND its
+// street name is a close match — plain fuzzy-search noise (a same-named
+// street in a different region) is rejected rather than guessed at.
+async function findAddressSuggestion(form){
+  try{
+    const cUrl='https://nominatim.openstreetmap.org/search?city='+encodeURIComponent(form.city)+
+      '&countrycodes='+form.natCode.toLowerCase()+'&format=json&addressdetails=1&limit=1';
+    const cRes=await fetch(cUrl,{headers:{'Accept-Language':'en'}});
+    if(!cRes.ok) return null;
+    const cData=await cRes.json();
+    if(!cData.length) return null;
+    const cHit=cData[0];
+
+    const m=form.address.trim().match(/^(.*?)[,]?\s*(\d+[A-Za-z]?)\s*$/);
+    const streetPart=m?m[1].trim():form.address.trim();
+    const houseNo=m?m[2]:'';
+
+    const pUrl='https://photon.komoot.io/api/?q='+encodeURIComponent(streetPart)+
+      '&limit=10&osm_tag=highway&lat='+cHit.lat+'&lon='+cHit.lon+'&zoom=14&location_bias_scale=0.9';
+    const pRes=await fetch(pUrl);
+    if(!pRes.ok) return null;
+    const pData=await pRes.json();
+    const cands=(pData.features||[]).map(f=>f.properties).filter(p=>p.name||p.street);
+
+    const wantCity=normStreetWord(form.city);
+    let best=null,bestScore=-1;
+    cands.forEach(p=>{
+      const name=p.name||p.street||'';
+      const cityMatch=normStreetWord(p.city||'')===wantCity;
+      const sim=streetSimilarity(streetPart,name);
+      if(cityMatch&&sim>=0.55&&sim>bestScore){ bestScore=sim; best={...p,name}; }
+    });
+    if(!best) return null;
+
+    return {
+      address:(best.name+(houseNo?(' '+houseNo):'')).toUpperCase(),
+      zip:(best.postcode||form.zip).toUpperCase(),
+      city:(best.city||form.city).toUpperCase(),
+      province:(best.county||best.state_district||form.province).toUpperCase(),
+      state:(best.state||form.state).toUpperCase(),
+    };
+  }catch(e){
+    notifyAdminError('address-suggestion-failed',{form,error:String(e&&e.message||e)});
+    return null;
+  }
+}
 
 // Restituisce la label dello scaglione applicato — es. "(4–6 pieces)"
 function tierLabel(qty,lang){
@@ -1477,7 +1615,11 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
   const L = I18N[lang];
   const [showNat,setShowNat] = useState(false);
   const [domErr,setDomErr]   = useState(false);
+  const [checking,setChecking] = useState(false);
+  const [addrWarn,setAddrWarn] = useState(null);
   const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
+
+  useEffect(()=>{ setAddrWarn(null); },[form.address,form.zip,form.city,form.province,form.state]);
 
   const pickCountry=(c)=>{
     setForm({...BLANK,nationality:c.name,natCode:c.code,mobile:c.prefix+' '});
@@ -1509,12 +1651,27 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
       const province=(a.county||a.state_district||a.region||'').toUpperCase();
       const region=(a.state||'').toUpperCase();
       setForm(f=>({...f,city,province,state:region}));
-    }catch(_){}
+    }catch(e){ notifyAdminError('zip-autofill-failed',{zip:z,natCode:form.natCode,error:String(e&&e.message||e)}); }
   };
 
   const ok=filled(form.nationality)&&filled(form.name)&&filled(form.surname)&&filled(form.address)&&
     filled(form.zip)&&filled(form.city)&&filled(form.province)&&filled(form.state)&&
     filled(form.mobile)&&filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain);
+
+  const handleNext=async()=>{
+    if(addrWarn){ onNext(); return; }
+    setChecking(true);
+    const res=await verifyAddressPlausible(form);
+    setChecking(false);
+    if(res.ok) onNext(); else setAddrWarn(res);
+  };
+
+  const applySuggestion=()=>{
+    const s=addrWarn&&addrWarn.suggestion;
+    if(!s) return;
+    setForm(f=>({...f,address:s.address,zip:s.zip,city:s.city,province:s.province,state:s.state}));
+    setAddrWarn(null);
+  };
 
   return(
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
@@ -1613,10 +1770,38 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
         </div>
       </div>
 
-      <button onClick={onNext} disabled={!ok}
+      {addrWarn&&
+        <div className="mt-6 p-3 rounded border border-yellow-700 bg-yellow-950">
+          <p className="text-xs text-yellow-300 mb-3">{L.form.addrWarnMsg}</p>
+          {addrWarn.suggestion&&
+            <div className="mb-3 p-2 rounded bg-black/30 border border-yellow-800">
+              <p className="text-xs text-gray-400 mb-1">{L.form.addrSuggestLabel}</p>
+              <p className="text-sm font-bold text-yellow-200 mb-2">
+                {addrWarn.suggestion.address}<br/>
+                {addrWarn.suggestion.zip} {addrWarn.suggestion.city}<br/>
+                {addrWarn.suggestion.state}{addrWarn.suggestion.province&&addrWarn.suggestion.province!==addrWarn.suggestion.state?' ('+addrWarn.suggestion.province+')':''}
+              </p>
+              <button onClick={applySuggestion}
+                className="w-full p-2 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">
+                {L.form.addrSuggestUse}
+              </button>
+            </div>}
+          <div className="flex gap-3">
+            <button onClick={()=>setAddrWarn(null)}
+              className="flex-1 p-2 rounded border border-yellow-700 text-yellow-300 hover:bg-yellow-900 uppercase font-bold text-xs tracking-widest">
+              {L.form.addrWarnFix}
+            </button>
+            <button onClick={onNext}
+              className="flex-1 p-2 rounded border border-yellow-700 text-yellow-300 hover:bg-yellow-900 uppercase font-bold text-xs tracking-widest">
+              {L.form.addrWarnConfirm}
+            </button>
+          </div>
+        </div>}
+
+      <button onClick={handleNext} disabled={!ok||checking}
         className={`w-full mt-8 p-4 rounded font-bold uppercase tracking-widest transition-all
-          ${ok?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-        {L.form.continue}
+          ${ok&&!checking?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+        {checking?L.form.checking:L.form.continue}
       </button>
     </div>
   );
@@ -1627,7 +1812,11 @@ function DestFormStep({form,setForm,natTxt,setNat,onBack,onNext,lang}){
   const L = I18N[lang];
   const [showNat,setShowNat] = useState(false);
   const [domErr,setDomErr]   = useState(false);
+  const [checking,setChecking] = useState(false);
+  const [addrWarn,setAddrWarn] = useState(null);
   const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
+
+  useEffect(()=>{ setAddrWarn(null); },[form.address,form.zip,form.city,form.province,form.state]);
 
   const pickCountry=(c)=>{
     setForm({...BLANK,nationality:c.name,natCode:c.code,mobile:c.prefix+' '});
@@ -1659,12 +1848,27 @@ function DestFormStep({form,setForm,natTxt,setNat,onBack,onNext,lang}){
       const province=(a.county||a.state_district||a.region||'').toUpperCase();
       const region=(a.state||'').toUpperCase();
       setForm(f=>({...f,city,province,state:region}));
-    }catch(_){}
+    }catch(e){ notifyAdminError('zip-autofill-failed',{zip:z,natCode:form.natCode,error:String(e&&e.message||e)}); }
   };
 
   const ok=filled(form.nationality)&&filled(form.name)&&filled(form.surname)&&filled(form.address)&&
     filled(form.zip)&&filled(form.city)&&filled(form.province)&&filled(form.state)&&filled(form.mobile)&&
     filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain);
+
+  const handleNext=async()=>{
+    if(addrWarn){ onNext(); return; }
+    setChecking(true);
+    const res=await verifyAddressPlausible(form);
+    setChecking(false);
+    if(res.ok) onNext(); else setAddrWarn(res);
+  };
+
+  const applySuggestion=()=>{
+    const s=addrWarn&&addrWarn.suggestion;
+    if(!s) return;
+    setForm(f=>({...f,address:s.address,zip:s.zip,city:s.city,province:s.province,state:s.state}));
+    setAddrWarn(null);
+  };
 
   return(
     <div className="bg-dark p-6 rounded-lg border gold-border shadow-lg shadow-yellow-900/20">
@@ -1755,15 +1959,43 @@ function DestFormStep({form,setForm,natTxt,setNat,onBack,onNext,lang}){
         </div>
       </div>
 
+      {addrWarn&&
+        <div className="mt-6 p-3 rounded border border-yellow-700 bg-yellow-950">
+          <p className="text-xs text-yellow-300 mb-3">{L.form.addrWarnMsg}</p>
+          {addrWarn.suggestion&&
+            <div className="mb-3 p-2 rounded bg-black/30 border border-yellow-800">
+              <p className="text-xs text-gray-400 mb-1">{L.form.addrSuggestLabel}</p>
+              <p className="text-sm font-bold text-yellow-200 mb-2">
+                {addrWarn.suggestion.address}<br/>
+                {addrWarn.suggestion.zip} {addrWarn.suggestion.city}<br/>
+                {addrWarn.suggestion.state}{addrWarn.suggestion.province&&addrWarn.suggestion.province!==addrWarn.suggestion.state?' ('+addrWarn.suggestion.province+')':''}
+              </p>
+              <button onClick={applySuggestion}
+                className="w-full p-2 rounded gold-bg hover:bg-yellow-600 uppercase font-bold text-xs tracking-widest">
+                {L.form.addrSuggestUse}
+              </button>
+            </div>}
+          <div className="flex gap-3">
+            <button onClick={()=>setAddrWarn(null)}
+              className="flex-1 p-2 rounded border border-yellow-700 text-yellow-300 hover:bg-yellow-900 uppercase font-bold text-xs tracking-widest">
+              {L.form.addrWarnFix}
+            </button>
+            <button onClick={onNext}
+              className="flex-1 p-2 rounded border border-yellow-700 text-yellow-300 hover:bg-yellow-900 uppercase font-bold text-xs tracking-widest">
+              {L.form.addrWarnConfirm}
+            </button>
+          </div>
+        </div>}
+
       <div className="flex gap-4 mt-8">
         <button onClick={onBack}
           className="flex-1 p-4 rounded border gold-border gold-text hover:bg-[#D4AF37] hover:text-black uppercase font-bold text-xs tracking-widest">
           {L.summary.edit}
         </button>
-        <button onClick={onNext} disabled={!ok}
+        <button onClick={handleNext} disabled={!ok||checking}
           className={`flex-1 p-4 rounded font-bold uppercase tracking-widest transition-all
-            ${ok?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-          {L.form.continue}
+            ${ok&&!checking?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+          {checking?L.form.checking:L.form.continue}
         </button>
       </div>
     </div>
