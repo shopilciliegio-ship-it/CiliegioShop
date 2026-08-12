@@ -2,9 +2,11 @@
   publish = "."
   functions = "netlify/functions"
 
+# /wineclub non sblocca più automaticamente il modulo Wine Club:
+# la visibilità ora dipende solo dal login staff (Admin/Admin02 o Luca/Luca02).
 [[redirects]]
   from = "/wineclub"
-  to = "/CiliegioShop.html?club=1"
+  to = "/CiliegioShop.html"
   status = 200
 
 [[redirects]]
