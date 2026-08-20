@@ -639,7 +639,9 @@ const I18N = {
         thanks:'Thank you for choosing', brand:'IL CILIEGIO!',
         completed:'Your order has been completed.',
         choosePayment:'Please proceed to the payment of your order using one of the options below:',
+        choosePaymentQuote:"We don't have a shipping rate for your country yet. Send your order request now — no payment required. We'll check feasibility and contact you by email with a shipping quote and payment link.",
         sendWA:'📲 Send Order via WhatsApp', payCard:'💳 Pay by Card', payPaypal:'🅿️ PayPal (+5% comm.)',
+        sendQuote:'📩 Send Order Request (no payment)',
         goBack:'← Go Back',
       },
       dutyWarn:{goBack:'← Go Back', understand:'I understand →'},
@@ -748,7 +750,9 @@ const I18N = {
         thanks:'Grazie per aver scelto', brand:'IL CILIEGIO!',
         completed:'Il tuo ordine è stato completato.',
         choosePayment:"Procedi al pagamento del tuo ordine usando una delle opzioni qui sotto:",
+        choosePaymentQuote:"Non abbiamo ancora una tariffa di spedizione per il tuo paese. Invia subito la tua richiesta d'ordine — nessun pagamento richiesto ora. Verificheremo la fattibilità e ti contatteremo via email con il preventivo di spedizione e il link per pagare.",
         sendWA:"📲 Invia l'ordine via WhatsApp", payCard:'💳 Paga con carta', payPaypal:'🅿️ PayPal (+5% comm.)',
+        sendQuote:"📩 Invia richiesta d'ordine (senza pagamento)",
         goBack:'← Torna indietro',
       },
       dutyWarn:{goBack:'← Torna indietro', understand:'Ho capito →'},
@@ -857,7 +861,9 @@ const I18N = {
         thanks:'Danke, dass Sie sich für', brand:'IL CILIEGIO entschieden haben!',
         completed:'Ihre Bestellung wurde abgeschlossen.',
         choosePayment:'Bitte fahren Sie mit der Zahlung Ihrer Bestellung fort, indem Sie eine der folgenden Optionen wählen:',
+        choosePaymentQuote:'Für Ihr Land liegt uns noch kein Versandtarif vor. Senden Sie jetzt Ihre Bestellanfrage — keine Zahlung erforderlich. Wir prüfen die Machbarkeit und melden uns per E-Mail mit einem Versandangebot und Zahlungslink.',
         sendWA:'📲 Bestellung per WhatsApp senden', payCard:'💳 Mit Karte zahlen', payPaypal:'🅿️ PayPal (+5% Gebühr)',
+        sendQuote:'📩 Bestellanfrage senden (ohne Zahlung)',
         goBack:'← Zurück',
       },
       dutyWarn:{goBack:'← Zurück', understand:'Verstanden →'},
@@ -966,7 +972,9 @@ const I18N = {
         thanks:"Merci d'avoir choisi", brand:'IL CILIEGIO !',
         completed:'Votre commande a été finalisée.',
         choosePayment:'Veuillez procéder au paiement de votre commande en utilisant une des options ci-dessous :',
+        choosePaymentQuote:"Nous n'avons pas encore de tarif de livraison pour votre pays. Envoyez votre demande de commande dès maintenant — aucun paiement requis. Nous vérifierons la faisabilité et vous contacterons par email avec un devis de livraison et un lien de paiement.",
         sendWA:'📲 Envoyer la commande via WhatsApp', payCard:'💳 Payer par carte', payPaypal:'🅿️ PayPal (+5% de frais)',
+        sendQuote:'📩 Envoyer la demande (sans paiement)',
         goBack:'← Retour',
       },
       dutyWarn:{goBack:'← Retour', understand:'Compris →'},
@@ -1075,7 +1083,9 @@ const I18N = {
         thanks:'Gracias por elegir', brand:'¡IL CILIEGIO!',
         completed:'Tu pedido se ha completado.',
         choosePayment:'Procede al pago de tu pedido usando una de las opciones a continuación:',
+        choosePaymentQuote:'Todavía no tenemos una tarifa de envío para tu país. Envía tu solicitud de pedido ahora — no se requiere pago. Verificaremos la viabilidad y te contactaremos por correo con un presupuesto de envío y un enlace de pago.',
         sendWA:'📲 Enviar pedido por WhatsApp', payCard:'💳 Pagar con tarjeta', payPaypal:'🅿️ PayPal (+5% comisión)',
+        sendQuote:'📩 Enviar solicitud (sin pago)',
         goBack:'← Volver',
       },
       dutyWarn:{goBack:'← Volver', understand:'Entendido →'},
@@ -1484,6 +1494,45 @@ function App(){
     window.open(`https://wa.me/${window.CFG.whatsapp}?text=${m}`,'_blank');
     if(isVendita) sendVenditaEmail();
   };
+  // Country has no shipping.json entry (aRate null): let the customer submit the
+  // order without paying, notify us by email/WhatsApp, and we follow up manually
+  // by email or pay-by-link once we've checked whether shipping is feasible.
+  const sendQuoteEmail=()=>{
+    const _shipAddr=useDestForm?destForm:form;
+    const stateAbbr=_shipAddr.province&&_shipAddr.state&&_shipAddr.province!==_shipAddr.state?' ('+_shipAddr.province+')':'';
+    var prodLines=cart.map(function(i){var n=i.name.length>38?i.name.substring(0,38)+'..':i.name;return i.qty+'x '+n+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|');
+    var totalLines='Products Total: €'+prod.toFixed(2);
+    if(discount>0) totalLines+='|'+(activePromo&&activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Discount (5%)')+': -€'+discount.toFixed(2);
+    if(duty>0) totalLines+='|Import Duties (10%): €'+duty.toFixed(2);
+    totalLines+='|Shipping: to be quoted';
+    totalLines+='|ESTIMATED TOTAL (excl. shipping): €'+discounted.toFixed(2);
+    fetch('/.netlify/functions/create-notification',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:'checkout.session.completed',
+        data:{object:{
+          metadata:{
+            customer_name:form.name+' '+form.surname,
+            customer_email:form.emailUser+'@'+form.emailDomain,
+            customer_phone:form.mobile,
+            customer_address:_shipAddr.address+', '+_shipAddr.zip+' '+_shipAddr.city+', '+_shipAddr.state+stateAbbr,
+            order_products:prodLines.substring(0,490),
+            order_totals:totalLines.substring(0,490),
+            payment_method:'quote_request',
+            promo_code: activePromo ? activePromo.code : ''
+          },
+          customer_email:form.emailUser+'@'+form.emailDomain,
+          amount_total:0,
+          currency:'eur'
+        }}
+      })
+    }).catch(function(){});
+  };
+  const sendQuoteRequest=()=>{
+    if(typeof gtag!=='undefined') gtag('event','order_sent',{event_category:'order',event_label:'QuoteRequest',value:Math.round(discounted),currency:'EUR',items_count:qty,nationality:form.natCode});
+    sendQuoteEmail();
+  };
   const getMailtoUrl=()=>{
     const NL=String.fromCharCode(10);
     const subj=encodeURIComponent('New Order - '+form.name+' '+form.surname+' ('+form.nationality+')');
@@ -1648,7 +1697,7 @@ function App(){
         {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart} lang={lang}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
-          totals={totals} onSend={handleSendOrder} onDirectSend={sendWA} onEmail={sendEmail} onSMS={sendSMS} onStripe={goToStripe} getMailtoUrl={getMailtoUrl} isVendita={isVendita} natCode={shipForm.natCode} province={shipForm.province} state={shipForm.state}
+          totals={totals} onSend={handleSendOrder} onDirectSend={sendWA} onEmail={sendEmail} onSMS={sendSMS} onStripe={goToStripe} onQuoteRequest={sendQuoteRequest} getMailtoUrl={getMailtoUrl} isVendita={isVendita} natCode={shipForm.natCode} province={shipForm.province} state={shipForm.state}
           resetCart={()=>{setCart([]);setGiftChoice(null);setShowGiftPopup(false);setActivePromo(null);}}
           giftChoice={giftChoice} setGiftChoice={setGiftChoice}
           showGiftPopup={showGiftPopup} setShowGiftPopup={setShowGiftPopup}
@@ -2459,9 +2508,10 @@ function WineClubSignupStep({form,ship,lang,onBack}){
 
 /* ── CatalogStep ───────────────────────────────────────────── */
 function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
-  aRate,aKey,hasDuty,dl,totals,onSend,onDirectSend,onEmail,onSMS,onStripe,getMailtoUrl,isVendita,natCode,province,state,
+  aRate,aKey,hasDuty,dl,totals,onSend,onDirectSend,onEmail,onSMS,onStripe,onQuoteRequest,getMailtoUrl,isVendita,natCode,province,state,
   resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup,activePromo,setActivePromo,lang}){
   const L = I18N[lang];
+  const noRate = totals.qty>0 && !aRate;
 
   const [tab,setTab]         = useState('ALL');
   const [cartErr,setCartErr] = useState('');
@@ -2652,7 +2702,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     if(getDutyWarning){setShowDutyWarn(true);}
     else{setShowOrderPopup(true);}
   };
-  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onDirectSend:onDirectSend,onEmail:handleEmail,onSMS:onSMS,onStripe:onStripe,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate:totals.qty>0&&!aRate,natCode,lang,
+  const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onDirectSend:onDirectSend,onEmail:handleEmail,onSMS:onSMS,onStripe:onStripe,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate,natCode,lang,
     activePromo,promoInput,setPromoInput,promoMsg,promoLoading,onApplyPromo:applyPromoCode,onRemovePromo:removePromo};
 
   const handleGiftYes = () => {
@@ -2689,23 +2739,29 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
             <p className="text-gray-300 mb-4" style={{fontSize:'12px',lineHeight:'1.8'}}>
               {L.catalog.orderPopup.completed}
             </p>
-            <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>{L.catalog.orderPopup.choosePayment}</p>
+            <p className="gold-text mb-4" style={{fontSize:'11px',fontStyle:'italic'}}>
+              {!isVendita&&noRate ? L.catalog.orderPopup.choosePaymentQuote : L.catalog.orderPopup.choosePayment}
+            </p>
             {isVendita
               ? <button onClick={()=>{setShowOrderPopup(false);onDirectSend();}}
                   className="w-full p-3 rounded font-bold uppercase bg-green-600 hover:bg-green-500 text-white transition mb-2"
                   style={{fontSize:'13px'}}>{L.catalog.orderPopup.sendWA}</button>
-              : <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
-                  <button onClick={()=>{setShowOrderPopup(false);onStripe('card');}}
-                    className="flex-1 p-3 rounded font-bold uppercase transition"
-                    style={{fontSize:'11px',background:'#635BFF',color:'#fff',border:'none'}}>
-                    {L.catalog.orderPopup.payCard}
-                  </button>
-                  <button onClick={()=>{setShowOrderPopup(false);onStripe('paypal');}}
-                    className="flex-1 p-3 rounded font-bold uppercase transition"
-                    style={{fontSize:'11px',background:'#003087',color:'#fff',border:'none'}}>
-                    {L.catalog.orderPopup.payPaypal}
-                  </button>
-                </div>
+              : noRate
+                ? <button onClick={()=>{setShowOrderPopup(false);onQuoteRequest();}}
+                    className="w-full p-3 rounded font-bold uppercase bg-green-600 hover:bg-green-500 text-white transition mb-2"
+                    style={{fontSize:'13px'}}>{L.catalog.orderPopup.sendQuote}</button>
+                : <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
+                    <button onClick={()=>{setShowOrderPopup(false);onStripe('card');}}
+                      className="flex-1 p-3 rounded font-bold uppercase transition"
+                      style={{fontSize:'11px',background:'#635BFF',color:'#fff',border:'none'}}>
+                      {L.catalog.orderPopup.payCard}
+                    </button>
+                    <button onClick={()=>{setShowOrderPopup(false);onStripe('paypal');}}
+                      className="flex-1 p-3 rounded font-bold uppercase transition"
+                      style={{fontSize:'11px',background:'#003087',color:'#fff',border:'none'}}>
+                      {L.catalog.orderPopup.payPaypal}
+                    </button>
+                  </div>
             }
 
             <button onClick={()=>setShowOrderPopup(false)}

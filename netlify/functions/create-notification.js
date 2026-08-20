@@ -50,7 +50,7 @@ function verifyStripeSignature(payload, sig, secret) {
   } catch(e) { return false; }
 }
 
-function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals) {
+function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote) {
   var gold = '#D4AF37';
 
   var products = orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [];
@@ -61,18 +61,24 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     '<div style="color:#888;font-size:11px;letter-spacing:4px;margin-top:4px">AZIENDA AGRICOLA</div>' +
     '</div>';
 
-  var title = isShop
-    ? '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 4px 0">🍷 New Paid Order</h2>' +
-      '<p style="color:#666;font-size:12px;margin:0 0 20px 0">This order has been paid — please prepare and ship it.</p>'
-    : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
-      '<p style="color:#555;font-size:13px;margin:0 0 20px 0">Your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed. We will contact you shortly to arrange shipping.</p>';
+  var title = isQuote
+    ? (isShop
+        ? '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 4px 0">🔔 New Order Request — No Payment Yet</h2>' +
+          '<p style="color:#666;font-size:12px;margin:0 0 20px 0">We have no shipping rate for this country. Check feasibility, then contact the customer with a quote and a payment link.</p>'
+        : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
+          '<p style="color:#555;font-size:13px;margin:0 0 20px 0">We received your order request. <strong>No payment has been taken.</strong> We will check whether we can ship to your address and contact you shortly with a shipping quote and a payment link.</p>')
+    : isShop
+      ? '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 4px 0">🍷 New Paid Order</h2>' +
+        '<p style="color:#666;font-size:12px;margin:0 0 20px 0">This order has been paid — please prepare and ship it.</p>'
+      : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
+        '<p style="color:#555;font-size:13px;margin:0 0 20px 0">Your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed. We will contact you shortly to arrange shipping.</p>';
 
   var customerRows =
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Email</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
     (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
     (customerAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerAddress + '</td></tr>' : '') +
-    '<tr><td style="padding:6px 12px;font-size:13px"><strong>Payment</strong></td><td style="padding:6px 12px;font-size:13px">✅ ' + paymentLabel + '</td></tr>';
+    '<tr><td style="padding:6px 12px;font-size:13px"><strong>Payment</strong></td><td style="padding:6px 12px;font-size:13px">' + (isQuote ? '⏳ ' : '✅ ') + paymentLabel + '</td></tr>';
 
   var productRows = products.map(function(p) {
     return '<tr><td style="padding:7px 12px;font-size:13px;border-bottom:1px solid #f5f5f5">' + p + '</td></tr>';
@@ -376,25 +382,35 @@ exports.handler = async (event) => {
     const orderTotals     = m.order_totals     || '';
     const paymentMethod   = m.payment_method   || 'card';
     const promoCode       = m.promo_code       || '';
+    const isQuoteRequest  = paymentMethod === 'quote_request';
     const amount          = (s.amount_total / 100).toFixed(2);
     const currency        = (s.currency || 'eur').toUpperCase();
-    const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : 'Credit Card';
+    const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : isQuoteRequest ? 'Quote Requested (Not Paid)' : 'Credit Card';
 
-    await consumePromo(promoCode);
+    // Quote requests haven't been paid yet, so the promo isn't consumed here —
+    // it will be consumed at actual checkout once we send the customer a payment link.
+    if (!isQuoteRequest) await consumePromo(promoCode);
 
-    const subjectShop     = '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
-    const subjectCustomer = '🍷 Order confirmed — Il Ciliegio Shop';
+    const subjectShop     = isQuoteRequest
+      ? '🔔 Order Request (no rate yet) — ' + customerName
+      : '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
+    const subjectCustomer = isQuoteRequest
+      ? '🍷 Order request received — Il Ciliegio Shop'
+      : '🍷 Order confirmed — Il Ciliegio Shop';
 
-    const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals);
-    const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals);
+    const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
+    const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
 
-    // Generate MOS Fieramente PDF attachment
+    // Generate MOS Fieramente PDF attachment — skipped for quote requests since
+    // shipping (and therefore the shipment paperwork) isn't confirmed yet.
     let mosAttachment = null;
-    try {
-      mosAttachment = await buildMosPdf(customerName, customerEmail, customerPhone, customerAddress, orderProducts, orderTotals);
-      console.log('MOS PDF generated:', mosAttachment.name);
-    } catch(e) {
-      console.error('MOS PDF error:', e.message);
+    if (!isQuoteRequest) {
+      try {
+        mosAttachment = await buildMosPdf(customerName, customerEmail, customerPhone, customerAddress, orderProducts, orderTotals);
+        console.log('MOS PDF generated:', mosAttachment.name);
+      } catch(e) {
+        console.error('MOS PDF error:', e.message);
+      }
     }
 
     if (brevoKey) {
