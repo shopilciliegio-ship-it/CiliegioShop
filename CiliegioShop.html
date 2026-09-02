@@ -584,6 +584,7 @@ const I18N = {
       mobile:'Mobile Number', mobilePh:'+1 234 567 8900',
       email:'Email Address', emailUserPh:'username', emailDomainPh:'provider.com',
       emailFormatErr:'⚠️ Use format: gmail.com or provider.it',
+      emailTypoMsg:'Did you mean {d}?', emailTypoFix:'Fix it', emailTypoKeep:"No, it's correct",
       checking:'Verifying address…',
       addrWarnMsg:"⚠️ We couldn't verify this address online. Please double-check street, ZIP code, city and region before continuing.",
       addrWarnFix:'Fix address', addrWarnConfirm:'Yes, the data is correct — continue anyway',
@@ -695,6 +696,7 @@ const I18N = {
       mobile:'Numero di cellulare', mobilePh:'+39 333 1234567',
       email:'Indirizzo email', emailUserPh:'nomeutente', emailDomainPh:'provider.it',
       emailFormatErr:'⚠️ Usa il formato: gmail.com o provider.it',
+      emailTypoMsg:'Forse intendevi {d}?', emailTypoFix:'Correggi', emailTypoKeep:'No, è corretto',
       checking:'Verifica indirizzo…',
       addrWarnMsg:"⚠️ Non siamo riusciti a verificare questo indirizzo online. Controlla via, CAP, città e regione prima di continuare.",
       addrWarnFix:'Correggi indirizzo', addrWarnConfirm:'Sì, i dati sono corretti — procedi comunque',
@@ -806,6 +808,7 @@ const I18N = {
       mobile:'Mobiltelefonnummer', mobilePh:'+49 151 23456789',
       email:'E-Mail-Adresse', emailUserPh:'benutzername', emailDomainPh:'anbieter.de',
       emailFormatErr:'⚠️ Format verwenden: gmail.com oder anbieter.de',
+      emailTypoMsg:'Meinten Sie {d}?', emailTypoFix:'Korrigieren', emailTypoKeep:'Nein, ist richtig',
       checking:'Adresse wird überprüft…',
       addrWarnMsg:'⚠️ Wir konnten diese Adresse online nicht verifizieren. Bitte überprüfen Sie Straße, Postleitzahl, Stadt und Region, bevor Sie fortfahren.',
       addrWarnFix:'Adresse korrigieren', addrWarnConfirm:'Ja, die Angaben sind korrekt — trotzdem fortfahren',
@@ -917,6 +920,7 @@ const I18N = {
       mobile:'Numéro de portable', mobilePh:'+33 6 12 34 56 78',
       email:'Adresse email', emailUserPh:"nom d'utilisateur", emailDomainPh:'fournisseur.fr',
       emailFormatErr:'⚠️ Utilisez le format : gmail.com ou fournisseur.fr',
+      emailTypoMsg:'Vouliez-vous dire {d} ?', emailTypoFix:'Corriger', emailTypoKeep:"Non, c'est correct",
       checking:'Vérification de l’adresse…',
       addrWarnMsg:"⚠️ Nous n'avons pas pu vérifier cette adresse en ligne. Merci de revérifier la rue, le code postal, la ville et la région avant de continuer.",
       addrWarnFix:"Corriger l'adresse", addrWarnConfirm:'Oui, les données sont correctes — continuer quand même',
@@ -1028,6 +1032,7 @@ const I18N = {
       mobile:'Número de móvil', mobilePh:'+34 612 345 678',
       email:'Correo electrónico', emailUserPh:'usuario', emailDomainPh:'proveedor.es',
       emailFormatErr:'⚠️ Usa el formato: gmail.com o proveedor.es',
+      emailTypoMsg:'¿Quisiste decir {d}?', emailTypoFix:'Corregir', emailTypoKeep:'No, es correcto',
       checking:'Verificando dirección…',
       addrWarnMsg:'⚠️ No pudimos verificar esta dirección en línea. Comprueba calle, código postal, ciudad y región antes de continuar.',
       addrWarnFix:'Corregir dirección', addrWarnConfirm:'Sí, los datos son correctos — continuar de todos modos',
@@ -1146,6 +1151,27 @@ function rateKey(code,speed,wine){
 }
 function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 function filled(v){ return !!(v&&v.trim()); }
+
+// Popular free-mail providers customers actually use, checked against typos like
+// "hotnail.com" or "gnail.com" — deliberately NOT compared against custom/business
+// domains (those are far from every entry here, so they never get flagged).
+const KNOWN_EMAIL_DOMAINS=['gmail.com','googlemail.com','hotmail.com','hotmail.it','hotmail.co.uk','hotmail.fr','hotmail.de','hotmail.es',
+  'outlook.com','outlook.it','outlook.de','outlook.fr','outlook.es','live.com','live.it','msn.com','icloud.com','me.com','mac.com',
+  'yahoo.com','yahoo.it','yahoo.co.uk','yahoo.fr','yahoo.de','yahoo.es','aol.com','protonmail.com','pec.it',
+  'libero.it','virgilio.it','alice.it','tin.it','tiscali.it','fastwebnet.it','gmx.com','gmx.de','gmx.net',
+  'web.de','t-online.de','orange.fr','wanadoo.fr','laposte.net','free.fr','sfr.fr'];
+// Reuses the levenshtein() already defined below (for street-address fuzzy matching).
+function typoSuggestion(d){
+  if(!d||KNOWN_EMAIL_DOMAINS.indexOf(d)!==-1) return null;
+  let best=null,bestDist=Infinity;
+  for(const known of KNOWN_EMAIL_DOMAINS){
+    const dist=levenshtein(d,known);
+    if(dist<bestDist){bestDist=dist;best=known;}
+  }
+  if(bestDist===1) return best;
+  if(bestDist===2&&d.length>=7) return best;
+  return null;
+}
 
 // Fire-and-forget admin alert for lookups that fail silently to the customer
 // (network errors, unexpected API shape) so they show up somewhere instead of
@@ -1713,6 +1739,8 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
   const L = I18N[lang];
   const [showNat,setShowNat] = useState(false);
   const [domErr,setDomErr]   = useState(false);
+  const [domTypo,setDomTypo] = useState(null);
+  const [domTypoOverride,setDomTypoOverride] = useState('');
   const [checking,setChecking] = useState(false);
   const [addrWarn,setAddrWarn] = useState(null);
   const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
@@ -1754,7 +1782,7 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
 
   const ok=filled(form.nationality)&&filled(form.name)&&filled(form.surname)&&filled(form.address)&&
     filled(form.zip)&&filled(form.city)&&filled(form.province)&&filled(form.state)&&
-    filled(form.mobile)&&filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain);
+    filled(form.mobile)&&filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain)&&!domTypo;
 
   const handleNext=async()=>{
     if(addrWarn){ onNext(); return; }
@@ -1861,10 +1889,21 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
             <span className="gold-text font-bold text-xl shrink-0">@</span>
             <input type="text" className={`min-w-0 flex-1 p-3 rounded lowercase${domErr?' err-field':''}`}
               placeholder={L.form.emailDomainPh} value={form.emailDomain}
-              onChange={e=>{setDomErr(false);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
-              onBlur={e=>{const v=e.target.value.trim();setDomErr(v!==''&&!validDomain(v));}}/>
+              onChange={e=>{setDomErr(false);setDomTypo(null);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
+              onBlur={e=>{
+                const v=e.target.value.trim();
+                const bad=v!==''&&!validDomain(v);
+                setDomErr(bad);
+                setDomTypo(!bad&&v!==''&&v!==domTypoOverride?typoSuggestion(v):null);
+              }}/>
           </div>
           {domErr&&<p className="text-xs text-red-400 mt-1">{L.form.emailFormatErr}</p>}
+          {domTypo&&<p className="text-xs text-yellow-400 mt-1">
+            {L.form.emailTypoMsg.replace('{d}',domTypo)}{' '}
+            <button type="button" className="underline font-bold" onClick={()=>{setForm(f=>({...f,emailDomain:domTypo}));setDomTypo(null);}}>{L.form.emailTypoFix}</button>
+            {' · '}
+            <button type="button" className="underline" onClick={()=>{setDomTypoOverride(form.emailDomain);setDomTypo(null);}}>{L.form.emailTypoKeep}</button>
+          </p>}
         </div>
       </div>
 
@@ -1910,6 +1949,8 @@ function DestFormStep({form,setForm,natTxt,setNat,onBack,onNext,lang}){
   const L = I18N[lang];
   const [showNat,setShowNat] = useState(false);
   const [domErr,setDomErr]   = useState(false);
+  const [domTypo,setDomTypo] = useState(null);
+  const [domTypoOverride,setDomTypoOverride] = useState('');
   const [checking,setChecking] = useState(false);
   const [addrWarn,setAddrWarn] = useState(null);
   const nations = COUNTRIES.filter(c=>c.name.startsWith(natTxt.toUpperCase()));
@@ -1951,7 +1992,7 @@ function DestFormStep({form,setForm,natTxt,setNat,onBack,onNext,lang}){
 
   const ok=filled(form.nationality)&&filled(form.name)&&filled(form.surname)&&filled(form.address)&&
     filled(form.zip)&&filled(form.city)&&filled(form.province)&&filled(form.state)&&filled(form.mobile)&&
-    filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain);
+    filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain)&&!domTypo;
 
   const handleNext=async()=>{
     if(addrWarn){ onNext(); return; }
@@ -2050,10 +2091,21 @@ function DestFormStep({form,setForm,natTxt,setNat,onBack,onNext,lang}){
             <span className="gold-text font-bold text-xl shrink-0">@</span>
             <input type="text" className={`min-w-0 flex-1 p-3 rounded lowercase${domErr?' err-field':''}`}
               placeholder={L.form.emailDomainPh} value={form.emailDomain}
-              onChange={e=>{setDomErr(false);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
-              onBlur={e=>{const v=e.target.value.trim();setDomErr(v!==''&&!validDomain(v));}}/>
+              onChange={e=>{setDomErr(false);setDomTypo(null);setForm(f=>({...f,emailDomain:e.target.value.replace(/\s/g,'').toLowerCase()}));}}
+              onBlur={e=>{
+                const v=e.target.value.trim();
+                const bad=v!==''&&!validDomain(v);
+                setDomErr(bad);
+                setDomTypo(!bad&&v!==''&&v!==domTypoOverride?typoSuggestion(v):null);
+              }}/>
           </div>
           {domErr&&<p className="text-xs text-red-400 mt-1">{L.form.emailFormatErr}</p>}
+          {domTypo&&<p className="text-xs text-yellow-400 mt-1">
+            {L.form.emailTypoMsg.replace('{d}',domTypo)}{' '}
+            <button type="button" className="underline font-bold" onClick={()=>{setForm(f=>({...f,emailDomain:domTypo}));setDomTypo(null);}}>{L.form.emailTypoFix}</button>
+            {' · '}
+            <button type="button" className="underline" onClick={()=>{setDomTypoOverride(form.emailDomain);setDomTypo(null);}}>{L.form.emailTypoKeep}</button>
+          </p>}
         </div>
       </div>
 

@@ -14,6 +14,32 @@ async function consumePromo(code) {
   } catch (e) { console.error('Promo consume error:', e.message); }
 }
 
+// Durable record of every completed order, written BEFORE we attempt PDF
+// generation or email sending. This is the safety net: even if Brevo is
+// down, the MOS PDF throws, or the process crashes mid-way, the order data
+// itself (customer, products, totals, amount) is never lost — it's sitting
+// in Blobs under the Stripe session id and can be replayed/looked up later.
+async function saveOrderRecord(sessionId, record) {
+  try {
+    const store = getStore('orders');
+    await store.setJSON(sessionId, record);
+  } catch (e) { console.error('Order save error:', e.message); }
+}
+
+// Last-resort alert so a broken webhook doesn't fail silently. Deliberately
+// minimal (no PDF, no template) so it has as few failure points as possible.
+async function alertFailure(brevoKey, subject, details) {
+  if (!brevoKey) return;
+  try {
+    const html = '<div style="font-family:Arial,sans-serif;max-width:600px">' +
+      '<h2 style="color:#D4AF37">⚠️ CiliegioShop webhook error</h2>' +
+      '<pre style="background:#f5f5f5;padding:12px;border-radius:4px;white-space:pre-wrap;font-size:12px">' +
+      String(details).slice(0, 4000).replace(/[&<>]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }) +
+      '</pre></div>';
+    await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subject, html, brevoKey);
+  } catch (e) { console.error('Alert send error:', e.message); }
+}
+
 // Guards against two customers producing the same shipment code (e.g. two
 // "Sala" family members): appends 2, 3, ... until a free code is found, and
 // persists the choice so later orders keep avoiding it.
@@ -298,6 +324,10 @@ exports.handler = async (event) => {
   const sig           = event.headers['stripe-signature'];
 
   if (webhookSecret && sig && !verifyStripeSignature(event.body, sig, webhookSecret)) {
+    await alertFailure(brevoKey, '⚠️ CiliegioShop — Stripe webhook signature rejected',
+      'Signature check failed, event was NOT processed (no order saved, no emails sent).\n' +
+      'This likely means STRIPE_WEBHOOK_SECRET in Netlify no longer matches the Stripe endpoint secret — check the Stripe Dashboard.\n\n' +
+      String(event.body || '').slice(0, 3000));
     return { statusCode: 400, body: 'Invalid signature' };
   }
 
@@ -305,6 +335,19 @@ exports.handler = async (event) => {
   try { stripeEvent = JSON.parse(event.body); }
   catch(e) { return { statusCode: 400, body: 'Bad JSON' }; }
 
+  try {
+  return await handleEvent(stripeEvent, brevoKey);
+  } catch (e) {
+    console.error('Unhandled webhook error:', e.message);
+    await alertFailure(brevoKey, '⚠️ CiliegioShop — unhandled webhook error — ' + stripeEvent.type,
+      e.stack + '\n\n' + JSON.stringify(stripeEvent.data && stripeEvent.data.object && stripeEvent.data.object.metadata, null, 2));
+    // Acknowledge the event so Stripe stops retrying a payload that will just fail the
+    // same way again — the alert above is now the record that a human needs to look at it.
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ received: true, error: true }) };
+  }
+};
+
+async function handleEvent(stripeEvent, brevoKey) {
   if (stripeEvent.type === 'checkout.session.completed' && stripeEvent.data.object.mode === 'subscription') {
     const s = stripeEvent.data.object;
     const m = s.metadata || {};
@@ -387,41 +430,63 @@ exports.handler = async (event) => {
     const currency        = (s.currency || 'eur').toUpperCase();
     const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : isQuoteRequest ? 'Quote Requested (Not Paid)' : 'Credit Card';
 
-    // Quote requests haven't been paid yet, so the promo isn't consumed here —
-    // it will be consumed at actual checkout once we send the customer a payment link.
-    if (!isQuoteRequest) await consumePromo(promoCode);
+    // Persisted immediately, before promo/PDF/email work below — so a paid
+    // order is never lost even if everything after this point throws.
+    await saveOrderRecord(s.id, {
+      receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
+      customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress,
+      orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
+      paymentMethod: paymentMethod, promoCode: promoCode, emailsSent: false
+    });
 
-    const subjectShop     = isQuoteRequest
-      ? '🔔 Order Request (no rate yet) — ' + customerName
-      : '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
-    const subjectCustomer = isQuoteRequest
-      ? '🍷 Order request received — Il Ciliegio Shop'
-      : '🍷 Order confirmed — Il Ciliegio Shop';
+    try {
+      // Quote requests haven't been paid yet, so the promo isn't consumed here —
+      // it will be consumed at actual checkout once we send the customer a payment link.
+      if (!isQuoteRequest) await consumePromo(promoCode);
 
-    const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
-    const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
+      const subjectShop     = isQuoteRequest
+        ? '🔔 Order Request (no rate yet) — ' + customerName
+        : '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
+      const subjectCustomer = isQuoteRequest
+        ? '🍷 Order request received — Il Ciliegio Shop'
+        : '🍷 Order confirmed — Il Ciliegio Shop';
 
-    // Generate MOS Fieramente PDF attachment — skipped for quote requests since
-    // shipping (and therefore the shipment paperwork) isn't confirmed yet.
-    let mosAttachment = null;
-    if (!isQuoteRequest) {
-      try {
-        mosAttachment = await buildMosPdf(customerName, customerEmail, customerPhone, customerAddress, orderProducts, orderTotals);
-        console.log('MOS PDF generated:', mosAttachment.name);
-      } catch(e) {
-        console.error('MOS PDF error:', e.message);
+      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
+      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
+
+      // Generate MOS Fieramente PDF attachment — skipped for quote requests since
+      // shipping (and therefore the shipment paperwork) isn't confirmed yet.
+      let mosAttachment = null;
+      if (!isQuoteRequest) {
+        try {
+          mosAttachment = await buildMosPdf(customerName, customerEmail, customerPhone, customerAddress, orderProducts, orderTotals);
+          console.log('MOS PDF generated:', mosAttachment.name);
+        } catch(e) {
+          console.error('MOS PDF error:', e.message);
+        }
       }
-    }
 
-    if (brevoKey) {
-      await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subjectShop, shopHtml, brevoKey, mosAttachment);
-      await sendEmail('shop.ilciliegio@gmail.com', 'Il Ciliegio CRM', subjectShop, shopHtml, brevoKey, mosAttachment);
-      if (customerEmail) {
-        await sendEmail(customerEmail, customerName, subjectCustomer, customerHtml, brevoKey);
+      if (brevoKey) {
+        await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subjectShop, shopHtml, brevoKey, mosAttachment);
+        await sendEmail('shop.ilciliegio@gmail.com', 'Il Ciliegio CRM', subjectShop, shopHtml, brevoKey, mosAttachment);
+        if (customerEmail) {
+          await sendEmail(customerEmail, customerName, subjectCustomer, customerHtml, brevoKey);
+        }
       }
+      await saveOrderRecord(s.id, {
+        receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
+        customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress,
+        orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
+        paymentMethod: paymentMethod, promoCode: promoCode, emailsSent: true
+      });
+      console.log('Done:', customerName, amount, currency);
+    } catch (e) {
+      console.error('Order processing error:', e.message);
+      await alertFailure(brevoKey, '⚠️ CiliegioShop — order saved but processing failed — ' + customerName,
+        'Order was saved (session ' + s.id + ') but promo/PDF/email step threw:\n' + e.stack +
+        '\n\nCustomer: ' + customerName + ' <' + customerEmail + '>\nProducts: ' + orderProducts + '\nTotals: ' + orderTotals);
     }
-    console.log('Done:', customerName, amount, currency);
   }
 
   return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ received: true }) };
-};
+}
