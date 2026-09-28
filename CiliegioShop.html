@@ -500,6 +500,15 @@ function effectiveUnits(item){
   if(!w) return item.qty;
   return Math.ceil(item.qty * w / UNIT_KG);
 }
+// Italia: le bottiglie di olio (100/250/500 ml, 1 LT — id 20-23) occupano 1 "buco" di
+// cantinetta come una bottiglia di vino, indipendentemente dal formato. Le lattine da
+// 3/5 LT (id 24-25) non vanno in cantinetta: viaggiano in scatole a coppie, tetto separato.
+const IT_OIL_CAN_IDS = [24, 25];
+const IT_CAN_MAX = 6;
+function italyShipUnits(item){
+  if(IT_OIL_CAN_IDS.includes(item.id)) return 0;
+  return item.qty;
+}
 const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
 const US_CA_BLOCK = []; // IDs 24,25 now available everywhere
 const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
@@ -634,6 +643,7 @@ const I18N = {
     catalog:{
       cartTitle:'🛒 Cart', reset:'✕ Reset',
       maxItems:(n)=>`⚠️ Maximum ${n} items per order for this destination.`,
+      maxCans:(n)=>`⚠️ Maximum ${n} oil cans (3L/5L) per order.`,
       caMix:'🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.',
       caBlocked:(province)=>`🚫 Wine/Sparkling cannot be shipped to ${province}.`,
       orderPopup:{
@@ -746,6 +756,7 @@ const I18N = {
     catalog:{
       cartTitle:'🛒 Carrello', reset:'✕ Reset',
       maxItems:(n)=>`⚠️ Massimo ${n} pezzi per ordine per questa destinazione.`,
+      maxCans:(n)=>`⚠️ Massimo ${n} lattine di olio (3L/5L) per ordine.`,
       caMix:'🍷 In Canada, vino/spumante non può essere spedito con altri prodotti. Effettua un ordine separato.',
       caBlocked:(province)=>`🚫 Vino/Spumante non può essere spedito a ${province}.`,
       orderPopup:{
@@ -858,6 +869,7 @@ const I18N = {
     catalog:{
       cartTitle:'🛒 Warenkorb', reset:'✕ Zurücksetzen',
       maxItems:(n)=>`⚠️ Maximal ${n} Artikel pro Bestellung für dieses Ziel.`,
+      maxCans:(n)=>`⚠️ Maximal ${n} Öldosen (3L/5L) pro Bestellung.`,
       caMix:'🍷 In Kanada können Wein/Sekt nicht zusammen mit anderen Produkten versendet werden. Bitte separat bestellen.',
       caBlocked:(province)=>`🚫 Wein/Sekt kann nicht nach ${province} versendet werden.`,
       orderPopup:{
@@ -970,6 +982,7 @@ const I18N = {
     catalog:{
       cartTitle:'🛒 Panier', reset:'✕ Réinitialiser',
       maxItems:(n)=>`⚠️ Maximum ${n} articles par commande pour cette destination.`,
+      maxCans:(n)=>`⚠️ Maximum ${n} bidons d'huile (3L/5L) par commande.`,
       caMix:"🍷 Au Canada, le vin/mousseux ne peut pas être expédié avec d'autres produits. Veuillez passer une commande séparée.",
       caBlocked:(province)=>`🚫 Le vin/mousseux ne peut pas être expédié vers ${province}.`,
       orderPopup:{
@@ -1082,6 +1095,7 @@ const I18N = {
     catalog:{
       cartTitle:'🛒 Carrito', reset:'✕ Reiniciar',
       maxItems:(n)=>`⚠️ Máximo ${n} artículos por pedido para este destino.`,
+      maxCans:(n)=>`⚠️ Máximo ${n} latas de aceite (3L/5L) por pedido.`,
       caMix:'🍷 En Canadá, el vino/espumoso no se puede enviar con otros productos. Realiza un pedido separado.',
       caBlocked:(province)=>`🚫 El vino/espumoso no se puede enviar a ${province}.`,
       orderPopup:{
@@ -2658,7 +2672,11 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     setCartErr('');
     // Max 36 articoli totali
     const currentQty=cart.reduce((s,i)=>s+i.qty,0);
-    const currentShipQty=cart.reduce((s,i)=>s+effectiveUnits(i),0);
+    const isItaly = natCode==='IT';
+    const isCanProduct = IT_OIL_CAN_IDS.includes(prod.id);
+    const currentShipQty = isItaly
+      ? cart.reduce((s,i)=>s+italyShipUnits(i),0)
+      : cart.reduce((s,i)=>s+effectiveUnits(i),0);
     const rateMaxItems = aRate && aRate.max_items ? aRate.max_items : null;
     const maxItems=(()=>{
       if(natCode==='IT') return 18;
@@ -2666,7 +2684,13 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
       const keys=Object.keys(aRate.rates).map(Number).filter(n=>!isNaN(n));
       return keys.length>0?Math.max(...keys):60;
     })();
-    if(currentShipQty>=maxItems){
+    if(isItaly && isCanProduct){
+      const currentCanQty = cart.reduce((s,i)=>s+(IT_OIL_CAN_IDS.includes(i.id)?i.qty:0),0);
+      if(currentCanQty>=IT_CAN_MAX){
+        setCartErr(L.catalog.maxCans(IT_CAN_MAX));
+        return;
+      }
+    } else if(currentShipQty>=maxItems){
       setCartErr(L.catalog.maxItems(maxItems));
       return;
     }
