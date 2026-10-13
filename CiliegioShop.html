@@ -1168,6 +1168,28 @@ function rateKey(code,speed,wine){
 function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 function filled(v){ return !!(v&&v.trim()); }
 
+// Sigla USPS a 2 lettere dello stato USA (es. "NORTH CAROLINA" -> "NC"): serve all'import Mexal.
+// Accetta anche la sigla gia' scritta e le abbreviazioni tipo "S.CAROLINA" / "N CAROLINA" / "W. VIRGINIA".
+const US_STATES={AL:'ALABAMA',AK:'ALASKA',AZ:'ARIZONA',AR:'ARKANSAS',CA:'CALIFORNIA',CO:'COLORADO',CT:'CONNECTICUT',DE:'DELAWARE',
+  DC:'DISTRICT OF COLUMBIA',FL:'FLORIDA',GA:'GEORGIA',HI:'HAWAII',ID:'IDAHO',IL:'ILLINOIS',IN:'INDIANA',IA:'IOWA',KS:'KANSAS',
+  KY:'KENTUCKY',LA:'LOUISIANA',ME:'MAINE',MD:'MARYLAND',MA:'MASSACHUSETTS',MI:'MICHIGAN',MN:'MINNESOTA',MS:'MISSISSIPPI',
+  MO:'MISSOURI',MT:'MONTANA',NE:'NEBRASKA',NV:'NEVADA',NH:'NEW HAMPSHIRE',NJ:'NEW JERSEY',NM:'NEW MEXICO',NY:'NEW YORK',
+  NC:'NORTH CAROLINA',ND:'NORTH DAKOTA',OH:'OHIO',OK:'OKLAHOMA',OR:'OREGON',PA:'PENNSYLVANIA',RI:'RHODE ISLAND',
+  SC:'SOUTH CAROLINA',SD:'SOUTH DAKOTA',TN:'TENNESSEE',TX:'TEXAS',UT:'UTAH',VT:'VERMONT',VA:'VIRGINIA',WA:'WASHINGTON',
+  WV:'WEST VIRGINIA',WI:'WISCONSIN',WY:'WYOMING'};
+function usStateCode(state){
+  const raw=(state||'').toUpperCase().trim();
+  if(!raw) return '';
+  if(US_STATES[raw]) return raw;
+  const norm=raw.replace(/\bN\.?\s*(?=CAROLINA|DAKOTA|HAMPSHIRE|JERSEY|MEXICO|YORK)/,'NORTH ')
+    .replace(/\bS\.?\s*(?=CAROLINA|DAKOTA)/,'SOUTH ')
+    .replace(/\bW\.?\s*(?=VIRGINIA)/,'WEST ')
+    .replace(/\bWASHINGTON,?\s*D\.?C\.?$/,'DISTRICT OF COLUMBIA')
+    .replace(/[.,]/g,'').replace(/\s+/g,' ').trim();
+  const hit=Object.keys(US_STATES).find(k=>US_STATES[k]===norm);
+  return hit||'';
+}
+
 // Popular free-mail providers customers actually use, checked against typos like
 // "hotnail.com" or "gnail.com" — deliberately NOT compared against custom/business
 // domains (those are far from every entry here, so they never get flagged).
@@ -1472,10 +1494,14 @@ function App(){
   const buildOrderData=(isQuote)=>{
     const r2=(n)=>Math.round((Number(n)||0)*100)/100;
     const addr=(f)=>({name:f.name,surname:f.surname,phone:f.mobile,country:f.nationality,countryCode:f.natCode,
-      address:f.address,zip:f.zip,city:f.city,province:f.province,state:f.state});
+      address:f.address,zip:f.zip,city:f.city,province:f.province,state:f.state,
+      stateCode:f.natCode==='US'?usStateCode(f.state):''});
     return {
       v:1,
-      customer:{...addr(form),email:form.emailUser+'@'+form.emailDomain,taxCode:form.natCode==='IT'?(form.taxCode||''):''},
+      // fiscalId = identificativo fiscale per l'anagrafica Mexal: Codice Fiscale se italiano,
+      // altrimenti nome e cognome (da confermare con chi gestisce Mexal).
+      customer:{...addr(form),email:form.emailUser+'@'+form.emailDomain,taxCode:form.natCode==='IT'?(form.taxCode||''):'',
+        fiscalId:form.natCode==='IT'?(form.taxCode||''):((form.name||'')+' '+(form.surname||'')).trim()},
       shipTo:useDestForm?addr(destForm):null,
       lines:cart.map(i=>({code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),qty:i.qty,unit:r2(i.price),...(i.price===0?{gift:1}:{})})),
       prodTotal:r2(prod),
@@ -1688,7 +1714,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.110</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.111</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>

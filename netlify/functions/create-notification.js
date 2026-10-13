@@ -63,6 +63,11 @@ function checkOrderData(od, amountPaid, paymentMethod, isQuote) {
     if (Math.abs(expectedPaid - Number(amountPaid)) > 0.02) p.push('totale atteso ' + expectedPaid.toFixed(2) + ' diverso dall importo incassato ' + amountPaid);
   }
   if (!od.customer || !od.customer.name || !od.customer.email) p.push('dati cliente incompleti');
+  if (od.customer && od.customer.countryCode === 'IT' && !/^[A-Z0-9]{16}$/.test(od.customer.taxCode || '')) p.push('cliente italiano senza Codice Fiscale valido');
+  if (od.customer && !od.customer.fiscalId) p.push('identificativo fiscale (fiscalId) mancante');
+  [['cliente', od.customer], ['destinatario', od.shipTo]].forEach(function(x) {
+    if (x[1] && x[1].countryCode === 'US' && !/^[A-Z]{2}$/.test(x[1].stateCode || '')) p.push('sigla stato USA mancante per ' + x[0] + ' (stato: ' + (x[1].state || 'vuoto') + ')');
+  });
   return p;
 }
 
