@@ -52,7 +52,7 @@
   },
   {
     "id": 2,
-    "name": "WHITE WINE IGT 2024",
+    "name": "WHITE WINE IGT 2025",
     "price": 7.0,
     "mexal": "50030",
     "img": "img/prod_02.jpg",
@@ -61,15 +61,15 @@
     "sort": 4,
     "vat": 22,
     "names": {
-      "it": "VINO BIANCO IGT 2024",
-      "de": "WEISSWEIN IGT 2024",
-      "fr": "VIN BLANC IGT 2024",
-      "es": "VINO BLANCO IGT 2024"
+      "it": "VINO BIANCO IGT 2025",
+      "de": "WEISSWEIN IGT 2025",
+      "fr": "VIN BLANC IGT 2025",
+      "es": "VINO BLANCO IGT 2025"
     }
   },
   {
     "id": 3,
-    "name": "RED WINE IGT 2024",
+    "name": "RED WINE IGT 2025",
     "price": 7.0,
     "mexal": "50054",
     "img": "img/prod_03.jpg",
@@ -78,10 +78,10 @@
     "sort": 5,
     "vat": 22,
     "names": {
-      "it": "VINO ROSSO IGT 2024",
-      "de": "ROTWEIN IGT 2024",
-      "fr": "VIN ROUGE IGT 2024",
-      "es": "VINO TINTO IGT 2024"
+      "it": "VINO ROSSO IGT 2025",
+      "de": "ROTWEIN IGT 2025",
+      "fr": "VIN ROUGE IGT 2025",
+      "es": "VINO TINTO IGT 2025"
     }
   },
   {
@@ -205,7 +205,7 @@
   },
   {
     "id": 10,
-    "name": "LE FORCACCE WHITE WINE IGT 2024 VIOGNIER 100%",
+    "name": "LE FORCACCE WHITE WINE IGT 2025 VIOGNIER 100%",
     "price": 8.5,
     "mexal": "50085",
     "img": "img/prod_10.jpg",
@@ -214,15 +214,15 @@
     "sort": 13,
     "vat": 22,
     "names": {
-      "it": "LE FORCACCE VINO BIANCO IGT 2024 VIOGNIER 100%",
-      "de": "LE FORCACCE WEISSWEIN IGT 2024 VIOGNIER 100%",
-      "fr": "LE FORCACCE VIN BLANC IGT 2024 VIOGNIER 100%",
-      "es": "LE FORCACCE VINO BLANCO IGT 2024 VIOGNIER 100%"
+      "it": "LE FORCACCE VINO BIANCO IGT 2025 VIOGNIER 100%",
+      "de": "LE FORCACCE WEISSWEIN IGT 2025 VIOGNIER 100%",
+      "fr": "LE FORCACCE VIN BLANC IGT 2025 VIOGNIER 100%",
+      "es": "LE FORCACCE VINO BLANCO IGT 2025 VIOGNIER 100%"
     }
   },
   {
     "id": 11,
-    "name": "VIN SANTO DEL CHIANTI DOC 2019",
+    "name": "VIN SANTO DEL CHIANTI DOC 2020",
     "price": 19.0,
     "mexal": "50115",
     "img": "img/prod_11.jpg",
@@ -231,10 +231,10 @@
     "sort": 14,
     "vat": 22,
     "names": {
-      "it": "VIN SANTO DEL CHIANTI DOC 2019",
-      "de": "VIN SANTO DEL CHIANTI DOC 2019",
-      "fr": "VIN SANTO DEL CHIANTI DOC 2019",
-      "es": "VIN SANTO DEL CHIANTI DOC 2019"
+      "it": "VIN SANTO DEL CHIANTI DOC 2020",
+      "de": "VIN SANTO DEL CHIANTI DOC 2020",
+      "fr": "VIN SANTO DEL CHIANTI DOC 2020",
+      "es": "VIN SANTO DEL CHIANTI DOC 2020"
     }
   },
   {
@@ -316,7 +316,7 @@
     "sort": 19,
     "vat": 22,
     "names": {
-      "it": "LIQUORE ROSOLIO 500 ML",
+      "it": "ROSOLIO LIQUORE 500 ML",
       "de": "ROSOLIO LIKÖR 500 ML",
       "fr": "LIQUEUR ROSOLIO 500 ML",
       "es": "LICOR ROSOLIO 500 ML"
@@ -333,7 +333,7 @@
     "sort": 20,
     "vat": 22,
     "names": {
-      "it": "LIQUORE RUBINO 500 ML",
+      "it": "RUBINO LIQUORE 500 ML",
       "de": "RUBINO LIKÖR 500 ML",
       "fr": "LIQUEUR RUBINO 500 ML",
       "es": "LICOR RUBINO 500 ML"
