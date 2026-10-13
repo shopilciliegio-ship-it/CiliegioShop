@@ -102,15 +102,43 @@ def leggi_disponibilita_da_excel():
     return out
 
 
+def leggi_prezzi_da_excel():
+    """Colonna 'Prezzo EUR' del foglio 'Abbinamento shop': {id shop: prezzo}. Accetta la virgola decimale."""
+    out = {}
+    if not os.path.exists(OUT):
+        return out
+    wb = openpyxl.load_workbook(OUT, read_only=True)
+    if "Abbinamento shop" not in wb.sheetnames:
+        return out
+    ws = wb["Abbinamento shop"]
+    ws.reset_dimensions()
+    rows = list(ws.iter_rows(values_only=True))
+    head = list(rows[0]) if rows else []
+    name = next((h for h in ("Prezzo EUR (da compilare)", "Prezzo EUR") if h in head), None)
+    if not name:
+        return out
+    ci = head.index(name)
+    for r in rows[1:]:
+        if r[0] is None or len(r) <= ci or r[ci] in (None, ""):
+            continue
+        try:
+            out[str(r[0]).strip()] = round(float(str(r[ci]).replace(",", ".").replace("EUR", "").replace("€", "").strip()), 2)
+        except ValueError:
+            print(f"ATTENZIONE: prezzo non valido per id {r[0]}: {r[ci]!r} (ignorato)")
+    return out
+
+
 def importa():
-    """Copia dall'Excel a products.json le aliquote IVA ("vat") e la disponibilita' ("available")."""
+    """Copia dall'Excel a products.json le aliquote IVA ("vat"), la disponibilita' ("available") e il prezzo ("price")."""
     iva = leggi_iva_da_excel()
     disp = leggi_disponibilita_da_excel()
-    if not iva and not disp:
-        sys.exit("Nessuna aliquota ne' disponibilita' trovata nel foglio 'Abbinamento shop' di " + OUT)
+    prezzi = leggi_prezzi_da_excel()
+    if not iva and not disp and not prezzi:
+        sys.exit("Nessuna aliquota, disponibilita' o prezzo trovato nel foglio 'Abbinamento shop' di " + OUT)
     prods = json.load(open(PRODUCTS, encoding="utf-8"))
     n_iva = 0
     cambi = []
+    cambi_prezzo = []
     for p in prods:
         pid = str(p["id"])
         v = iva.get(pid)
@@ -124,11 +152,25 @@ def importa():
         if pid in disp and p.get("available", True) != disp[pid]:
             cambi.append(f"{pid} {p['name']}: {'disponibile' if disp[pid] else 'NON disponibile'} (era {'disponibile' if p.get('available', True) else 'non disponibile'})")
             p["available"] = disp[pid]
+        if pid in prezzi and abs(float(p["price"]) - prezzi[pid]) > 1e-9:
+            nuovo = prezzi[pid]
+            if pid.endswith("_gift"):
+                print(f"ATTENZIONE: id {pid} e' l'omaggio, il prezzo deve restare 0: variazione ignorata")
+                continue
+            if nuovo <= 0:
+                sys.exit(f"Prezzo non valido per id {pid} ({p['name']}): {nuovo}")
+            vecchio = float(p["price"])
+            nota = "  <-- VARIAZIONE OLTRE IL 50%, controllare" if vecchio > 0 and abs(nuovo - vecchio) / vecchio > 0.5 else ""
+            cambi_prezzo.append(f"{pid} {p['name']}: {vecchio:.2f} -> {nuovo:.2f} EUR{nota}")
+            p["price"] = float(nuovo)
     with open(PRODUCTS, "w", encoding="utf-8", newline="\n") as f:
         json.dump(prods, f, ensure_ascii=False, indent=2)
     print(f"Aliquote IVA copiate in products.json per {n_iva} prodotti su {len(prods)}.")
     print(f"Disponibilita' letta per {len(disp)} prodotti; cambiati: {len(cambi)}")
     for x in cambi:
+        print(" -", x)
+    print(f"Prezzi letti per {len(prezzi)} prodotti; cambiati: {len(cambi_prezzo)}")
+    for x in cambi_prezzo:
         print(" -", x)
     senza = [f"{p['id']} {p['name']}" for p in prods if "vat" not in p]
     if senza:
@@ -179,15 +221,27 @@ def main():
             for c in row:
                 c.number_format = "@"
 
+    # prezzo di vendita nello shop per codice Mexal (solo informativo nel foglio "Codici Mexal"; si modifica
+    # nel foglio "Abbinamento shop"). Il prezzo scritto nell'Excel ha la precedenza su products.json.
+    prezzi_old = leggi_prezzi_da_excel()
+    prezzo_per_codice = {}
+    for p in prods:
+        pr = prezzi_old.get(str(p["id"]), float(p["price"]))
+        if p.get("mexal") and pr > 0 and p["mexal"] not in prezzo_per_codice:
+            prezzo_per_codice[p["mexal"]] = pr
+
     ws = wb.active
     ws.title = "Codici Mexal"
-    foglio(ws, ["Codice", "Descrizione", "UM", "Cod. alternativo (EAN)", "Natura", "Gruppo merceologico", "Nello shop"],
-           [r + ["si" if r[0] in usati else ""] for r in mexal], [12, 70, 6, 22, 9, 12, 10])
+    foglio(ws, ["Codice", "Descrizione", "UM", "Cod. alternativo (EAN)", "Natura", "Gruppo merceologico", "Nello shop",
+                "Prezzo shop EUR"],
+           [r + ["si" if r[0] in usati else "", f"{prezzo_per_codice[r[0]]:.2f}" if r[0] in prezzo_per_codice else ""] for r in mexal],
+           [12, 70, 6, 22, 9, 12, 10, 14])
 
     ws2 = wb.create_sheet("Abbinamento shop")
     rows = []
     disp_old = leggi_disponibilita_da_excel()
     disp_diverse = []
+    prezzi_diversi = []
     for p in prods:
         c = p.get("mexal", "")
         iva = p.get("vat", iva_old.get(str(p["id"]), iva_old.get(str(p["id"]).replace("_gift", ""), "")))
@@ -195,12 +249,17 @@ def main():
         avail = disp_old.get(str(p["id"]), p.get("available", True))
         if avail != p.get("available", True):
             disp_diverse.append(str(p["id"]))
+        prezzo = prezzi_old.get(str(p["id"]), float(p["price"]))   # il prezzo scritto nell'Excel non va perso
+        if abs(prezzo - float(p["price"])) > 1e-9:
+            prezzi_diversi.append(str(p["id"]))
         rows.append([str(p["id"]), p["name"], p["category"], "si" if avail else "no",
-                     float(p["price"]), c, by_code[c][1] if c in by_code else "NON TROVATO", iva])
-    foglio(ws2, ["ID shop", "Nome nello shop", "Categoria", "Disponibile", "Prezzo EUR", "Codice Mexal",
-                 "Descrizione Mexal", "IVA % (da compilare)"], rows, [9, 58, 13, 12, 11, 13, 70, 20])
+                     prezzo, c, by_code[c][1] if c in by_code else "NON TROVATO", iva])
+    foglio(ws2, ["ID shop", "Nome nello shop", "Categoria", "Disponibile", "Prezzo EUR (da compilare)", "Codice Mexal",
+                 "Descrizione Mexal", "IVA % (da compilare)"], rows, [9, 58, 13, 12, 14, 13, 70, 20])
     for row in ws2.iter_rows(min_row=2):
         row[4].number_format = "0.00"
+        row[4].fill = PatternFill("solid", fgColor="FFF2CC")
+        row[3].fill = PatternFill("solid", fgColor="FFF2CC")
         row[7].number_format = "General"
         row[7].fill = PatternFill("solid", fgColor="FFF2CC")
     wb.save(OUT)
@@ -219,10 +278,15 @@ def main():
             print(" -", x)
         sys.exit(1)
     print("Tutti i prodotti dello shop hanno un codice Mexal valido.")
-    if disp_diverse:
+    if disp_diverse or prezzi_diversi:
         print()
-        print(f"NOTA: nell'Excel la disponibilita' di {len(disp_diverse)} prodotti e' diversa da products.json "
-              f"(id: {', '.join(disp_diverse)}). Per applicarla: python aggiorna_codici_mexal.py --importa")
+        if disp_diverse:
+            print(f"NOTA: nell'Excel la disponibilita' di {len(disp_diverse)} prodotti e' diversa da products.json "
+                  f"(id: {', '.join(disp_diverse)}).")
+        if prezzi_diversi:
+            print(f"NOTA: nell'Excel il prezzo di {len(prezzi_diversi)} prodotti e' diverso da products.json "
+                  f"(id: {', '.join(prezzi_diversi)}).")
+        print("Per applicarli: python aggiorna_codici_mexal.py --importa")
 
 
 if __name__ == "__main__":
