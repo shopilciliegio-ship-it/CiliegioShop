@@ -8,7 +8,13 @@
     "category": "WINE",
     "available": true,
     "sort": 1,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "THEIA VINO BIANCO",
+      "de": "THEIA WEISSWEIN",
+      "fr": "THEIA VIN BLANC",
+      "es": "THEIA VINO BLANCO"
+    }
   },
   {
     "id": 43,
@@ -19,7 +25,13 @@
     "category": "WINE",
     "available": false,
     "sort": 2,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "THEIA VINO ROSSO",
+      "de": "THEIA ROTWEIN",
+      "fr": "THEIA VIN ROUGE",
+      "es": "THEIA VINO TINTO"
+    }
   },
   {
     "id": 1,
@@ -30,7 +42,13 @@
     "category": "WINE",
     "available": false,
     "sort": 3,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "AFELIO CHIANTI DOCG 2022",
+      "de": "AFELIO CHIANTI DOCG 2022",
+      "fr": "AFELIO CHIANTI DOCG 2022",
+      "es": "AFELIO CHIANTI DOCG 2022"
+    }
   },
   {
     "id": 2,
@@ -41,7 +59,13 @@
     "category": "WINE",
     "available": true,
     "sort": 4,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "VINO BIANCO IGT 2024",
+      "de": "WEISSWEIN IGT 2024",
+      "fr": "VIN BLANC IGT 2024",
+      "es": "VINO BLANCO IGT 2024"
+    }
   },
   {
     "id": 3,
@@ -52,7 +76,13 @@
     "category": "WINE",
     "available": true,
     "sort": 5,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "VINO ROSSO IGT 2024",
+      "de": "ROTWEIN IGT 2024",
+      "fr": "VIN ROUGE IGT 2024",
+      "es": "VINO TINTO IGT 2024"
+    }
   },
   {
     "id": 4,
@@ -63,7 +93,13 @@
     "category": "WINE",
     "available": false,
     "sort": 6,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "PURPLE GRAPES - VINO ROSSO DOLCE IGT 2024",
+      "de": "PURPLE GRAPES - SÜSSER ROTWEIN IGT 2024",
+      "fr": "PURPLE GRAPES - VIN ROUGE DOUX IGT 2024",
+      "es": "PURPLE GRAPES - VINO TINTO DULCE IGT 2024"
+    }
   },
   {
     "id": 5,
@@ -74,7 +110,13 @@
     "category": "WINE",
     "available": true,
     "sort": 7,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "CHIANTI STRADE BIANCHE 2025 ED. LIM.",
+      "de": "CHIANTI STRADE BIANCHE 2025 LIM. AUFL.",
+      "fr": "CHIANTI STRADE BIANCHE 2025 ÉD. LIM.",
+      "es": "CHIANTI STRADE BIANCHE 2025 ED. LIM."
+    }
   },
   {
     "id": "5_gift",
@@ -85,7 +127,13 @@
     "category": "WINE",
     "available": true,
     "sort": 8,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "CHIANTI STRADE BIANCHE 2025 ED. LIM.",
+      "de": "CHIANTI STRADE BIANCHE 2025 LIM. AUFL.",
+      "fr": "CHIANTI STRADE BIANCHE 2025 ÉD. LIM.",
+      "es": "CHIANTI STRADE BIANCHE 2025 ED. LIM."
+    }
   },
   {
     "id": 6,
@@ -96,7 +144,13 @@
     "category": "WINE",
     "available": true,
     "sort": 9,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "POGGIO ORLANDO 2024 CHIANTI COLLI SENESI DOCG",
+      "de": "POGGIO ORLANDO 2024 CHIANTI COLLI SENESI DOCG",
+      "fr": "POGGIO ORLANDO 2024 CHIANTI COLLI SENESI DOCG",
+      "es": "POGGIO ORLANDO 2024 CHIANTI COLLI SENESI DOCG"
+    }
   },
   {
     "id": 7,
@@ -107,7 +161,13 @@
     "category": "WINE",
     "available": true,
     "sort": 10,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "POGGIO ORLANDO RISERVA 2021 CHIANTI COLLI SENESI DOCG",
+      "de": "POGGIO ORLANDO RISERVA 2021 CHIANTI COLLI SENESI DOCG",
+      "fr": "POGGIO ORLANDO RISERVA 2021 CHIANTI COLLI SENESI DOCG",
+      "es": "POGGIO ORLANDO RISERVA 2021 CHIANTI COLLI SENESI DOCG"
+    }
   },
   {
     "id": 8,
@@ -118,7 +178,13 @@
     "category": "WINE",
     "available": true,
     "sort": 11,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "INFERNACCIO VINO ROSSO IGT 2022",
+      "de": "INFERNACCIO ROTWEIN IGT 2022",
+      "fr": "INFERNACCIO VIN ROUGE IGT 2022",
+      "es": "INFERNACCIO VINO TINTO IGT 2022"
+    }
   },
   {
     "id": 9,
@@ -129,7 +195,13 @@
     "category": "WINE",
     "available": true,
     "sort": 12,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "MARIO VINO ROSSO IGT 2019",
+      "de": "MARIO ROTWEIN IGT 2019",
+      "fr": "MARIO VIN ROUGE IGT 2019",
+      "es": "MARIO VINO TINTO IGT 2019"
+    }
   },
   {
     "id": 10,
@@ -140,7 +212,13 @@
     "category": "WINE",
     "available": true,
     "sort": 13,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "LE FORCACCE VINO BIANCO IGT 2024 VIOGNIER 100%",
+      "de": "LE FORCACCE WEISSWEIN IGT 2024 VIOGNIER 100%",
+      "fr": "LE FORCACCE VIN BLANC IGT 2024 VIOGNIER 100%",
+      "es": "LE FORCACCE VINO BLANCO IGT 2024 VIOGNIER 100%"
+    }
   },
   {
     "id": 11,
@@ -151,7 +229,13 @@
     "category": "WINE",
     "available": true,
     "sort": 14,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "VIN SANTO DEL CHIANTI DOC 2019",
+      "de": "VIN SANTO DEL CHIANTI DOC 2019",
+      "fr": "VIN SANTO DEL CHIANTI DOC 2019",
+      "es": "VIN SANTO DEL CHIANTI DOC 2019"
+    }
   },
   {
     "id": 12,
@@ -162,7 +246,13 @@
     "category": "SPARKLING",
     "available": true,
     "sort": 15,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "SPUMANTE DOLCE CILIEGIO IN FIORE",
+      "de": "SÜSSER SCHAUMWEIN CILIEGIO IN FIORE",
+      "fr": "MOUSSEUX DOUX CILIEGIO IN FIORE",
+      "es": "ESPUMOSO DULCE CILIEGIO IN FIORE"
+    }
   },
   {
     "id": 13,
@@ -173,7 +263,13 @@
     "category": "SPARKLING",
     "available": true,
     "sort": 16,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "SPUMANTE CILIEGIO IN FIORE ROSÉ",
+      "de": "SCHAUMWEIN CILIEGIO IN FIORE ROSÉ",
+      "fr": "VIN MOUSSEUX CILIEGIO IN FIORE ROSÉ",
+      "es": "VINO ESPUMOSO CILIEGIO IN FIORE ROSÉ"
+    }
   },
   {
     "id": 14,
@@ -184,7 +280,13 @@
     "category": "DISTILLATES",
     "available": true,
     "sort": 17,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "LIMONCELLO LIQUORE 500 ML",
+      "de": "LIMONCELLO LIKÖR 500 ML",
+      "fr": "LIQUEUR LIMONCELLO 500 ML",
+      "es": "LICOR LIMONCELLO 500 ML"
+    }
   },
   {
     "id": 15,
@@ -195,7 +297,13 @@
     "category": "DISTILLATES",
     "available": true,
     "sort": 18,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "LIQUORE DI CARCIOFO 500 ML",
+      "de": "ARTISCHOCKENLIKÖR 500 ML",
+      "fr": "LIQUEUR D'ARTICHAUT 500 ML",
+      "es": "LICOR DE ALCACHOFA 500 ML"
+    }
   },
   {
     "id": 16,
@@ -206,7 +314,13 @@
     "category": "DISTILLATES",
     "available": true,
     "sort": 19,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "LIQUORE ROSOLIO 500 ML",
+      "de": "ROSOLIO LIKÖR 500 ML",
+      "fr": "LIQUEUR ROSOLIO 500 ML",
+      "es": "LICOR ROSOLIO 500 ML"
+    }
   },
   {
     "id": 17,
@@ -217,7 +331,13 @@
     "category": "DISTILLATES",
     "available": true,
     "sort": 20,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "LIQUORE RUBINO 500 ML",
+      "de": "RUBINO LIKÖR 500 ML",
+      "fr": "LIQUEUR RUBINO 500 ML",
+      "es": "LICOR RUBINO 500 ML"
+    }
   },
   {
     "id": 18,
@@ -228,7 +348,13 @@
     "category": "DISTILLATES",
     "available": true,
     "sort": 21,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "GRAPPA DEL CHIANTI 700 ML",
+      "de": "GRAPPA DEL CHIANTI 700 ML",
+      "fr": "GRAPPA DEL CHIANTI 700 ML",
+      "es": "GRAPPA DEL CHIANTI 700 ML"
+    }
   },
   {
     "id": 19,
@@ -239,7 +365,13 @@
     "category": "DISTILLATES",
     "available": true,
     "sort": 22,
-    "vat": 22
+    "vat": 22,
+    "names": {
+      "it": "GRAPPA DEL CHIANTI RISERVA 500 ML",
+      "de": "GRAPPA DEL CHIANTI RISERVA 500 ML",
+      "fr": "GRAPPA DEL CHIANTI RISERVA 500 ML",
+      "es": "GRAPPA DEL CHIANTI RISERVA 500 ML"
+    }
   },
   {
     "id": 20,
@@ -250,7 +382,13 @@
     "category": "EVO OIL",
     "available": true,
     "sort": 23,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "100 ML OLIO EXTRA VERGINE DI OLIVA 2025",
+      "de": "100 ML NATIVES OLIVENÖL EXTRA 2025",
+      "fr": "100 ML HUILE D'OLIVE EXTRA VIERGE 2025",
+      "es": "100 ML ACEITE DE OLIVA VIRGEN EXTRA 2025"
+    }
   },
   {
     "id": 21,
@@ -261,7 +399,13 @@
     "category": "EVO OIL",
     "available": true,
     "sort": 24,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "250 ML OLIO EXTRA VERGINE DI OLIVA 2025",
+      "de": "250 ML NATIVES OLIVENÖL EXTRA 2025",
+      "fr": "250 ML HUILE D'OLIVE EXTRA VIERGE 2025",
+      "es": "250 ML ACEITE DE OLIVA VIRGEN EXTRA 2025"
+    }
   },
   {
     "id": 22,
@@ -272,7 +416,13 @@
     "category": "EVO OIL",
     "available": true,
     "sort": 25,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "500 ML OLIO EXTRA VERGINE DI OLIVA 2025",
+      "de": "500 ML NATIVES OLIVENÖL EXTRA 2025",
+      "fr": "500 ML HUILE D'OLIVE EXTRA VIERGE 2025",
+      "es": "500 ML ACEITE DE OLIVA VIRGEN EXTRA 2025"
+    }
   },
   {
     "id": 23,
@@ -283,7 +433,13 @@
     "category": "EVO OIL",
     "available": true,
     "sort": 26,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "1 LT OLIO EXTRA VERGINE DI OLIVA 2025",
+      "de": "1 LT NATIVES OLIVENÖL EXTRA 2025",
+      "fr": "1 LT HUILE D'OLIVE EXTRA VIERGE 2025",
+      "es": "1 LT ACEITE DE OLIVA VIRGEN EXTRA 2025"
+    }
   },
   {
     "id": 24,
@@ -294,7 +450,13 @@
     "category": "EVO OIL",
     "available": true,
     "sort": 27,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "3 LT OLIO EXTRA VERGINE DI OLIVA 2025",
+      "de": "3 LT NATIVES OLIVENÖL EXTRA 2025",
+      "fr": "3 LT HUILE D'OLIVE EXTRA VIERGE 2025",
+      "es": "3 LT ACEITE DE OLIVA VIRGEN EXTRA 2025"
+    }
   },
   {
     "id": 25,
@@ -305,7 +467,13 @@
     "category": "EVO OIL",
     "available": true,
     "sort": 28,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "5 LT OLIO EXTRA VERGINE DI OLIVA 2025",
+      "de": "5 LT NATIVES OLIVENÖL EXTRA 2025",
+      "fr": "5 LT HUILE D'OLIVE EXTRA VIERGE 2025",
+      "es": "5 LT ACEITE DE OLIVA VIRGEN EXTRA 2025"
+    }
   },
   {
     "id": 26,
@@ -316,7 +484,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 29,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI GRANO TENERO TIPO \"00\" KG 1",
+      "de": "WEICHWEIZENMEHL TYPE \"00\" KG 1",
+      "fr": "FARINE DE BLÉ TENDRE TYPE \"00\" KG 1",
+      "es": "HARINA DE TRIGO BLANDO TIPO \"00\" KG 1"
+    }
   },
   {
     "id": 27,
@@ -327,7 +501,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 30,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI GRANO TENERO TIPO \"0\" KG 1",
+      "de": "WEICHWEIZENMEHL TYPE \"0\" KG 1",
+      "fr": "FARINE DE BLÉ TENDRE TYPE \"0\" KG 1",
+      "es": "HARINA DE TRIGO BLANDO TIPO \"0\" KG 1"
+    }
   },
   {
     "id": 28,
@@ -338,7 +518,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 31,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI GRANO TENERO TIPO \"1\" KG 1",
+      "de": "WEICHWEIZENMEHL TYPE \"1\" KG 1",
+      "fr": "FARINE DE BLÉ TENDRE TYPE \"1\" KG 1",
+      "es": "HARINA DE TRIGO BLANDO TIPO \"1\" KG 1"
+    }
   },
   {
     "id": 29,
@@ -349,7 +535,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 32,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI GRANO TENERO TIPO \"2\" KG 1",
+      "de": "WEICHWEIZENMEHL TYPE \"2\" KG 1",
+      "fr": "FARINE DE BLÉ TENDRE TYPE \"2\" KG 1",
+      "es": "HARINA DE TRIGO BLANDO TIPO \"2\" KG 1"
+    }
   },
   {
     "id": 30,
@@ -360,7 +552,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 33,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI GRANO DURO KG 1",
+      "de": "HARTWEIZENMEHL KG 1",
+      "fr": "FARINE DE BLÉ DUR KG 1",
+      "es": "HARINA DE TRIGO DURO KG 1"
+    }
   },
   {
     "id": 31,
@@ -371,7 +569,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 34,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI GRANO DURO SENATORE CAPPELLI KG 1",
+      "de": "HARTWEIZENMEHL SENATORE CAPPELLI KG 1",
+      "fr": "FARINE DE BLÉ DUR SENATORE CAPPELLI KG 1",
+      "es": "HARINA DE TRIGO DURO SENATORE CAPPELLI KG 1"
+    }
   },
   {
     "id": 32,
@@ -382,7 +586,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 35,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI MAIS 500 GR",
+      "de": "MAISMEHL 500 GR",
+      "fr": "FARINE DE MAÏS 500 GR",
+      "es": "HARINA DE MAÍZ 500 GR"
+    }
   },
   {
     "id": 33,
@@ -393,7 +603,13 @@
     "category": "FLOURS",
     "available": true,
     "sort": 36,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI CECI 500 GR",
+      "de": "KICHERERBSENMEHL 500 GR",
+      "fr": "FARINE DE POIS CHICHES 500 GR",
+      "es": "HARINA DE GARBANZOS 500 GR"
+    }
   },
   {
     "id": 34,
@@ -404,7 +620,13 @@
     "category": "CEREALS",
     "available": true,
     "sort": 37,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARRO DECORTICATO 500 GR",
+      "de": "GESCHÄLTER DINKEL 500 GR",
+      "fr": "ÉPEAUTRE DÉCORTIQUÉ 500 GR",
+      "es": "ESPELTA PELADA 500 GR"
+    }
   },
   {
     "id": 35,
@@ -415,7 +637,13 @@
     "category": "CEREALS",
     "available": false,
     "sort": 38,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "FARRO PERLATO 500 GR",
+      "de": "PERLDINKEL 500 GR",
+      "fr": "ÉPEAUTRE PERLÉ 500 GR",
+      "es": "ESPELTA PERLADA 500 GR"
+    }
   },
   {
     "id": 36,
@@ -426,7 +654,13 @@
     "category": "LEGUMES",
     "available": true,
     "sort": 39,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "CECI 500 GR",
+      "de": "KICHERERBSEN 500 GR",
+      "fr": "POIS CHICHES 500 GR",
+      "es": "GARBANZOS 500 GR"
+    }
   },
   {
     "id": 37,
@@ -437,7 +671,13 @@
     "category": "LEGUMES",
     "available": true,
     "sort": 40,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "CECI 1 KG",
+      "de": "KICHERERBSEN 1 KG",
+      "fr": "POIS CHICHES 1 KG",
+      "es": "GARBANZOS 1 KG"
+    }
   },
   {
     "id": 38,
@@ -448,7 +688,13 @@
     "category": "LEGUMES",
     "available": true,
     "sort": 41,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "LENTICCHIE 500 GR",
+      "de": "LINSEN 500 GR",
+      "fr": "LENTILLES 500 GR",
+      "es": "LENTEJAS 500 GR"
+    }
   },
   {
     "id": 39,
@@ -459,7 +705,13 @@
     "category": "LEGUMES",
     "available": true,
     "sort": 42,
-    "vat": 4
+    "vat": 4,
+    "names": {
+      "it": "LENTICCHIE 1 KG",
+      "de": "LINSEN 1 KG",
+      "fr": "LENTILLES 1 KG",
+      "es": "LENTEJAS 1 KG"
+    }
   },
   {
     "id": 40,
@@ -470,7 +722,13 @@
     "category": "SWEETS",
     "available": true,
     "sort": 43,
-    "vat": 10
+    "vat": 10,
+    "names": {
+      "it": "CANTUCCINI ALLE MANDORLE 250 GR",
+      "de": "CANTUCCINI MANDELKEKSE 250 GR",
+      "fr": "CANTUCCINI BISCUITS AUX AMANDES 250 GR",
+      "es": "CANTUCCINI GALLETAS DE ALMENDRAS 250 GR"
+    }
   },
   {
     "id": 41,
@@ -481,6 +739,12 @@
     "category": "SWEETS",
     "available": false,
     "sort": 44,
-    "vat": 10
+    "vat": 10,
+    "names": {
+      "it": "CIAMBELLINE AL CHIANTI GR 200",
+      "de": "CIAMBELLINE AL CHIANTI GR 200",
+      "fr": "CIAMBELLINE AL CHIANTI GR 200",
+      "es": "CIAMBELLINE AL CHIANTI GR 200"
+    }
   }
 ]

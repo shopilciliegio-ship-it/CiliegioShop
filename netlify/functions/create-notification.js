@@ -202,8 +202,93 @@ function verifyStripeSignature(payload, sig, secret) {
   } catch(e) { return false; }
 }
 
-function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode, orderNumber, mexalNote) {
+// ---------------------------------------------------------------------------
+// Mail al CLIENTE nella lingua scelta in fase d'ordine (orderData.lang: en/it/de/fr/es).
+// La mail interna (shop@ / gmail) resta SEMPRE in inglese: il CRM la legge con espressioni regolari.
+// ---------------------------------------------------------------------------
+const MAIL_I18N = {
+  en: {
+    thanks: function(n) { return '\uD83C\uDF77 Thank you, ' + n + '!'; },
+    paid: function(a, c, p) { return 'Your payment of <strong>' + a + ' ' + c + '</strong> via <strong>' + p + '</strong> has been confirmed. We will contact you shortly to arrange shipping.'; },
+    quote: 'We received your order request. <strong>No payment has been taken.</strong> We will check whether we can ship to your address and contact you shortly with a shipping quote and a payment link.',
+    customer: 'Customer', products: 'Products', orderNo: 'Order No.', name: 'Name', email: 'Email', phone: 'Phone',
+    taxCode: 'Codice Fiscale', address: 'Address', payment: 'Payment', gift: 'FREE GIFT',
+    payCard: 'Credit Card', payDirect: 'Direct Sale (Paid at Farm)', payQuote: 'Quote Requested (Not Paid)',
+    tProducts: 'Products Total', tDiscount: 'Discount', tDuties: 'Import Duties', tShipping: 'Shipping', tFinal: 'FINAL TOTAL',
+    subjPaid: '\uD83C\uDF77 Order confirmed \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Order request received \u2014 Il Ciliegio Shop'
+  },
+  it: {
+    thanks: function(n) { return '\uD83C\uDF77 Grazie, ' + n + '!'; },
+    paid: function(a, c, p) { return 'Il tuo pagamento di <strong>' + a + ' ' + c + '</strong> tramite <strong>' + p + '</strong> \u00E8 stato confermato. Ti contatteremo a breve per organizzare la spedizione.'; },
+    quote: 'Abbiamo ricevuto la tua richiesta d\'ordine. <strong>Nessun pagamento \u00E8 stato effettuato.</strong> Verificheremo se possiamo spedire al tuo indirizzo e ti contatteremo a breve con un preventivo di spedizione e un link di pagamento.',
+    customer: 'Cliente', products: 'Prodotti', orderNo: 'N. ordine', name: 'Nome', email: 'Email', phone: 'Telefono',
+    taxCode: 'Codice Fiscale', address: 'Indirizzo', payment: 'Pagamento', gift: 'OMAGGIO',
+    payCard: 'Carta di credito', payDirect: 'Vendita diretta (pagato in azienda)', payQuote: 'Preventivo richiesto (non pagato)',
+    tProducts: 'Totale prodotti', tDiscount: 'Sconto', tDuties: 'Dazi di importazione', tShipping: 'Spedizione', tFinal: 'TOTALE FINALE',
+    subjPaid: '\uD83C\uDF77 Ordine confermato \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Richiesta d\'ordine ricevuta \u2014 Il Ciliegio Shop'
+  },
+  de: {
+    thanks: function(n) { return '\uD83C\uDF77 Vielen Dank, ' + n + '!'; },
+    paid: function(a, c, p) { return 'Ihre Zahlung von <strong>' + a + ' ' + c + '</strong> per <strong>' + p + '</strong> wurde best\u00E4tigt. Wir melden uns in K\u00FCrze, um den Versand zu organisieren.'; },
+    quote: 'Wir haben Ihre Bestellanfrage erhalten. <strong>Es wurde noch keine Zahlung abgebucht.</strong> Wir pr\u00FCfen, ob wir an Ihre Adresse liefern k\u00F6nnen, und melden uns in K\u00FCrze mit einem Versandangebot und einem Zahlungslink.',
+    customer: 'Kunde', products: 'Produkte', orderNo: 'Bestellnr.', name: 'Name', email: 'E-Mail', phone: 'Telefon',
+    taxCode: 'Codice Fiscale', address: 'Adresse', payment: 'Zahlung', gift: 'GESCHENK',
+    payCard: 'Kreditkarte', payDirect: 'Direktverkauf (im Betrieb bezahlt)', payQuote: 'Angebot angefragt (nicht bezahlt)',
+    tProducts: 'Produkte gesamt', tDiscount: 'Rabatt', tDuties: 'Einfuhrzoll', tShipping: 'Versand', tFinal: 'GESAMTSUMME',
+    subjPaid: '\uD83C\uDF77 Bestellung best\u00E4tigt \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Bestellanfrage erhalten \u2014 Il Ciliegio Shop'
+  },
+  fr: {
+    thanks: function(n) { return '\uD83C\uDF77 Merci, ' + n + ' !'; },
+    paid: function(a, c, p) { return 'Votre paiement de <strong>' + a + ' ' + c + '</strong> par <strong>' + p + '</strong> a bien \u00E9t\u00E9 confirm\u00E9. Nous vous contacterons sous peu pour organiser l\'exp\u00E9dition.'; },
+    quote: 'Nous avons bien re\u00E7u votre demande de commande. <strong>Aucun paiement n\'a \u00E9t\u00E9 effectu\u00E9.</strong> Nous v\u00E9rifierons si nous pouvons exp\u00E9dier \u00E0 votre adresse et vous contacterons sous peu avec un devis d\'exp\u00E9dition et un lien de paiement.',
+    customer: 'Client', products: 'Produits', orderNo: 'N\u00B0 de commande', name: 'Nom', email: 'E-mail', phone: 'T\u00E9l\u00E9phone',
+    taxCode: 'Codice Fiscale', address: 'Adresse', payment: 'Paiement', gift: 'CADEAU',
+    payCard: 'Carte de cr\u00E9dit', payDirect: 'Vente directe (pay\u00E9 \u00E0 l\'exploitation)', payQuote: 'Devis demand\u00E9 (non pay\u00E9)',
+    tProducts: 'Total produits', tDiscount: 'Remise', tDuties: 'Droits d\'importation', tShipping: 'Exp\u00E9dition', tFinal: 'TOTAL FINAL',
+    subjPaid: '\uD83C\uDF77 Commande confirm\u00E9e \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Demande de commande re\u00E7ue \u2014 Il Ciliegio Shop'
+  },
+  es: {
+    thanks: function(n) { return '\uD83C\uDF77 \u00A1Gracias, ' + n + '!'; },
+    paid: function(a, c, p) { return 'Su pago de <strong>' + a + ' ' + c + '</strong> mediante <strong>' + p + '</strong> ha sido confirmado. Nos pondremos en contacto con usted en breve para organizar el env\u00EDo.'; },
+    quote: 'Hemos recibido su solicitud de pedido. <strong>No se ha realizado ning\u00FAn pago.</strong> Comprobaremos si podemos enviar a su direcci\u00F3n y nos pondremos en contacto con usted en breve con un presupuesto de env\u00EDo y un enlace de pago.',
+    customer: 'Cliente', products: 'Productos', orderNo: 'N.\u00BA de pedido', name: 'Nombre', email: 'Correo electr\u00F3nico', phone: 'Tel\u00E9fono',
+    taxCode: 'Codice Fiscale', address: 'Direcci\u00F3n', payment: 'Pago', gift: 'REGALO',
+    payCard: 'Tarjeta de cr\u00E9dito', payDirect: 'Venta directa (pagado en la finca)', payQuote: 'Presupuesto solicitado (no pagado)',
+    tProducts: 'Total productos', tDiscount: 'Descuento', tDuties: 'Aranceles de importaci\u00F3n', tShipping: 'Env\u00EDo', tFinal: 'TOTAL FINAL',
+    subjPaid: '\uD83C\uDF77 Pedido confirmado \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Solicitud de pedido recibida \u2014 Il Ciliegio Shop'
+  }
+};
+
+function mailLangOf(od) {
+  return od && !od._error && MAIL_I18N[od.lang] ? od.lang : 'en';
+}
+
+// Righe prodotto per il cliente: stesso testo della riga inglese ("3x NOME (EUR 12.00)") ma con il nome tradotto
+// (campo nl di ogni riga di orderData, scritto dallo shop) e "FREE GIFT" nella lingua scelta.
+// Se qualcosa non torna (numero di righe o quantita') resta la riga inglese originale.
+function localizeProductLines(products, od, lang) {
+  if (lang === 'en' || !od || od._error || !Array.isArray(od.lines) || od.lines.length !== products.length) return products;
+  const L = MAIL_I18N[lang];
+  return products.map(function(row, i) {
+    const m = /^(\d+)x\s([\s\S]*?)\s\(([^()]*)\)$/.exec(row);
+    const line = od.lines[i];
+    if (!m || !line || Number(m[1]) !== Number(line.qty)) return row;
+    const name = line.nl || m[2];
+    return m[1] + 'x ' + name + ' (' + (m[3] === 'FREE GIFT' ? L.gift : m[3]) + ')';
+  });
+}
+
+function localizeTotalRow(t, L) {
+  return t.replace(/^Products Total:/, L.tProducts + ':')
+    .replace(/^Discount \(/, L.tDiscount + ' (')
+    .replace(/^Import Duties \(/, L.tDuties + ' (')
+    .replace(/^Shipping \(/, L.tShipping + ' (')
+    .replace(/^FINAL TOTAL:/, L.tFinal + ':');
+}
+
+function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode, orderNumber, mexalNote, lang) {
   var gold = '#D4AF37';
+  var L = (!isShop && MAIL_I18N[lang]) || MAIL_I18N.en;
 
   var products = orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [];
   var totals = orderTotals ? orderTotals.split('|').map(function(t){ return t.trim(); }).filter(Boolean) : [];
@@ -217,22 +302,22 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     ? (isShop
         ? '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 4px 0">🔔 New Order Request — No Payment Yet</h2>' +
           '<p style="color:#666;font-size:12px;margin:0 0 20px 0">We have no shipping rate for this country. Check feasibility, then contact the customer with a quote and a payment link.</p>'
-        : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
-          '<p style="color:#555;font-size:13px;margin:0 0 20px 0">We received your order request. <strong>No payment has been taken.</strong> We will check whether we can ship to your address and contact you shortly with a shipping quote and a payment link.</p>')
+        : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">' + L.thanks(customerName) + '</h2>' +
+          '<p style="color:#555;font-size:13px;margin:0 0 20px 0">' + L.quote + '</p>')
     : isShop
       ? '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 4px 0">🍷 New Paid Order</h2>' +
         '<p style="color:#666;font-size:12px;margin:0 0 20px 0">This order has been paid — please prepare and ship it.</p>'
-      : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">🍷 Thank you, ' + customerName + '!</h2>' +
-        '<p style="color:#555;font-size:13px;margin:0 0 20px 0">Your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed. We will contact you shortly to arrange shipping.</p>';
+      : '<h2 style="color:' + gold + ';font-size:18px;margin:0 0 8px 0">' + L.thanks(customerName) + '</h2>' +
+        '<p style="color:#555;font-size:13px;margin:0 0 20px 0">' + L.paid(amount, currency, paymentLabel) + '</p>';
 
   var customerRows =
-    (isShop && orderNumber ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>Order No.</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>' + orderNumber + '</strong></td></tr>' : '') +
-    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
-    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Email</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
-    (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
-    (customerTaxCode ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Codice Fiscale</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerTaxCode + '</td></tr>' : '') +
-    (customerAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerAddress + '</td></tr>' : '') +
-    '<tr><td style="padding:6px 12px;font-size:13px"><strong>Payment</strong></td><td style="padding:6px 12px;font-size:13px">' + (isQuote ? '⏳ ' : '✅ ') + paymentLabel + '</td></tr>';
+    (isShop && orderNumber ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>' + L.orderNo + '</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>' + orderNumber + '</strong></td></tr>' : '') +
+    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>' + L.name + '</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
+    '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>' + L.email + '</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
+    (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>' + L.phone + '</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
+    (customerTaxCode ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>' + L.taxCode + '</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerTaxCode + '</td></tr>' : '') +
+    (customerAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>' + L.address + '</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerAddress + '</td></tr>' : '') +
+    '<tr><td style="padding:6px 12px;font-size:13px"><strong>' + L.payment + '</strong></td><td style="padding:6px 12px;font-size:13px">' + (isQuote ? '⏳ ' : '✅ ') + paymentLabel + '</td></tr>';
 
   var productRows = products.map(function(p) {
     return '<tr><td style="padding:7px 12px;font-size:13px;border-bottom:1px solid #f5f5f5">' + p + '</td></tr>';
@@ -241,17 +326,17 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
   var totalRows = totals.map(function(t) {
     var isFinal = t.indexOf('FINAL TOTAL') >= 0;
     return '<tr><td style="padding:6px 12px;font-size:' + (isFinal ? '15' : '13') + 'px;' +
-      (isFinal ? 'font-weight:bold;color:' + gold : 'color:#444') + '">' + t.replace(/\*/g, '') + '</td></tr>';
+      (isFinal ? 'font-weight:bold;color:' + gold : 'color:#444') + '">' + localizeTotalRow(t.replace(/\*/g, ''), L) + '</td></tr>';
   }).join('');
 
   var body = '<div style="padding:24px 20px;font-family:Arial,sans-serif">' +
     title +
     '<div style="margin-bottom:20px">' +
-    '<div style="background:' + gold + ';color:#000;font-size:11px;font-weight:bold;padding:6px 12px;letter-spacing:1px;text-transform:uppercase">Customer</div>' +
+    '<div style="background:' + gold + ';color:#000;font-size:11px;font-weight:bold;padding:6px 12px;letter-spacing:1px;text-transform:uppercase">' + L.customer + '</div>' +
     '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + customerRows + '</table>' +
     '</div>' +
     '<div style="margin-bottom:16px">' +
-    '<div style="background:' + gold + ';color:#000;font-size:11px;font-weight:bold;padding:6px 12px;letter-spacing:1px;text-transform:uppercase">Products</div>' +
+    '<div style="background:' + gold + ';color:#000;font-size:11px;font-weight:bold;padding:6px 12px;letter-spacing:1px;text-transform:uppercase">' + L.products + '</div>' +
     '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + productRows + '</table>' +
     '</div>' +
     (totalRows ? '<div><table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + totalRows + '</table></div>' : '') +
@@ -611,9 +696,8 @@ async function handleEvent(stripeEvent, brevoKey) {
       const subjectShop     = isQuoteRequest
         ? '🔔 Order Request (no rate yet) — ' + customerName
         : '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
-      const subjectCustomer = isQuoteRequest
-        ? '🍷 Order request received — Il Ciliegio Shop'
-        : '🍷 Order confirmed — Il Ciliegio Shop';
+      const mailLang        = mailLangOf(orderData);
+      const subjectCustomer = isQuoteRequest ? MAIL_I18N[mailLang].subjQuote : MAIL_I18N[mailLang].subjPaid;
 
       // CSV Mexal (anagrafica / prodotti / spese): mai bloccanti
       let mexal = { skipped: true };
@@ -637,7 +721,9 @@ async function handleEvent(stripeEvent, brevoKey) {
       }
 
       const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber, mexalNoteHtml(mexal));
-      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber);
+      const customerProducts = localizeProductLines(orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [], orderData, mailLang).join('|');
+      const customerPayLabel = paymentMethod === 'paypal' ? paymentLabel : paymentMethod === 'direct_sale' ? MAIL_I18N[mailLang].payDirect : isQuoteRequest ? MAIL_I18N[mailLang].payQuote : MAIL_I18N[mailLang].payCard;
+      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, customerPayLabel, amount, currency, customerProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber, '', mailLang);
 
       // Generate MOS Fieramente PDF attachment — skipped for quote requests since
       // shipping (and therefore the shipment paperwork) isn't confirmed yet.

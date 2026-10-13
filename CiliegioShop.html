@@ -1498,6 +1498,7 @@ function App(){
       stateCode:f.natCode==='US'?usStateCode(f.state):''});
     return {
       v:1,
+      lang:['it','de','fr','es'].indexOf(lang)>=0?lang:'en',
       // fiscalId = identificativo fiscale per l'anagrafica Mexal: Codice Fiscale se italiano,
       // altrimenti nome e cognome (da confermare con chi gestisce Mexal).
       customer:{...addr(form),email:form.emailUser+'@'+form.emailDomain,taxCode:form.natCode==='IT'?(form.taxCode||''):'',
@@ -1508,7 +1509,7 @@ function App(){
       lines:cart.map(i=>{
         const baseId=String(i.id).replace(/_(gift|promo)$/,'');
         const base=prods.find(p=>String(p.id)===baseId);
-        return {code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),qty:i.qty,unit:r2(i.price),
+        return {code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),...(pName(i,lang)!==i.name?{nl:pName(i,lang)}:{}),qty:i.qty,unit:r2(i.price),
           ...(i.vat!==undefined?{vat:i.vat}:{}),
           ...(i.price===0?{gift:1,listPrice:r2(base?base.price:0)}:{})};
       }),
@@ -1723,7 +1724,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.112</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.113</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
@@ -2306,6 +2307,10 @@ function SummaryStep({form,onEdit,onConfirm,onDestForm,onPrivacy,cookieConsent,o
   );
 }
 
+/* Nome prodotto nella lingua scelta: products.json ha "name" (inglese) e "names" {it,de,fr,es}.
+   Gli ordini, le mail interne, i CSV Mexal e il CRM usano sempre il nome inglese. */
+const pName=(p,lang)=>(p&&p.names&&p.names[lang])||(p&&p.name)||'';
+
 /* ── ProductCard ───────────────────────────────────────────── */
 function ProductCard({p,onAdd,blocked,lang}){
   const L = I18N[lang];
@@ -2316,9 +2321,9 @@ function ProductCard({p,onAdd,blocked,lang}){
   return(
     <div className={`bg-dark rounded border text-center flex flex-col gap-1 transition-all overflow-hidden${disabled?' border-gray-800 opacity-50':' border-gray-800 hover:border-[#D4AF37]'}`} style={{padding:'6px'}}>
       {src&&!imgErr
-        ?<img src={src} alt={p.name} className="prod-img" onError={()=>setImgErr(true)} style={disabled?{filter:'grayscale(100%)'}:{}}/>
+        ?<img src={src} alt={pName(p,lang)} className="prod-img" onError={()=>setImgErr(true)} style={disabled?{filter:'grayscale(100%)'}:{}}/>
         :<div className="prod-img-fallback">🍷</div>}
-      <p className="font-bold leading-tight text-gray-200" style={{fontSize:'10px',lineHeight:'1.2'}}>{p.name}</p>
+      <p className="font-bold leading-tight text-gray-200" style={{fontSize:'10px',lineHeight:'1.2'}}>{pName(p,lang)}</p>
       <p className="gold-text font-bold" style={{fontSize:'11px'}}>€{p.price.toFixed(2)}</p>
       {unavail
         ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700" style={{fontSize:'10px',padding:'3px 0'}}>{L.product.outOfStock}</div>
@@ -2376,7 +2381,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
           :cart.map(c=>(
             <div key={c.id} className="flex items-center bg-black rounded px-2 py-1 gap-2">
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-200 truncate" style={{fontSize:'10px'}}>{c.name}</p>
+                <p className="font-bold text-gray-200 truncate" style={{fontSize:'10px'}}>{pName(c,lang)}</p>
                 <p className="text-gray-400" style={{fontSize:'10px'}}>
                   €{c.price.toFixed(2)} ×{c.qty} = <span className="text-gray-300">€{(c.price*c.qty).toFixed(2)}</span>
                 </p>
@@ -3329,8 +3334,8 @@ function PromoBottlePicker({promo,products,blocked,onConfirm,onCancel,lang}){
                     const src = p.img?window.CFG.imgBase+p.img:null;
                     return(
                       <div key={p.id} className="bg-[#1a1a1a] rounded border border-gray-800 text-center" style={{padding:'6px'}}>
-                        {src&&<img src={src} alt={p.name} style={{width:'100%',height:'70px',objectFit:'cover',borderRadius:'4px'}}/>}
-                        <p className="font-bold text-gray-200 leading-tight" style={{fontSize:'9px',margin:'4px 0'}}>{p.name}</p>
+                        {src&&<img src={src} alt={pName(p,lang)} style={{width:'100%',height:'70px',objectFit:'cover',borderRadius:'4px'}}/>}
+                        <p className="font-bold text-gray-200 leading-tight" style={{fontSize:'9px',margin:'4px 0'}}>{pName(p,lang)}</p>
                         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
                           <button onClick={()=>dec(p)} disabled={!q} className="w-6 h-6 bg-gray-800 rounded font-bold text-sm disabled:opacity-30">−</button>
                           <span className="gold-text font-bold" style={{fontSize:'12px'}}>{q}</span>

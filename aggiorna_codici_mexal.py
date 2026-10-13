@@ -12,6 +12,10 @@ Segnala: prodotti dello shop senza codice, o con un codice che non esiste piu' i
 Il foglio "Abbinamento shop" ha due colonne da compilare a mano nell'Excel:
   - "Disponibile": si / no  (= "available": true / false in products.json)
   - "IVA % (da compilare)": l'aliquota IVA di ogni prodotto (= "vat")
+  - "Prezzo EUR (da compilare)": il prezzo di vendita (= "price")
+Il foglio "Nomi per lingua" ha le traduzioni dei nomi (italiano, tedesco, francese, spagnolo = "names" in
+products.json). Una cella vuota = si usa il nome inglese. Ordini, mail interne, CSV Mexal e CRM usano sempre
+l'inglese; le traduzioni si vedono nello shop e nella mail di conferma al cliente.
 Poi si lancia:
     python aggiorna_codici_mexal.py --importa
 che le copia in products.json. Quando si rigenera l'Excel (comando senza opzioni) quello che e' scritto nel
@@ -128,19 +132,54 @@ def leggi_prezzi_da_excel():
     return out
 
 
+LINGUE = (("it", "Italiano"), ("de", "Deutsch"), ("fr", "Français"), ("es", "Español"))
+
+
+def leggi_nomi_da_excel():
+    """Foglio 'Nomi per lingua': {id shop: {it, de, fr, es}}. Una cella vuota = nessuna traduzione (si usa l'inglese)."""
+    out = {}
+    if not os.path.exists(OUT):
+        return out
+    wb = openpyxl.load_workbook(OUT, read_only=True)
+    if "Nomi per lingua" not in wb.sheetnames:
+        return out
+    ws = wb["Nomi per lingua"]
+    ws.reset_dimensions()
+    rows = list(ws.iter_rows(values_only=True))
+    head = list(rows[0]) if rows else []
+    if not all(h in head for _, h in LINGUE):
+        return out
+    idx = {code: head.index(h) for code, h in LINGUE}
+    for r in rows[1:]:
+        if r[0] is None:
+            continue
+        out[str(r[0]).strip()] = {code: ("" if len(r) <= i or r[i] is None else " ".join(str(r[i]).split())) for code, i in idx.items()}
+    return out
+
+
 def importa():
-    """Copia dall'Excel a products.json le aliquote IVA ("vat"), la disponibilita' ("available") e il prezzo ("price")."""
+    """Copia dall'Excel a products.json le aliquote IVA ("vat"), la disponibilita' ("available"), il prezzo ("price")
+    e i nomi tradotti ("names")."""
     iva = leggi_iva_da_excel()
     disp = leggi_disponibilita_da_excel()
     prezzi = leggi_prezzi_da_excel()
-    if not iva and not disp and not prezzi:
-        sys.exit("Nessuna aliquota, disponibilita' o prezzo trovato nel foglio 'Abbinamento shop' di " + OUT)
+    nomi = leggi_nomi_da_excel()
+    if not iva and not disp and not prezzi and not nomi:
+        sys.exit("Nessuna aliquota, disponibilita', prezzo o nome trovato nell'Excel " + OUT)
     prods = json.load(open(PRODUCTS, encoding="utf-8"))
+    cambi_nomi = []
     n_iva = 0
     cambi = []
     cambi_prezzo = []
     for p in prods:
         pid = str(p["id"])
+        if pid in nomi:
+            nuovi = {code: (nomi[pid][code] or p["name"]) for code, _ in LINGUE}
+            vecchi = p.get("names") or {}
+            for code, _ in LINGUE:
+                if vecchi.get(code) != nuovi[code]:
+                    cambi_nomi.append(f"{pid} [{code}] {vecchi.get(code, '(nessuno)')} -> {nuovi[code]}")
+            p["names"] = nuovi
         v = iva.get(pid)
         if v is None and pid.endswith("_gift"):
             v = iva.get(pid[:-5])
@@ -171,6 +210,9 @@ def importa():
         print(" -", x)
     print(f"Prezzi letti per {len(prezzi)} prodotti; cambiati: {len(cambi_prezzo)}")
     for x in cambi_prezzo:
+        print(" -", x)
+    print(f"Nomi tradotti letti per {len(nomi)} prodotti; cambiati: {len(cambi_nomi)}")
+    for x in cambi_nomi:
         print(" -", x)
     senza = [f"{p['id']} {p['name']}" for p in prods if "vat" not in p]
     if senza:
@@ -262,6 +304,27 @@ def main():
         row[3].fill = PatternFill("solid", fgColor="FFF2CC")
         row[7].number_format = "General"
         row[7].fill = PatternFill("solid", fgColor="FFF2CC")
+
+    # foglio "Nomi per lingua": nome inglese (quello usato per ordini, mail interne, CSV e CRM) + traduzioni da rivedere.
+    # Cio' che e' scritto nell'Excel non va perso (ha la precedenza finche' non viene importato).
+    ws3 = wb.create_sheet("Nomi per lingua")
+    nomi_old = leggi_nomi_da_excel()
+    nomi_diversi = []
+    rows3 = []
+    for p in prods:
+        pid = str(p["id"])
+        cur = p.get("names") or {}
+        row = [pid, p["name"]]
+        for code, _ in LINGUE:
+            v = nomi_old[pid][code] if pid in nomi_old else cur.get(code, "")
+            if v != cur.get(code, "") and not (pid in nomi_old and v == "" and cur.get(code) == p["name"]):
+                nomi_diversi.append(f"{pid} [{code}]")
+            row.append(v)
+        rows3.append(row)
+    foglio(ws3, ["ID shop", "Nome inglese (shop)"] + [h for _, h in LINGUE], rows3, [9, 58, 58, 58, 58, 58])
+    for row in ws3.iter_rows(min_row=2):
+        for c in row[2:]:
+            c.fill = PatternFill("solid", fgColor="FFF2CC")
     wb.save(OUT)
 
     # codice -> descrizione Mexal, usato dal generatore dei CSV (netlify/functions/mexal-csv.js)
@@ -278,8 +341,11 @@ def main():
             print(" -", x)
         sys.exit(1)
     print("Tutti i prodotti dello shop hanno un codice Mexal valido.")
-    if disp_diverse or prezzi_diversi:
+    if disp_diverse or prezzi_diversi or nomi_diversi:
         print()
+        if nomi_diversi:
+            print(f"NOTA: nell'Excel {len(nomi_diversi)} nomi tradotti sono diversi da products.json ({', '.join(nomi_diversi[:12])}"
+                  f"{'...' if len(nomi_diversi) > 12 else ''}).")
         if disp_diverse:
             print(f"NOTA: nell'Excel la disponibilita' di {len(disp_diverse)} prodotti e' diversa da products.json "
                   f"(id: {', '.join(disp_diverse)}).")
