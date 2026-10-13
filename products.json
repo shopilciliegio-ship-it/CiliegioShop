@@ -7,7 +7,8 @@
     "img": "img/prod_42.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 1
+    "sort": 1,
+    "vat": 22
   },
   {
     "id": 43,
@@ -17,7 +18,8 @@
     "img": "img/prod_43.jpg",
     "category": "WINE",
     "available": false,
-    "sort": 2
+    "sort": 2,
+    "vat": 22
   },
   {
     "id": 1,
@@ -27,7 +29,8 @@
     "img": "img/prod_01.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 3
+    "sort": 3,
+    "vat": 22
   },
   {
     "id": 2,
@@ -37,7 +40,8 @@
     "img": "img/prod_02.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 4
+    "sort": 4,
+    "vat": 22
   },
   {
     "id": 3,
@@ -47,7 +51,8 @@
     "img": "img/prod_03.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 5
+    "sort": 5,
+    "vat": 22
   },
   {
     "id": 4,
@@ -57,7 +62,8 @@
     "img": "img/prod_04.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 6
+    "sort": 6,
+    "vat": 22
   },
   {
     "id": 5,
@@ -67,7 +73,8 @@
     "img": "img/prod_05.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 7
+    "sort": 7,
+    "vat": 22
   },
   {
     "id": "5_gift",
@@ -77,7 +84,8 @@
     "img": "img/prod_05.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 8
+    "sort": 8,
+    "vat": 22
   },
   {
     "id": 6,
@@ -87,7 +95,8 @@
     "img": "img/prod_06.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 9
+    "sort": 9,
+    "vat": 22
   },
   {
     "id": 7,
@@ -97,7 +106,8 @@
     "img": "img/prod_07.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 10
+    "sort": 10,
+    "vat": 22
   },
   {
     "id": 8,
@@ -107,7 +117,8 @@
     "img": "img/prod_08.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 11
+    "sort": 11,
+    "vat": 22
   },
   {
     "id": 9,
@@ -117,7 +128,8 @@
     "img": "img/prod_09.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 12
+    "sort": 12,
+    "vat": 22
   },
   {
     "id": 10,
@@ -127,7 +139,8 @@
     "img": "img/prod_10.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 13
+    "sort": 13,
+    "vat": 22
   },
   {
     "id": 11,
@@ -137,7 +150,8 @@
     "img": "img/prod_11.jpg",
     "category": "WINE",
     "available": true,
-    "sort": 14
+    "sort": 14,
+    "vat": 22
   },
   {
     "id": 12,
@@ -147,7 +161,8 @@
     "img": "img/prod_12.jpg",
     "category": "SPARKLING",
     "available": true,
-    "sort": 15
+    "sort": 15,
+    "vat": 22
   },
   {
     "id": 13,
@@ -157,7 +172,8 @@
     "img": "img/prod_13.jpg",
     "category": "SPARKLING",
     "available": true,
-    "sort": 16
+    "sort": 16,
+    "vat": 22
   },
   {
     "id": 14,
@@ -167,7 +183,8 @@
     "img": "img/prod_14.jpg",
     "category": "DISTILLATES",
     "available": true,
-    "sort": 17
+    "sort": 17,
+    "vat": 22
   },
   {
     "id": 15,
@@ -177,7 +194,8 @@
     "img": "img/prod_15.jpg",
     "category": "DISTILLATES",
     "available": true,
-    "sort": 18
+    "sort": 18,
+    "vat": 22
   },
   {
     "id": 16,
@@ -187,7 +205,8 @@
     "img": "img/prod_16.jpg",
     "category": "DISTILLATES",
     "available": true,
-    "sort": 19
+    "sort": 19,
+    "vat": 22
   },
   {
     "id": 17,
@@ -197,7 +216,8 @@
     "img": "img/prod_17.jpg",
     "category": "DISTILLATES",
     "available": true,
-    "sort": 20
+    "sort": 20,
+    "vat": 22
   },
   {
     "id": 18,
@@ -207,7 +227,8 @@
     "img": "img/prod_18.jpg",
     "category": "DISTILLATES",
     "available": true,
-    "sort": 21
+    "sort": 21,
+    "vat": 22
   },
   {
     "id": 19,
@@ -217,7 +238,8 @@
     "img": "img/prod_19.jpg",
     "category": "DISTILLATES",
     "available": true,
-    "sort": 22
+    "sort": 22,
+    "vat": 22
   },
   {
     "id": 20,
@@ -227,7 +249,8 @@
     "img": "img/prod_20.jpg",
     "category": "EVO OIL",
     "available": true,
-    "sort": 23
+    "sort": 23,
+    "vat": 4
   },
   {
     "id": 21,
@@ -237,7 +260,8 @@
     "img": "img/prod_21.jpg",
     "category": "EVO OIL",
     "available": true,
-    "sort": 24
+    "sort": 24,
+    "vat": 4
   },
   {
     "id": 22,
@@ -247,7 +271,8 @@
     "img": "img/prod_22.jpg",
     "category": "EVO OIL",
     "available": true,
-    "sort": 25
+    "sort": 25,
+    "vat": 4
   },
   {
     "id": 23,
@@ -257,7 +282,8 @@
     "img": "img/prod_23.jpg",
     "category": "EVO OIL",
     "available": true,
-    "sort": 26
+    "sort": 26,
+    "vat": 4
   },
   {
     "id": 24,
@@ -267,7 +293,8 @@
     "img": "img/prod_24.jpg",
     "category": "EVO OIL",
     "available": true,
-    "sort": 27
+    "sort": 27,
+    "vat": 4
   },
   {
     "id": 25,
@@ -277,7 +304,8 @@
     "img": "img/prod_25.jpg",
     "category": "EVO OIL",
     "available": true,
-    "sort": 28
+    "sort": 28,
+    "vat": 4
   },
   {
     "id": 26,
@@ -287,7 +315,8 @@
     "img": "img/prod_26.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 29
+    "sort": 29,
+    "vat": 4
   },
   {
     "id": 27,
@@ -297,7 +326,8 @@
     "img": "img/prod_27.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 30
+    "sort": 30,
+    "vat": 4
   },
   {
     "id": 28,
@@ -307,7 +337,8 @@
     "img": "img/prod_28.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 31
+    "sort": 31,
+    "vat": 4
   },
   {
     "id": 29,
@@ -317,7 +348,8 @@
     "img": "img/prod_29.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 32
+    "sort": 32,
+    "vat": 4
   },
   {
     "id": 30,
@@ -327,7 +359,8 @@
     "img": "img/prod_30.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 33
+    "sort": 33,
+    "vat": 4
   },
   {
     "id": 31,
@@ -337,7 +370,8 @@
     "img": "img/prod_31.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 34
+    "sort": 34,
+    "vat": 4
   },
   {
     "id": 32,
@@ -347,7 +381,8 @@
     "img": "img/prod_32.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 35
+    "sort": 35,
+    "vat": 4
   },
   {
     "id": 33,
@@ -357,7 +392,8 @@
     "img": "img/prod_33.jpg",
     "category": "FLOURS",
     "available": true,
-    "sort": 36
+    "sort": 36,
+    "vat": 4
   },
   {
     "id": 34,
@@ -367,7 +403,8 @@
     "img": "img/prod_34.jpg",
     "category": "CEREALS",
     "available": true,
-    "sort": 37
+    "sort": 37,
+    "vat": 4
   },
   {
     "id": 35,
@@ -377,7 +414,8 @@
     "img": "img/prod_35.jpg",
     "category": "CEREALS",
     "available": true,
-    "sort": 38
+    "sort": 38,
+    "vat": 4
   },
   {
     "id": 36,
@@ -387,7 +425,8 @@
     "img": "img/prod_36.jpg",
     "category": "LEGUMES",
     "available": true,
-    "sort": 39
+    "sort": 39,
+    "vat": 4
   },
   {
     "id": 37,
@@ -397,7 +436,8 @@
     "img": "img/prod_37.jpg",
     "category": "LEGUMES",
     "available": true,
-    "sort": 40
+    "sort": 40,
+    "vat": 4
   },
   {
     "id": 38,
@@ -407,7 +447,8 @@
     "img": "img/prod_38.jpg",
     "category": "LEGUMES",
     "available": true,
-    "sort": 41
+    "sort": 41,
+    "vat": 4
   },
   {
     "id": 39,
@@ -417,7 +458,8 @@
     "img": "img/prod_39.jpg",
     "category": "LEGUMES",
     "available": true,
-    "sort": 42
+    "sort": 42,
+    "vat": 4
   },
   {
     "id": 40,
@@ -427,7 +469,8 @@
     "img": "img/prod_40.jpg",
     "category": "SWEETS",
     "available": true,
-    "sort": 43
+    "sort": 43,
+    "vat": 10
   },
   {
     "id": 41,
@@ -437,6 +480,7 @@
     "img": "img/prod_41.jpg",
     "category": "SWEETS",
     "available": false,
-    "sort": 44
+    "sort": 44,
+    "vat": 10
   }
 ]
