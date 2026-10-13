@@ -16,7 +16,7 @@
 //                   magazzino 1, centro 2); ordini T (tablet, Paid at Farm) causale 1 Vendita, serie 2,
 //                   magazzino 1, centro 1 "vendita diretta" (serve alla registrazione corretta di OX e fattura).
 //   Arrotondamenti: prezzi a 2 decimali, una riga = un solo prezzo. I prezzi unitari sono scelti in modo che il
-//                   totale del documento (imponibile + IVA calcolata riga per riga, come fa Mexal) sia il piu' vicino
+//                   totale del documento (imponibile + IVA calcolata per aliquota, come fa Mexal) sia il piu' vicino
 //                   possibile a quanto ha pagato il cliente. Il residuo (1-2 centesimi) e' riportato nelle colonne
 //                   Abbuono e si chiude con un abbuono in Mexal.
 
@@ -63,13 +63,16 @@ function discountPct(od) {
   return prod > 0 && Number(od.discount) > 0 ? r2(Number(od.discount) / prod * 100) : 0;
 }
 
-// Totale (imponibile + IVA) del documento, calcolato come Mexal: l'IVA e' calcolata RIGA PER RIGA
-// (confermato dai tecnici di Luca il 13/10/2026): per ogni riga imponibile = qta x prezzo x (1 - sconto),
-// IVA = imponibile x aliquota, entrambi arrotondati al centesimo, poi si sommano le righe.
+// Totale (imponibile + IVA per aliquota) del documento, calcolato come Mexal: l'IVA si calcola sul totale
+// imponibile di ogni aliquota, non riga per riga.
 function docTotalDomestic(items, units) {
-  return r2(items.reduce(function(t, it, i) {
-    const net = r2(it.qty * units[i] * (1 - it.disc / 100));
-    return t + net + r2(net * Number(it.rate) / 100);
+  const byRate = {};
+  items.forEach(function(it, i) {
+    byRate[it.rate] = (byRate[it.rate] || 0) + r2(it.qty * units[i] * (1 - it.disc / 100));
+  });
+  return r2(Object.keys(byRate).reduce(function(t, rate) {
+    const net = r2(byRate[rate]);
+    return t + net + r2(net * Number(rate) / 100);
   }, 0));
 }
 
