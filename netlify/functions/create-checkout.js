@@ -37,6 +37,18 @@ exports.handler = async (event) => {
   const orderTotals     = (body.orderTotals     || '').substring(0, 200);
   const promoCode       = (body.promoCode       || '').substring(0, 24);
 
+  // Dati strutturati dell'ordine (righe con codice Mexal, totali, dazi, cliente separato...).
+  // Stripe accetta max 500 caratteri per valore di metadata: il JSON viene spezzato in blocchi
+  // order_data_0, order_data_1... che create-notification.js ricompone.
+  const orderDataParts = [];
+  if (body.orderData && typeof body.orderData === 'object') {
+    let j = '';
+    try { j = JSON.stringify(body.orderData); } catch (e) { j = ''; }
+    for (let i = 0, k = 0; i < j.length && k < 30; i += 450, k++) {
+      orderDataParts.push('metadata[order_data_' + k + ']=' + encodeURIComponent(j.substr(i, 450)));
+    }
+  }
+
   const formData = [
     'payment_method_types[]=' + (method === 'paypal' ? 'paypal' : 'card'),
     'line_items[0][price_data][currency]=' + encodeURIComponent(cur),
@@ -51,6 +63,7 @@ exports.handler = async (event) => {
     'metadata[customer_phone]='   + encodeURIComponent(customerPhone),
     'metadata[customer_address]=' + encodeURIComponent(customerAddress),
     'metadata[customer_tax_code]=' + encodeURIComponent(customerTaxCode),
+    ...orderDataParts,
     'metadata[order_products]=' + encodeURIComponent(orderProducts),
     'metadata[order_totals]='   + encodeURIComponent(orderTotals),
     'metadata[payment_method]='   + encodeURIComponent(method),

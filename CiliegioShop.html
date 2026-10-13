@@ -1466,6 +1466,29 @@ function App(){
   const spSel = ['US','CA'].includes(shipForm.natCode);
   const totals= {qty,shipQty,prod,discount,ship:effectiveSc,duty,final:total};
 
+  // Dati strutturati dell'ordine per l'export Mexal (CSV): stessi numeri mostrati al cliente,
+  // ma come campi separati invece che nel testo di riepilogo. Per i preventivi (paese senza
+  // tariffa) spedizione e totale finale non esistono ancora: total=null.
+  const buildOrderData=(isQuote)=>{
+    const r2=(n)=>Math.round((Number(n)||0)*100)/100;
+    const addr=(f)=>({name:f.name,surname:f.surname,phone:f.mobile,country:f.nationality,countryCode:f.natCode,
+      address:f.address,zip:f.zip,city:f.city,province:f.province,state:f.state});
+    return {
+      v:1,
+      customer:{...addr(form),email:form.emailUser+'@'+form.emailDomain,taxCode:form.natCode==='IT'?(form.taxCode||''):''},
+      shipTo:useDestForm?addr(destForm):null,
+      lines:cart.map(i=>({code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),qty:i.qty,unit:r2(i.price),...(i.price===0?{gift:1}:{})})),
+      prodTotal:r2(prod),
+      discount:r2(discount),
+      discountLabel:activePromo?(activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Promo '+activePromo.code):(discount>0?'Discount (5%)':''),
+      duties:r2(duty),
+      shipping:isQuote?null:r2(effectiveSc),
+      shippingLabel:isQuote?'':(aRate?aRate.label:''),
+      total:isQuote?null:r2(total),
+      quote:!!isQuote
+    };
+  };
+
   const getDutyReminder=(code,hasWine)=>{
     const msg1 = L.duty.genericUnknown;
     if(code==='US' && !hasWine) return msg1;
@@ -1534,7 +1557,8 @@ function App(){
             order_products:prodLines.substring(0,490),
             order_totals:totalLines.substring(0,490),
             payment_method:'direct_sale',
-            promo_code: activePromo ? activePromo.code : ''
+            promo_code: activePromo ? activePromo.code : '',
+            order_data: JSON.stringify(buildOrderData(false))
           },
           customer_email:form.emailUser+'@'+form.emailDomain,
           amount_total:Math.round(total*100),
@@ -1576,7 +1600,8 @@ function App(){
             order_products:prodLines.substring(0,490),
             order_totals:totalLines.substring(0,490),
             payment_method:'quote_request',
-            promo_code: activePromo ? activePromo.code : ''
+            promo_code: activePromo ? activePromo.code : '',
+            order_data: JSON.stringify(buildOrderData(true))
           },
           customer_email:form.emailUser+'@'+form.emailDomain,
           amount_total:0,
@@ -1618,6 +1643,7 @@ function App(){
           orderTotals:('Products Total: €'+prod.toFixed(2)+(discount>0?'|'+(activePromo&&activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Discount (5%)')+': -€'+discount.toFixed(2):'')+(duty>0?'|Import Duties (10%): €'+duty.toFixed(2):'')+('|Shipping ('+(aRate?aRate.label:'N/A')+'): €'+effectiveSc.toFixed(2))+'|FINAL TOTAL: €'+total.toFixed(2)).substring(0,490),
           method:method,
           promoCode: activePromo ? activePromo.code : '',
+          orderData: buildOrderData(false),
         })
       });
       const data=await res.json();
@@ -1662,7 +1688,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.109</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.110</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>

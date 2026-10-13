@@ -27,6 +27,46 @@ async function saveOrderRecord(sessionId, record) {
 }
 
 // ---------------------------------------------------------------------------
+// Dati strutturati dell'ordine (per il CSV Mexal): arrivano come JSON, in un solo
+// valore (order_data: vendite tablet e preventivi) oppure spezzati in order_data_0,1...
+// (pagamenti Stripe, limite 500 caratteri per valore di metadata).
+// ---------------------------------------------------------------------------
+function readOrderData(m) {
+  try {
+    if (m.order_data) return JSON.parse(m.order_data);
+    let j = '';
+    for (let k = 0; m['order_data_' + k] !== undefined; k++) j += m['order_data_' + k];
+    return j ? JSON.parse(j) : null;
+  } catch (e) {
+    return { _error: 'order_data illeggibile: ' + e.message };
+  }
+}
+
+// Controlli di coerenza sui dati strutturati. Restituisce l'elenco dei problemi (vuoto = tutto ok).
+// Non blocca mai l'ordine: se ci sono problemi finiscono nel record e in una mail di avviso.
+function checkOrderData(od, amountPaid, paymentMethod, isQuote) {
+  if (!od) return ['dati strutturati mancanti (order_data assente)'];
+  if (od._error) return [od._error];
+  const p = [];
+  const lines = Array.isArray(od.lines) ? od.lines : [];
+  if (!lines.length) p.push('nessuna riga prodotto');
+  lines.forEach(function(l) {
+    if (!l.code) p.push('riga senza codice Mexal: ' + (l.name || l.id));
+    if (!(l.qty > 0)) p.push('quantita non valida: ' + (l.code || l.name || l.id));
+  });
+  const sum = lines.reduce(function(t, l) { return t + (Number(l.qty) || 0) * (Number(l.unit) || 0); }, 0);
+  if (Math.abs(sum - Number(od.prodTotal)) > 0.02) p.push('somma righe ' + sum.toFixed(2) + ' diversa da prodTotal ' + od.prodTotal);
+  if (!isQuote) {
+    const calc = Number(od.prodTotal) - Number(od.discount || 0) + Number(od.duties || 0) + Number(od.shipping || 0);
+    if (Math.abs(calc - Number(od.total)) > 0.02) p.push('prodotti-sconto+dazi+spedizione = ' + calc.toFixed(2) + ' diverso da total ' + od.total);
+    const expectedPaid = paymentMethod === 'paypal' ? Math.round(Number(od.total) * 1.05 * 100) / 100 : Number(od.total);
+    if (Math.abs(expectedPaid - Number(amountPaid)) > 0.02) p.push('totale atteso ' + expectedPaid.toFixed(2) + ' diverso dall importo incassato ' + amountPaid);
+  }
+  if (!od.customer || !od.customer.name || !od.customer.email) p.push('dati cliente incompleti');
+  return p;
+}
+
+// ---------------------------------------------------------------------------
 // Numero ordine progressivo dell'app (per Mexal/CSV). NON e' il numero dello shop
 // online (Passweb, #1469...): ha una sua numerazione, con lettera davanti:
 //   T = ordine fatto dal tablet (direct_sale, "Paid at Farm")
@@ -365,6 +405,8 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
 }
 
 exports._allocateOrderNumber = allocateOrderNumber; // solo per i test
+exports._checkOrderData = checkOrderData;
+exports._readOrderData = readOrderData;
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -479,6 +521,7 @@ async function handleEvent(stripeEvent, brevoKey) {
     const orderTotals     = m.order_totals     || '';
     const paymentMethod   = m.payment_method   || 'card';
     const promoCode       = m.promo_code       || '';
+    const orderData       = readOrderData(m);
     const isQuoteRequest  = paymentMethod === 'quote_request';
     const amount          = (s.amount_total / 100).toFixed(2);
     const currency        = (s.currency || 'eur').toUpperCase();
@@ -503,13 +546,23 @@ async function handleEvent(stripeEvent, brevoKey) {
       }
     }
 
+    // Controlli di coerenza sui dati strutturati (non bloccanti)
+    const orderDataProblems = checkOrderData(orderData, Number(amount), paymentMethod, isQuoteRequest);
+    if (orderDataProblems.length) {
+      console.error('order_data problems:', orderDataProblems.join(' | '));
+      await alertFailure(brevoKey, '⚠️ CiliegioShop — dati strutturati ordine non coerenti — ' + customerName,
+        'Problemi trovati nei dati strutturati (per il CSV Mexal). Ordine e mail procedono normalmente.' + String.fromCharCode(10) + String.fromCharCode(10) +
+        orderDataProblems.map(function(x) { return '- ' + x; }).join(String.fromCharCode(10)) + String.fromCharCode(10) + String.fromCharCode(10) +
+        'Chiave ordine: ' + orderKey + String.fromCharCode(10) + 'Numero: ' + (orderNumber || '(nessuno)') + String.fromCharCode(10) + 'Cliente: ' + customerName);
+    }
+
     // Persisted immediately, before promo/PDF/email work below — so a paid
     // order is never lost even if everything after this point throws.
     await saveOrderRecord(orderKey, {
       receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
       customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
       orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
-      paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, emailsSent: false
+      paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, orderData: orderData, orderDataProblems: orderDataProblems, emailsSent: false
     });
 
     try {
@@ -550,7 +603,7 @@ async function handleEvent(stripeEvent, brevoKey) {
         receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
         customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
         orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
-        paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, emailsSent: true
+        paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, orderData: orderData, orderDataProblems: orderDataProblems, emailsSent: true
       });
       console.log('Done:', customerName, amount, currency);
     } catch (e) {
