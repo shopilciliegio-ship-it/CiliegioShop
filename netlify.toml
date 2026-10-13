@@ -2,6 +2,9 @@
   publish = "."
   functions = "netlify/functions"
 
+[functions]
+  included_files = ["netlify/functions/mexal-codes.json"]
+
 # /wineclub non sblocca più automaticamente il modulo Wine Club:
 # la visibilità ora dipende solo dal login staff (Admin/Admin02 o Luca/Luca02).
 [[redirects]]

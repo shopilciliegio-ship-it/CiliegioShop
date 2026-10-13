@@ -1,6 +1,8 @@
 const https  = require('https');
 const crypto = require('crypto');
 const { getStore, connectLambda } = require('@netlify/blobs');
+let buildMexalCsv = null;
+try { buildMexalCsv = require('./mexal-csv').buildMexalCsv; } catch (e) { console.error('mexal-csv non caricato:', e.message); }
 
 async function consumePromo(code) {
   if (!code) return;
@@ -121,6 +123,35 @@ async function allocateOrderNumber(orderKey, letter) {
   return letter + n;
 }
 
+// ---------------------------------------------------------------------------
+// CSV per l'import in Mexal (generatore: mexal-csv.js). Vengono allegati SOLO alle mail interne,
+// insieme al MOS. In questa fase i CSV si controllano a mano: l'ordine non dipende mai da loro.
+// ---------------------------------------------------------------------------
+function romeDate() {
+  try { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }); }
+  catch (e) { return new Date().toISOString().slice(0, 10); }
+}
+
+// Nota mostrata nella mail interna. Attenzione: il CRM legge queste mail con delle espressioni regolari,
+// quindi niente righe che comincino con Name/Email/Phone/Address e niente "Shipping (", "FINAL TOTAL", "3x ...".
+function mexalNoteHtml(mx) {
+  const box = function(bg, border, color, inner) {
+    return '<div style="margin-top:16px;padding:10px 12px;background:' + bg + ';border:1px solid ' + border + ';color:' + color + ';font-size:12px;line-height:1.5">' + inner + '</div>';
+  };
+  if (!mx) return box('#fff8e1', '#e0b200', '#7a5c00', '<strong>CSV Mexal non generati</strong>: dati strutturati dell ordine mancanti.');
+  if (mx.skipped) return '';
+  const esc = function(t) { return String(t).replace(/[&<>]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
+  const sm = mx.summary || {};
+  const fmt = function(n) { return (n === undefined || n === null || Number.isNaN(n)) ? 'n.d.' : (n > 0 ? '+' : '') + Number(n).toFixed(2); };
+  const info = 'Zona fiscale ' + esc(sm.zone || '?') + ', listino ' + esc(sm.priceList || '?') + ', canale ' + esc(sm.channel || '?') +
+    '. Abbuono prodotti ' + fmt(sm.abbuonoProducts) + ' EUR, abbuono spese ' + fmt(sm.abbuonoExpenses) + ' EUR.';
+  if (mx.problems && mx.problems.length) {
+    return box('#fdecea', '#d93025', '#8a1c14', '<strong>CSV Mexal con PROBLEMI</strong> (' + (mx.files || []).length + ' file allegati, da controllare a mano)<br>' +
+      mx.problems.map(function(x) { return '&bull; ' + esc(x); }).join('<br>') + '<br>' + info);
+  }
+  return box('#e8f5e9', '#2e7d32', '#1b5e20', '<strong>CSV Mexal allegati</strong> (' + (mx.files || []).length + ' file). ' + info);
+}
+
 // Last-resort alert so a broken webhook doesn't fail silently. Deliberately
 // minimal (no PDF, no template) so it has as few failure points as possible.
 async function alertFailure(brevoKey, subject, details) {
@@ -171,7 +202,7 @@ function verifyStripeSignature(payload, sig, secret) {
   } catch(e) { return false; }
 }
 
-function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode, orderNumber) {
+function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode, orderNumber, mexalNote) {
   var gold = '#D4AF37';
 
   var products = orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [];
@@ -224,6 +255,7 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + productRows + '</table>' +
     '</div>' +
     (totalRows ? '<div><table style="width:100%;border-collapse:collapse;border:1px solid #eee">' + totalRows + '</table></div>' : '') +
+    (isShop && mexalNote ? mexalNote : '') +
     '</div>';
 
   var footer = '<div style="background:#f5f5f5;padding:12px;text-align:center;font-size:11px;color:#888;border-top:2px solid ' + gold + '">' +
@@ -258,7 +290,8 @@ function sendEmail(toEmail, toName, subject, html, brevoKey, attachment) {
       subject:     subject,
       htmlContent: html
     };
-    if (attachment) data.attachment = [attachment];
+    const atts = (Array.isArray(attachment) ? attachment : [attachment]).filter(Boolean);
+    if (atts.length) data.attachment = atts;
     const payload = JSON.stringify(data);
     const options = {
       hostname: 'api.brevo.com',
@@ -582,7 +615,28 @@ async function handleEvent(stripeEvent, brevoKey) {
         ? '🍷 Order request received — Il Ciliegio Shop'
         : '🍷 Order confirmed — Il Ciliegio Shop';
 
-      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber);
+      // CSV Mexal (anagrafica / prodotti / spese): mai bloccanti
+      let mexal = { skipped: true };
+      let mexalAttachments = [];
+      if (!isQuoteRequest) {
+        try {
+          if (!buildMexalCsv) throw new Error('generatore non caricato');
+          if (!orderData || orderData._error) throw new Error('dati strutturati mancanti o illeggibili');
+          const res = buildMexalCsv(orderData, { orderNumber: orderNumber, orderDate: romeDate(), paymentMethod: paymentLabel });
+          mexal = { ok: res.ok, problems: res.problems, summary: res.summary, files: res.files.map(function(f) { return f.name; }) };
+          mexalAttachments = res.files.map(function(f) { return { name: f.name, content: Buffer.from(f.content, 'utf8').toString('base64') }; });
+          // copia di sicurezza dei CSV nei Blobs (si possono rigenerare/recuperare anche se la mail si perde)
+          try {
+            const csvStore = openStore('mexal-csv');
+            await csvStore.setJSON(orderKey, { orderNumber: orderNumber, createdAt: new Date().toISOString(), files: res.files });
+          } catch (e2) { console.error('CSV Mexal: salvataggio copia fallito:', e2.message); }
+        } catch (e) {
+          console.error('CSV Mexal error:', e.message);
+          mexal = { ok: false, problems: ['generazione fallita: ' + e.message], files: [], summary: {} };
+        }
+      }
+
+      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber, mexalNoteHtml(mexal));
       const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber);
 
       // Generate MOS Fieramente PDF attachment — skipped for quote requests since
@@ -598,8 +652,8 @@ async function handleEvent(stripeEvent, brevoKey) {
       }
 
       if (brevoKey) {
-        await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subjectShop, shopHtml, brevoKey, mosAttachment);
-        await sendEmail('shop.ilciliegio@gmail.com', 'Il Ciliegio CRM', subjectShop, shopHtml, brevoKey, mosAttachment);
+        await sendEmail('shop@ilciliegio.com', 'Il Ciliegio', subjectShop, shopHtml, brevoKey, [mosAttachment].concat(mexalAttachments));
+        await sendEmail('shop.ilciliegio@gmail.com', 'Il Ciliegio CRM', subjectShop, shopHtml, brevoKey, [mosAttachment].concat(mexalAttachments));
         if (customerEmail) {
           await sendEmail(customerEmail, customerName, subjectCustomer, customerHtml, brevoKey);
         }
@@ -608,7 +662,7 @@ async function handleEvent(stripeEvent, brevoKey) {
         receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
         customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
         orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
-        paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, orderData: orderData, orderDataProblems: orderDataProblems, emailsSent: true
+        paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, orderData: orderData, orderDataProblems: orderDataProblems, mexalCsv: mexal, emailsSent: true
       });
       console.log('Done:', customerName, amount, currency);
     } catch (e) {
