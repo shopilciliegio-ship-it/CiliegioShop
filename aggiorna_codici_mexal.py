@@ -9,7 +9,12 @@ Scrive:  ../../Codici Mexal Siena Wine.xlsx (cartella LUCA)   (foglio "Codici Me
                                             foglio "Abbinamento shop" = prodotti shop + codice Mexal)
 Segnala: prodotti dello shop senza codice, o con un codice che non esiste piu' in Mexal;
          codici Mexal presenti nell'esportazione ma non nello shop (solo conteggio).
-Non modifica products.json: i codici si assegnano a mano.
+Il foglio "Abbinamento shop" ha la colonna "IVA % (da compilare)": l'aliquota IVA di ogni prodotto.
+Si compila a mano nell'Excel e poi si lancia:
+    python aggiorna_codici_mexal.py --importa-iva
+che copia le aliquote in products.json (campo "vat"). Quando si rigenera l'Excel le aliquote gia' scritte
+(in products.json o nel vecchio Excel) vengono mantenute.
+Non modifica altro di products.json: i codici Mexal si assegnano a mano.
 """
 import json
 import os
@@ -44,7 +49,61 @@ def leggi_export():
     return out
 
 
+def leggi_iva_da_excel():
+    """Aliquote IVA scritte nel foglio 'Abbinamento shop' dell'Excel esistente: {id shop: numero}."""
+    out = {}
+    if not os.path.exists(OUT):
+        return out
+    wb = openpyxl.load_workbook(OUT, read_only=True)
+    if "Abbinamento shop" not in wb.sheetnames:
+        return out
+    ws = wb["Abbinamento shop"]
+    ws.reset_dimensions()
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows or "IVA % (da compilare)" not in rows[0]:
+        return out
+    ci = list(rows[0]).index("IVA % (da compilare)")
+    for r in rows[1:]:
+        if r[0] is None or len(r) <= ci or r[ci] in (None, ""):
+            continue
+        try:
+            out[str(r[0]).strip()] = float(str(r[ci]).replace(",", ".").replace("%", "").strip())
+        except ValueError:
+            print(f"ATTENZIONE: aliquota non valida per id {r[0]}: {r[ci]!r} (ignorata)")
+    return out
+
+
+def importa_iva():
+    iva = leggi_iva_da_excel()
+    if not iva:
+        sys.exit("Nessuna aliquota trovata nella colonna 'IVA % (da compilare)' di " + OUT)
+    prods = json.load(open(PRODUCTS, encoding="utf-8"))
+    n = 0
+    for p in prods:
+        pid = str(p["id"])
+        v = iva.get(pid)
+        if v is None and pid.endswith("_gift"):
+            v = iva.get(pid[:-5])
+        if v is None:
+            continue
+        if not (0 <= v <= 30):
+            sys.exit(f"Aliquota fuori range per id {pid}: {v}")
+        p["vat"] = int(v) if float(v).is_integer() else v
+        n += 1
+    with open(PRODUCTS, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(prods, f, ensure_ascii=False, indent=2)
+    print(f"Aliquote IVA copiate in products.json per {n} prodotti su {len(prods)}.")
+    senza = [f"{p['id']} {p['name']}" for p in prods if "vat" not in p]
+    if senza:
+        print("Ancora senza aliquota:")
+        for x in senza:
+            print(" -", x)
+
+
 def main():
+    if "--importa-iva" in sys.argv:
+        importa_iva()
+        return
     if not os.path.exists(EXPORT):
         sys.exit("Manca il file: " + EXPORT)
     mexal = leggi_export()
@@ -60,6 +119,7 @@ def main():
             problemi.append(f"id {p['id']} ({p['name']}): il codice {c} non esiste nell'esportazione Mexal")
     usati = {p.get("mexal") for p in prods}
 
+    iva_old = leggi_iva_da_excel()
     wb = openpyxl.Workbook()
     hdr = PatternFill("solid", fgColor="D4AF37")
 
@@ -88,12 +148,15 @@ def main():
     rows = []
     for p in prods:
         c = p.get("mexal", "")
+        iva = p.get("vat", iva_old.get(str(p["id"]), iva_old.get(str(p["id"]).replace("_gift", ""), "")))
         rows.append([str(p["id"]), p["name"], p["category"], "si" if p.get("available", True) else "no",
-                     float(p["price"]), c, by_code[c][1] if c in by_code else "NON TROVATO"])
+                     float(p["price"]), c, by_code[c][1] if c in by_code else "NON TROVATO", iva])
     foglio(ws2, ["ID shop", "Nome nello shop", "Categoria", "Disponibile", "Prezzo EUR", "Codice Mexal",
-                 "Descrizione Mexal"], rows, [9, 58, 13, 12, 11, 13, 70])
+                 "Descrizione Mexal", "IVA % (da compilare)"], rows, [9, 58, 13, 12, 11, 13, 70, 20])
     for row in ws2.iter_rows(min_row=2):
         row[4].number_format = "0.00"
+        row[7].number_format = "General"
+        row[7].fill = PatternFill("solid", fgColor="FFF2CC")
     wb.save(OUT)
 
     print(f"Codici Mexal letti: {len(mexal)} | prodotti shop: {len(prods)} | non nello shop: {len(mexal) - len(usati & set(by_code))}")
