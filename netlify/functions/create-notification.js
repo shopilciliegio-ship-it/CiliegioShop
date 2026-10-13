@@ -26,6 +26,56 @@ async function saveOrderRecord(sessionId, record) {
   } catch (e) { console.error('Order save error:', e.message); }
 }
 
+// ---------------------------------------------------------------------------
+// Numero ordine progressivo dell'app (per Mexal/CSV). NON e' il numero dello shop
+// online (Passweb, #1469...): ha una sua numerazione, con lettera davanti:
+//   T = ordine fatto dal tablet (direct_sale, "Paid at Farm")
+//   A = ordine fatto dal cliente dall'app (carta di credito / PayPal)
+// Un solo contatore per entrambe le lettere, parte da ORDER_SEQ_START.
+// Protezioni contro i doppioni:
+//   1. idempotenza: se l'ordine (stessa chiave) ha gia' un numero, si riusa quello;
+//   2. ogni numero viene "prenotato" nello store order-numbers (numero -> ordine) PRIMA
+//      di essere usato; se e' gia' prenotato da un altro ordine si passa al successivo;
+//   3. la prenotazione e' condizionale (onlyIfNew, se la libreria lo supporta) e comunque, dopo,
+//      si rilegge per verificare che sia proprio la nostra;
+//   4. store a lettura "strong" (niente letture in ritardo);
+//   5. se qualcosa va storto l'ordine NON si blocca: numero vuoto e mail di allarme.
+// ---------------------------------------------------------------------------
+const ORDER_SEQ_START = 1502;
+
+function openStore(name) {
+  try { return getStore({ name: name, consistency: 'strong' }); }
+  catch (e) { return getStore(name); }
+}
+
+async function allocateOrderNumber(orderKey, letter) {
+  const orders   = openStore('orders');
+  const counters = openStore('counters');
+  const claims   = openStore('order-numbers');
+
+  const existing = await orders.get(orderKey, { type: 'json' });
+  if (existing && existing.orderNumber) return existing.orderNumber;
+
+  const seq = await counters.get('order-seq', { type: 'json' });
+  let n = Math.max((seq && Number(seq.next)) || 0, ORDER_SEQ_START);
+  let claimed = false;
+  for (let i = 0; i < 50 && !claimed; i++, n++) {
+    const prev = await claims.get(String(n));
+    if (prev === orderKey) { claimed = true; break; }     // prenotato da noi in un tentativo precedente
+    if (prev != null) continue;                           // occupato da un altro ordine
+    // onlyIfNew: scrittura condizionale (libreria Blobs >= 10): se un altro ordine ha appena preso
+    // lo stesso numero la scrittura viene rifiutata. Con la libreria 8.x l'opzione viene ignorata
+    // e resta il solo controllo di rilettura qui sotto.
+    const w = await claims.set(String(n), orderKey, { onlyIfNew: true });
+    if (w && w.modified === false) continue;
+    const check = await claims.get(String(n));
+    if (check === orderKey) { claimed = true; break; }    // confermato: e' nostro
+  }
+  if (!claimed) throw new Error('nessun numero libero trovato a partire da ' + (n - 50));
+  await counters.setJSON('order-seq', { next: n + 1, updatedAt: new Date().toISOString() });
+  return letter + n;
+}
+
 // Last-resort alert so a broken webhook doesn't fail silently. Deliberately
 // minimal (no PDF, no template) so it has as few failure points as possible.
 async function alertFailure(brevoKey, subject, details) {
@@ -76,7 +126,7 @@ function verifyStripeSignature(payload, sig, secret) {
   } catch(e) { return false; }
 }
 
-function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode) {
+function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode, orderNumber) {
   var gold = '#D4AF37';
 
   var products = orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [];
@@ -100,6 +150,7 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
         '<p style="color:#555;font-size:13px;margin:0 0 20px 0">Your payment of <strong>' + amount + ' ' + currency + '</strong> via <strong>' + paymentLabel + '</strong> has been confirmed. We will contact you shortly to arrange shipping.</p>';
 
   var customerRows =
+    (isShop && orderNumber ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>Order No.</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>' + orderNumber + '</strong></td></tr>' : '') +
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Email</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
     (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
@@ -313,6 +364,7 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
   };
 }
 
+exports._allocateOrderNumber = allocateOrderNumber; // solo per i test
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -432,13 +484,32 @@ async function handleEvent(stripeEvent, brevoKey) {
     const currency        = (s.currency || 'eur').toUpperCase();
     const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : isQuoteRequest ? 'Quote Requested (Not Paid)' : 'Credit Card';
 
+    // Le vendite dal tablet (direct_sale) arrivano senza id Stripe: gliene diamo uno nostro,
+    // altrimenti il record non avrebbe chiave per essere salvato.
+    const orderKey = s.id || ('direct_' + Date.now() + '_' + crypto.randomBytes(3).toString('hex'));
+
+    // Numero ordine app (T/A + progressivo). Le richieste di preventivo non sono ordini
+    // pagati: nessun numero finche' il cliente non paga.
+    let orderNumber = '';
+    if (!isQuoteRequest) {
+      try {
+        orderNumber = await allocateOrderNumber(orderKey, paymentMethod === 'direct_sale' ? 'T' : 'A');
+      } catch (e) {
+        console.error('Order number error:', e.message);
+        await alertFailure(brevoKey, '⚠️ CiliegioShop — numero ordine NON assegnato — ' + customerName,
+          'Impossibile assegnare il numero ordine (' + e.message + '). Ordine salvato, le mail partono senza numero: assegnarlo a mano.' + String.fromCharCode(10) + String.fromCharCode(10) +
+          'Chiave ordine: ' + orderKey + String.fromCharCode(10) +
+          'Cliente: ' + customerName + ' <' + customerEmail + '>' + String.fromCharCode(10) + 'Prodotti: ' + orderProducts);
+      }
+    }
+
     // Persisted immediately, before promo/PDF/email work below — so a paid
     // order is never lost even if everything after this point throws.
-    await saveOrderRecord(s.id, {
+    await saveOrderRecord(orderKey, {
       receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
       customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
       orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
-      paymentMethod: paymentMethod, promoCode: promoCode, emailsSent: false
+      paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, emailsSent: false
     });
 
     try {
@@ -453,8 +524,8 @@ async function handleEvent(stripeEvent, brevoKey) {
         ? '🍷 Order request received — Il Ciliegio Shop'
         : '🍷 Order confirmed — Il Ciliegio Shop';
 
-      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode);
-      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode);
+      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber);
+      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber);
 
       // Generate MOS Fieramente PDF attachment — skipped for quote requests since
       // shipping (and therefore the shipment paperwork) isn't confirmed yet.
@@ -475,17 +546,17 @@ async function handleEvent(stripeEvent, brevoKey) {
           await sendEmail(customerEmail, customerName, subjectCustomer, customerHtml, brevoKey);
         }
       }
-      await saveOrderRecord(s.id, {
+      await saveOrderRecord(orderKey, {
         receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
         customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
         orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
-        paymentMethod: paymentMethod, promoCode: promoCode, emailsSent: true
+        paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, emailsSent: true
       });
       console.log('Done:', customerName, amount, currency);
     } catch (e) {
       console.error('Order processing error:', e.message);
       await alertFailure(brevoKey, '⚠️ CiliegioShop — order saved but processing failed — ' + customerName,
-        'Order was saved (session ' + s.id + ') but promo/PDF/email step threw:\n' + e.stack +
+        'Order was saved (session ' + orderKey + ') but promo/PDF/email step threw:\n' + e.stack +
         '\n\nCustomer: ' + customerName + ' <' + customerEmail + '>\nProducts: ' + orderProducts + '\nTotals: ' + orderTotals);
     }
   }
