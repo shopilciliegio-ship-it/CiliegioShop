@@ -514,7 +514,7 @@ function italyShipUnits(item){
 const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
 const US_CA_BLOCK = []; // IDs 24,25 now available everywhere
 const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
-  zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:''};
+  zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:'',taxCode:''};
 
 /* ── i18n ──────────────────────────────────────────────────── */
 const SUPPORTED_LANGS = ['it','en','de','fr','es'];
@@ -586,7 +586,7 @@ const I18N = {
     dutyPopup:{title:'Important Notice',cancel:'Cancel',confirm:'I Understand — Send Order'},
     form:{
       title:'Customer Registration', required:'all fields are required',
-      nationality:'Nationality', nationalityPh:'Start typing country name…', noCountry:'No country found…',
+      nationality:'Nationality', nationalityPh:'Start typing country name…', noCountry:'No country found…', taxCode:'Tax code (Codice Fiscale)', taxCodePh:'16 characters',
       zip:'ZIP Code', zipHint:'(auto-fills city & region on blur)', zipPh:'Enter ZIP…', zipPhDisabled:'Select nationality first',
       firstName:'First Name', lastName:'Last Name',
       address:'Full Address', addressPh:'Street, number…',
@@ -699,7 +699,7 @@ const I18N = {
     dutyPopup:{title:'Avviso importante',cancel:'Annulla',confirm:"Ho capito — Invia l'ordine"},
     form:{
       title:'Registrazione cliente', required:'tutti i campi sono obbligatori',
-      nationality:'Nazionalità', nationalityPh:'Inizia a digitare il nome del paese…', noCountry:'Nessun paese trovato…',
+      nationality:'Nazionalità', nationalityPh:'Inizia a digitare il nome del paese…', noCountry:'Nessun paese trovato…', taxCode:'Codice Fiscale', taxCodePh:'16 caratteri',
       zip:'Codice postale', zipHint:'(compila automaticamente città e regione)', zipPh:'Inserisci il CAP…', zipPhDisabled:'Seleziona prima la nazionalità',
       firstName:'Nome', lastName:'Cognome',
       address:'Indirizzo completo', addressPh:'Via, numero…',
@@ -812,7 +812,7 @@ const I18N = {
     dutyPopup:{title:'Wichtiger Hinweis',cancel:'Abbrechen',confirm:'Verstanden — Bestellung senden'},
     form:{
       title:'Kundenregistrierung', required:'alle Felder sind erforderlich',
-      nationality:'Nationalität', nationalityPh:'Land eingeben…', noCountry:'Kein Land gefunden…',
+      nationality:'Nationalität', nationalityPh:'Land eingeben…', noCountry:'Kein Land gefunden…', taxCode:'Steuernummer (Codice Fiscale)', taxCodePh:'16 Zeichen',
       zip:'Postleitzahl', zipHint:'(füllt Stadt & Region automatisch aus)', zipPh:'PLZ eingeben…', zipPhDisabled:'Zuerst Nationalität wählen',
       firstName:'Vorname', lastName:'Nachname',
       address:'Vollständige Adresse', addressPh:'Straße, Hausnummer…',
@@ -925,7 +925,7 @@ const I18N = {
     dutyPopup:{title:'Avis important',cancel:'Annuler',confirm:'Compris — Envoyer la commande'},
     form:{
       title:'Inscription client', required:'tous les champs sont obligatoires',
-      nationality:'Nationalité', nationalityPh:'Commencez à taper le nom du pays…', noCountry:'Aucun pays trouvé…',
+      nationality:'Nationalité', nationalityPh:'Commencez à taper le nom du pays…', noCountry:'Aucun pays trouvé…', taxCode:'Code fiscal (Codice Fiscale)', taxCodePh:'16 caractères',
       zip:'Code postal', zipHint:'(remplit automatiquement la ville et la région)', zipPh:'Entrez le code postal…', zipPhDisabled:"Sélectionnez d'abord la nationalité",
       firstName:'Prénom', lastName:'Nom',
       address:'Adresse complète', addressPh:'Rue, numéro…',
@@ -1038,7 +1038,7 @@ const I18N = {
     dutyPopup:{title:'Aviso importante',cancel:'Cancelar',confirm:'Entendido — Enviar pedido'},
     form:{
       title:'Registro de cliente', required:'todos los campos son obligatorios',
-      nationality:'Nacionalidad', nationalityPh:'Empieza a escribir el nombre del país…', noCountry:'No se encontró ningún país…',
+      nationality:'Nacionalidad', nationalityPh:'Empieza a escribir el nombre del país…', noCountry:'No se encontró ningún país…', taxCode:'Código fiscal (Codice Fiscale)', taxCodePh:'16 caracteres',
       zip:'Código postal', zipHint:'(rellena automáticamente ciudad y región)', zipPh:'Introduce el código postal…', zipPhDisabled:'Selecciona primero la nacionalidad',
       firstName:'Nombre', lastName:'Apellido',
       address:'Dirección completa', addressPh:'Calle, número…',
@@ -1490,6 +1490,7 @@ function App(){
     const b=bold?function(s){return '*'+s+'*';}:function(s){return s;};
     let m=b('NEW ORDER')+(isVendita?' PAID AT FARM - DIRECT SALE':'')+nl+nl+b('CUSTOMER:')+nl+form.name+' '+form.surname+(isVendita?' [STAFF ORDER]':'')+nl;
     m+='Nationality: '+form.nationality+nl+'Email: '+em+nl+'Phone: '+form.mobile+nl;
+    if(form.natCode==='IT'&&form.taxCode) m+='Codice Fiscale: '+form.taxCode+nl;
     const stateAbbr=form.province&&form.state&&form.province!==form.state?' ('+form.province+')':'';
     m+='Address: '+form.address+', '+form.zip+' '+form.city+', '+form.state+stateAbbr+nl;
     if(useDestForm){
@@ -1528,6 +1529,7 @@ function App(){
             customer_name:form.name+' '+form.surname,
             customer_email:form.emailUser+'@'+form.emailDomain,
             customer_phone:form.mobile,
+            customer_tax_code:form.natCode==='IT'?(form.taxCode||''):'',
             customer_address:_shipAddr.address+', '+_shipAddr.zip+' '+_shipAddr.city+', '+_shipAddr.state+stateAbbr,
             order_products:prodLines.substring(0,490),
             order_totals:totalLines.substring(0,490),
@@ -1569,6 +1571,7 @@ function App(){
             customer_name:form.name+' '+form.surname,
             customer_email:form.emailUser+'@'+form.emailDomain,
             customer_phone:form.mobile,
+            customer_tax_code:form.natCode==='IT'?(form.taxCode||''):'',
             customer_address:_shipAddr.address+', '+_shipAddr.zip+' '+_shipAddr.city+', '+_shipAddr.state+stateAbbr,
             order_products:prodLines.substring(0,490),
             order_totals:totalLines.substring(0,490),
@@ -1609,6 +1612,7 @@ function App(){
           customerName:form.name+' '+form.surname,
           customerEmail:form.emailUser+'@'+form.emailDomain,
           customerPhone:form.mobile,
+          customerTaxCode:form.natCode==='IT'?(form.taxCode||''):'',
           customerAddress:shipForm.address+', '+shipForm.zip+' '+shipForm.city+', '+shipForm.state+(shipForm.province&&shipForm.province!==shipForm.state?' ('+shipForm.province+')':''),
           orderProducts:cart.map(function(i){var n=i.name.length>38?i.name.substring(0,38)+'..':i.name;return i.qty+'x '+n+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|').substring(0,490),
           orderTotals:('Products Total: €'+prod.toFixed(2)+(discount>0?'|'+(activePromo&&activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Discount (5%)')+': -€'+discount.toFixed(2):'')+(duty>0?'|Import Duties (10%): €'+duty.toFixed(2):'')+('|Shipping ('+(aRate?aRate.label:'N/A')+'): €'+effectiveSc.toFixed(2))+'|FINAL TOTAL: €'+total.toFixed(2)).substring(0,490),
@@ -1658,7 +1662,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.108</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.109</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
@@ -1809,7 +1813,8 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
 
   const ok=filled(form.nationality)&&filled(form.name)&&filled(form.surname)&&filled(form.address)&&
     filled(form.zip)&&filled(form.city)&&filled(form.province)&&filled(form.state)&&
-    filled(form.mobile)&&filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain)&&!domTypo;
+    filled(form.mobile)&&filled(form.emailUser)&&filled(form.emailDomain)&&validDomain(form.emailDomain)&&!domTypo&&
+    (form.natCode!=='IT'||/^[A-Z0-9]{16}$/.test(form.taxCode||''));
 
   const handleNext=async()=>{
     if(addrWarn){ onNext(); return; }
@@ -1906,6 +1911,12 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
           <input className="w-full p-3 rounded" type="text" placeholder={L.form.mobilePh}
             value={form.mobile} onChange={e=>setForm(f=>({...f,mobile:e.target.value.replace(/[^\d+\s]/g,'')}))}/>
         </div>
+
+        {/* Codice Fiscale — solo per clienti italiani */}
+        {form.natCode==='IT'&&<div><label className="block text-xs text-gray-400 mb-1">{L.form.taxCode}</label>
+          <input className="w-full p-3 rounded uppercase" type="text" maxLength={16} placeholder={L.form.taxCodePh}
+            value={form.taxCode||''} onChange={e=>setForm(f=>({...f,taxCode:e.target.value.replace(/[^a-zA-Z0-9]/g,'').toUpperCase()}))}/>
+        </div>}
 
         {/* Email */}
         <div><label className="block text-xs text-gray-400 mb-1">{L.form.email}</label>

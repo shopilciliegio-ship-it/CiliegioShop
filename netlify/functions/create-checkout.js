@@ -32,6 +32,7 @@ exports.handler = async (event) => {
   const customerEmail   = body.customerEmail   || '';
   const customerPhone   = (body.customerPhone   || '').substring(0, 50);
   const customerAddress = (body.customerAddress || '').substring(0, 200);
+  const customerTaxCode = (body.customerTaxCode || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 16);
   const orderProducts   = (body.orderProducts   || '').substring(0, 500);
   const orderTotals     = (body.orderTotals     || '').substring(0, 200);
   const promoCode       = (body.promoCode       || '').substring(0, 24);
@@ -49,6 +50,7 @@ exports.handler = async (event) => {
     'metadata[customer_email]='   + encodeURIComponent(customerEmail),
     'metadata[customer_phone]='   + encodeURIComponent(customerPhone),
     'metadata[customer_address]=' + encodeURIComponent(customerAddress),
+    'metadata[customer_tax_code]=' + encodeURIComponent(customerTaxCode),
     'metadata[order_products]=' + encodeURIComponent(orderProducts),
     'metadata[order_totals]='   + encodeURIComponent(orderTotals),
     'metadata[payment_method]='   + encodeURIComponent(method),

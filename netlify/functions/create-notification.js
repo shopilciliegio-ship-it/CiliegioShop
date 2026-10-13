@@ -76,7 +76,7 @@ function verifyStripeSignature(payload, sig, secret) {
   } catch(e) { return false; }
 }
 
-function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote) {
+function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode) {
   var gold = '#D4AF37';
 
   var products = orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [];
@@ -103,6 +103,7 @@ function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, cust
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee;width:120px"><strong>Name</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerName + '</td></tr>' +
     '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Email</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerEmail + '</td></tr>' +
     (customerPhone ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Phone</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerPhone + '</td></tr>' : '') +
+    (customerTaxCode ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Codice Fiscale</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerTaxCode + '</td></tr>' : '') +
     (customerAddress ? '<tr><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee"><strong>Address</strong></td><td style="padding:6px 12px;font-size:13px;border-bottom:1px solid #eee">' + customerAddress + '</td></tr>' : '') +
     '<tr><td style="padding:6px 12px;font-size:13px"><strong>Payment</strong></td><td style="padding:6px 12px;font-size:13px">' + (isQuote ? '⏳ ' : '✅ ') + paymentLabel + '</td></tr>';
 
@@ -421,6 +422,7 @@ async function handleEvent(stripeEvent, brevoKey) {
     const customerEmail   = m.customer_email   || s.customer_email || '';
     const customerPhone   = m.customer_phone   || '';
     const customerAddress = m.customer_address || '';
+    const customerTaxCode = m.customer_tax_code || '';
     const orderProducts   = m.order_products   || '';
     const orderTotals     = m.order_totals     || '';
     const paymentMethod   = m.payment_method   || 'card';
@@ -434,7 +436,7 @@ async function handleEvent(stripeEvent, brevoKey) {
     // order is never lost even if everything after this point throws.
     await saveOrderRecord(s.id, {
       receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
-      customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress,
+      customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
       orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
       paymentMethod: paymentMethod, promoCode: promoCode, emailsSent: false
     });
@@ -451,8 +453,8 @@ async function handleEvent(stripeEvent, brevoKey) {
         ? '🍷 Order request received — Il Ciliegio Shop'
         : '🍷 Order confirmed — Il Ciliegio Shop';
 
-      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
-      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest);
+      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode);
+      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode);
 
       // Generate MOS Fieramente PDF attachment — skipped for quote requests since
       // shipping (and therefore the shipment paperwork) isn't confirmed yet.
@@ -475,7 +477,7 @@ async function handleEvent(stripeEvent, brevoKey) {
       }
       await saveOrderRecord(s.id, {
         receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
-        customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress,
+        customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
         orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
         paymentMethod: paymentMethod, promoCode: promoCode, emailsSent: true
       });
