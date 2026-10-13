@@ -1503,9 +1503,18 @@ function App(){
       customer:{...addr(form),email:form.emailUser+'@'+form.emailDomain,taxCode:form.natCode==='IT'?(form.taxCode||''):'',
         fiscalId:form.natCode==='IT'?(form.taxCode||''):((form.name||'')+' '+(form.surname||'')).trim()},
       shipTo:useDestForm?addr(destForm):null,
-      lines:cart.map(i=>({code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),qty:i.qty,unit:r2(i.price),...(i.price===0?{gift:1}:{})})),
+      // listPrice = prezzo di listino dell'omaggio (la riga omaggio in Mexal ha il prezzo pieno e sconto 100%);
+      // vat = aliquota IVA % del prodotto (campo "vat" di products.json), serve per scorporarla in Italia/UE.
+      lines:cart.map(i=>{
+        const baseId=String(i.id).replace(/_(gift|promo)$/,'');
+        const base=prods.find(p=>String(p.id)===baseId);
+        return {code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),qty:i.qty,unit:r2(i.price),
+          ...(i.vat!==undefined?{vat:i.vat}:{}),
+          ...(i.price===0?{gift:1,listPrice:r2(base?base.price:0)}:{})};
+      }),
       prodTotal:r2(prod),
       discount:r2(discount),
+      discountPct:activePromo?(activePromo.type==='percent'?Number(activePromo.percent)||0:0):(discount>0?5:0),
       discountLabel:activePromo?(activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Promo '+activePromo.code):(discount>0?'Discount (5%)':''),
       duties:r2(duty),
       shipping:isQuote?null:r2(effectiveSc),
@@ -1714,7 +1723,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.111</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.112</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>

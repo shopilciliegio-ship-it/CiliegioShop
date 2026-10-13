@@ -159,6 +159,12 @@ def main():
         row[7].fill = PatternFill("solid", fgColor="FFF2CC")
     wb.save(OUT)
 
+    # codice -> descrizione Mexal, usato dal generatore dei CSV (netlify/functions/mexal-csv.js)
+    codes_path = os.path.join(HERE, "netlify", "functions", "mexal-codes.json")
+    with open(codes_path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump({r[0]: r[1] for r in mexal}, f, ensure_ascii=False, indent=1, sort_keys=True)
+    print("Scritto:", codes_path)
+
     print(f"Codici Mexal letti: {len(mexal)} | prodotti shop: {len(prods)} | non nello shop: {len(mexal) - len(usati & set(by_code))}")
     print("Scritto:", OUT)
     if problemi:
