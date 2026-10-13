@@ -5,7 +5,7 @@ Uso (dalla cartella CiliegioShop):
 
 Legge:   Export prodotti mexal.xlsx   (esportato da Mexal: Codice, Descrizione, Um, Cod.alternativo, Natura, Gruppo)
          products.json                (campo "mexal" di ogni prodotto dello shop)
-Scrive:  ../Codici Mexal Siena Wine.xlsx   (foglio "Codici Mexal" = copia dell'esportazione,
+Scrive:  ../../Codici Mexal Siena Wine.xlsx (cartella LUCA)   (foglio "Codici Mexal" = copia dell'esportazione,
                                             foglio "Abbinamento shop" = prodotti shop + codice Mexal)
 Segnala: prodotti dello shop senza codice, o con un codice che non esiste piu' in Mexal;
          codici Mexal presenti nell'esportazione ma non nello shop (solo conteggio).
@@ -22,7 +22,7 @@ from openpyxl.utils import get_column_letter
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXPORT = os.path.join(HERE, "Export prodotti mexal.xlsx")
 PRODUCTS = os.path.join(HERE, "products.json")
-OUT = os.path.join(os.path.dirname(HERE), "Codici Mexal Siena Wine.xlsx")
+OUT = os.path.join(os.path.dirname(os.path.dirname(HERE)), "Codici Mexal Siena Wine.xlsx")
 
 
 def leggi_export():
