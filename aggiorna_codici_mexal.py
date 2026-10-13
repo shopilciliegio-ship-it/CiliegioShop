@@ -9,12 +9,13 @@ Scrive:  ../../Codici Mexal Siena Wine.xlsx (cartella LUCA)   (foglio "Codici Me
                                             foglio "Abbinamento shop" = prodotti shop + codice Mexal)
 Segnala: prodotti dello shop senza codice, o con un codice che non esiste piu' in Mexal;
          codici Mexal presenti nell'esportazione ma non nello shop (solo conteggio).
-Il foglio "Abbinamento shop" ha la colonna "IVA % (da compilare)": l'aliquota IVA di ogni prodotto.
-Si compila a mano nell'Excel e poi si lancia:
-    python aggiorna_codici_mexal.py --importa-iva
-che copia le aliquote in products.json (campo "vat"). Quando si rigenera l'Excel le aliquote gia' scritte
-(in products.json o nel vecchio Excel) vengono mantenute.
-Non modifica altro di products.json: i codici Mexal si assegnano a mano.
+Il foglio "Abbinamento shop" ha due colonne da compilare a mano nell'Excel:
+  - "Disponibile": si / no  (= "available": true / false in products.json)
+  - "IVA % (da compilare)": l'aliquota IVA di ogni prodotto (= "vat")
+Poi si lancia:
+    python aggiorna_codici_mexal.py --importa
+che le copia in products.json. Quando si rigenera l'Excel (comando senza opzioni) quello che e' scritto nel
+foglio non viene perso. Non modifica altro di products.json: i codici Mexal si assegnano a mano.
 """
 import json
 import os
@@ -73,26 +74,62 @@ def leggi_iva_da_excel():
     return out
 
 
-def importa_iva():
+def leggi_disponibilita_da_excel():
+    """Colonna 'Disponibile' (si/no) del foglio 'Abbinamento shop': {id shop: True/False}.
+    si/sì/yes/true/1 -> True (available: true nel catalogo); no/false/0 -> False."""
+    out = {}
+    if not os.path.exists(OUT):
+        return out
+    wb = openpyxl.load_workbook(OUT, read_only=True)
+    if "Abbinamento shop" not in wb.sheetnames:
+        return out
+    ws = wb["Abbinamento shop"]
+    ws.reset_dimensions()
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows or "Disponibile" not in rows[0]:
+        return out
+    ci = list(rows[0]).index("Disponibile")
+    for r in rows[1:]:
+        if r[0] is None or len(r) <= ci or r[ci] in (None, ""):
+            continue
+        v = str(r[ci]).strip().lower()
+        if v in ("si", "sì", "yes", "true", "1", "vero"):
+            out[str(r[0]).strip()] = True
+        elif v in ("no", "false", "0", "falso"):
+            out[str(r[0]).strip()] = False
+        else:
+            print(f"ATTENZIONE: disponibilita' non valida per id {r[0]}: {r[ci]!r} (ignorata, usa si o no)")
+    return out
+
+
+def importa():
+    """Copia dall'Excel a products.json le aliquote IVA ("vat") e la disponibilita' ("available")."""
     iva = leggi_iva_da_excel()
-    if not iva:
-        sys.exit("Nessuna aliquota trovata nella colonna 'IVA % (da compilare)' di " + OUT)
+    disp = leggi_disponibilita_da_excel()
+    if not iva and not disp:
+        sys.exit("Nessuna aliquota ne' disponibilita' trovata nel foglio 'Abbinamento shop' di " + OUT)
     prods = json.load(open(PRODUCTS, encoding="utf-8"))
-    n = 0
+    n_iva = 0
+    cambi = []
     for p in prods:
         pid = str(p["id"])
         v = iva.get(pid)
         if v is None and pid.endswith("_gift"):
             v = iva.get(pid[:-5])
-        if v is None:
-            continue
-        if not (0 <= v <= 30):
-            sys.exit(f"Aliquota fuori range per id {pid}: {v}")
-        p["vat"] = int(v) if float(v).is_integer() else v
-        n += 1
+        if v is not None:
+            if not (0 <= v <= 30):
+                sys.exit(f"Aliquota fuori range per id {pid}: {v}")
+            p["vat"] = int(v) if float(v).is_integer() else v
+            n_iva += 1
+        if pid in disp and p.get("available", True) != disp[pid]:
+            cambi.append(f"{pid} {p['name']}: {'disponibile' if disp[pid] else 'NON disponibile'} (era {'disponibile' if p.get('available', True) else 'non disponibile'})")
+            p["available"] = disp[pid]
     with open(PRODUCTS, "w", encoding="utf-8", newline="\n") as f:
         json.dump(prods, f, ensure_ascii=False, indent=2)
-    print(f"Aliquote IVA copiate in products.json per {n} prodotti su {len(prods)}.")
+    print(f"Aliquote IVA copiate in products.json per {n_iva} prodotti su {len(prods)}.")
+    print(f"Disponibilita' letta per {len(disp)} prodotti; cambiati: {len(cambi)}")
+    for x in cambi:
+        print(" -", x)
     senza = [f"{p['id']} {p['name']}" for p in prods if "vat" not in p]
     if senza:
         print("Ancora senza aliquota:")
@@ -100,9 +137,12 @@ def importa_iva():
             print(" -", x)
 
 
+importa_iva = importa   # vecchio nome del comando
+
+
 def main():
-    if "--importa-iva" in sys.argv:
-        importa_iva()
+    if "--importa" in sys.argv or "--importa-iva" in sys.argv:
+        importa()
         return
     if not os.path.exists(EXPORT):
         sys.exit("Manca il file: " + EXPORT)
@@ -146,10 +186,16 @@ def main():
 
     ws2 = wb.create_sheet("Abbinamento shop")
     rows = []
+    disp_old = leggi_disponibilita_da_excel()
+    disp_diverse = []
     for p in prods:
         c = p.get("mexal", "")
         iva = p.get("vat", iva_old.get(str(p["id"]), iva_old.get(str(p["id"]).replace("_gift", ""), "")))
-        rows.append([str(p["id"]), p["name"], p["category"], "si" if p.get("available", True) else "no",
+        # la disponibilita' scritta nell'Excel non va persa: ha la precedenza finche' non viene importata
+        avail = disp_old.get(str(p["id"]), p.get("available", True))
+        if avail != p.get("available", True):
+            disp_diverse.append(str(p["id"]))
+        rows.append([str(p["id"]), p["name"], p["category"], "si" if avail else "no",
                      float(p["price"]), c, by_code[c][1] if c in by_code else "NON TROVATO", iva])
     foglio(ws2, ["ID shop", "Nome nello shop", "Categoria", "Disponibile", "Prezzo EUR", "Codice Mexal",
                  "Descrizione Mexal", "IVA % (da compilare)"], rows, [9, 58, 13, 12, 11, 13, 70, 20])
@@ -173,6 +219,10 @@ def main():
             print(" -", x)
         sys.exit(1)
     print("Tutti i prodotti dello shop hanno un codice Mexal valido.")
+    if disp_diverse:
+        print()
+        print(f"NOTA: nell'Excel la disponibilita' di {len(disp_diverse)} prodotti e' diversa da products.json "
+              f"(id: {', '.join(disp_diverse)}). Per applicarla: python aggiorna_codici_mexal.py --importa")
 
 
 if __name__ == "__main__":

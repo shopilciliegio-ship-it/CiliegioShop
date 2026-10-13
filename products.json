@@ -28,7 +28,7 @@
     "mexal": "50184",
     "img": "img/prod_01.jpg",
     "category": "WINE",
-    "available": true,
+    "available": false,
     "sort": 3,
     "vat": 22
   },
@@ -61,7 +61,7 @@
     "mexal": "50245",
     "img": "img/prod_04.jpg",
     "category": "WINE",
-    "available": true,
+    "available": false,
     "sort": 6,
     "vat": 22
   },
@@ -413,7 +413,7 @@
     "mexal": "51129",
     "img": "img/prod_35.jpg",
     "category": "CEREALS",
-    "available": true,
+    "available": false,
     "sort": 38,
     "vat": 4
   },
