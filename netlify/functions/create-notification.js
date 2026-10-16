@@ -90,12 +90,28 @@ function checkOrderData(od, amountPaid, paymentMethod, isQuote) {
 // ---------------------------------------------------------------------------
 const ORDER_SEQ_START = 1502;
 
+// Lettura "strong" richiede 'uncachedEdgeURL' nel contesto Blobs: su alcuni ambienti Netlify manca e la
+// PRIMA lettura fallisce (16/10/26: 3 ordini senza numero). In quel caso si ripiega sullo store normale.
+let strongReads = true;
 function openStore(name) {
+  if (!strongReads) return getStore(name);
   try { return getStore({ name: name, consistency: 'strong' }); }
   catch (e) { return getStore(name); }
 }
 
 async function allocateOrderNumber(orderKey, letter) {
+  try { return await allocateOrderNumberOnce(orderKey, letter); }
+  catch (e) {
+    if (strongReads && /uncachedEdgeURL|strong consistency/i.test(String(e && e.message))) {
+      console.error('Blobs: lettura strong non disponibile, riprovo con lettura normale');
+      strongReads = false;
+      return await allocateOrderNumberOnce(orderKey, letter);
+    }
+    throw e;
+  }
+}
+
+async function allocateOrderNumberOnce(orderKey, letter) {
   const orders   = openStore('orders');
   const counters = openStore('counters');
   const claims   = openStore('order-numbers');
