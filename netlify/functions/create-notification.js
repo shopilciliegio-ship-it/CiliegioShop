@@ -88,7 +88,7 @@ function checkOrderData(od, amountPaid, paymentMethod, isQuote) {
 //   4. store a lettura "strong" (niente letture in ritardo);
 //   5. se qualcosa va storto l'ordine NON si blocca: numero vuoto e mail di allarme.
 // ---------------------------------------------------------------------------
-const ORDER_SEQ_START = 1505; // 16/10/26: T1502-T1504 assegnati a mano (3 ordini senza numero per il bug Blobs)
+const ORDER_SEQ_START = 1555; // 19/10/26: 1505-1554 bruciati da un ordine (rilettura Blobs vuota), si riparte da 1555
 
 // Lettura "strong" richiede 'uncachedEdgeURL' nel contesto Blobs: su alcuni ambienti Netlify manca e la
 // PRIMA lettura fallisce (16/10/26: 3 ordini senza numero). In quel caso si ripiega sullo store normale.
