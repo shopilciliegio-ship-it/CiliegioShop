@@ -122,7 +122,7 @@ async function allocateOrderNumberOnce(orderKey, letter) {
   const seq = await counters.get('order-seq', { type: 'json' });
   let n = Math.max((seq && Number(seq.next)) || 0, ORDER_SEQ_START);
   let claimed = false;
-  for (let i = 0; i < 50 && !claimed; i++, n++) {
+  for (let i = 0; i < 300 && !claimed; i++, n++) {
     const prev = await claims.get(String(n));
     if (prev === orderKey) { claimed = true; break; }     // prenotato da noi in un tentativo precedente
     if (prev != null) continue;                           // occupato da un altro ordine
@@ -132,9 +132,12 @@ async function allocateOrderNumberOnce(orderKey, letter) {
     const w = await claims.set(String(n), orderKey, { onlyIfNew: true });
     if (w && w.modified === false) continue;
     const check = await claims.get(String(n));
-    if (check === orderKey) { claimed = true; break; }    // confermato: e' nostro
+    // 19/10/26: con la lettura normale (fallback senza 'strong') la rilettura subito dopo la scrittura puo' tornare
+    // vuota (cache): prima ogni numero veniva scartato e dopo 50 giri l'ordine restava senza numero. Ora si scarta
+    // solo se la rilettura mostra un ALTRO ordine; se e' vuota si considera il numero nostro.
+    if (check === orderKey || check == null) { claimed = true; break; }
   }
-  if (!claimed) throw new Error('nessun numero libero trovato a partire da ' + (n - 50));
+  if (!claimed) throw new Error('nessun numero libero trovato a partire da ' + (n - 300));
   await counters.setJSON('order-seq', { next: n + 1, updatedAt: new Date().toISOString() });
   return letter + n;
 }
