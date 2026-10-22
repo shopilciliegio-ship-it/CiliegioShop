@@ -193,7 +193,7 @@
     "mexal": "50672",
     "img": "img/prod_09.jpg",
     "category": "WINE",
-    "available": true,
+    "available": false,
     "sort": 12,
     "vat": 22,
     "names": {

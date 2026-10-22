@@ -4,7 +4,7 @@ Uso (dalla cartella CiliegioShop):
     python aggiorna_codici_mexal.py            rigenera l'Excel (non perde nulla di quello che hai scritto)
     python aggiorna_codici_mexal.py --importa  copia dall'Excel a products.json
 
-L'UNICO foglio da modificare e' "Codici Mexal" (cartella LUCA, file "Codici Mexal Siena Wine.xlsx"):
+L'UNICO foglio da modificare e' "Codici Mexal" (cartella CiliegioShop, file "Codici Mexal Siena Wine.xlsx"):
 una riga per codice Mexal, con le colonne dell'esportazione (Codice, Descrizione, UM, EAN, Natura, Gruppo) piu',
 per i codici che sono nello shop (colonna "Nello shop" = si), le colonne da compilare:
     Disponibile (si/no) | Prezzo EUR | IVA % | Nome inglese (shop) | Italiano | Deutsch | Francais | Espanol
@@ -13,7 +13,7 @@ leggendo "Codici Mexal". Non vanno modificati.
 
 Legge:   Export prodotti mexal.xlsx (esportato da Mexal) e products.json (campo "mexal" di ogni prodotto: i
          codici Mexal si assegnano a mano nel file products.json).
-Importa: Disponibile -> "available", Prezzo -> "price" (l'omaggio resta 0), IVA -> "vat", Nome inglese -> "name",
+Importa: Ordine -> "sort" (l'omaggio 5_gift non si tocca), Disponibile -> "available", Prezzo -> "price" (l'omaggio resta 0), IVA -> "vat", Nome inglese -> "name",
          traduzioni -> "names". Nome inglese, ordini, mail interne, CSV Mexal e CRM usano l'inglese.
 La descrizione del foglio Codici Mexal ha la precedenza sull'esportazione: se la cambi a mano non viene sovrascritta
 (lo script segnala le differenze, cosi' sai dove Mexal e' ancora indietro). Descrizioni e codici finiscono in
@@ -32,12 +32,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 EXPORT = os.path.join(HERE, "Export prodotti mexal.xlsx")
 PRODUCTS = os.path.join(HERE, "products.json")
 CODES_JSON = os.path.join(HERE, "netlify", "functions", "mexal-codes.json")
-OUT = os.path.join(os.path.dirname(os.path.dirname(HERE)), "Codici Mexal Siena Wine.xlsx")
+OUT = os.path.join(HERE, "Codici Mexal Siena Wine.xlsx")
 
 LINGUE = (("it", "Italiano"), ("de", "Deutsch"), ("fr", "Français"), ("es", "Español"))
 H_EXPORT = ["Codice", "Descrizione", "UM", "Cod. alternativo (EAN)", "Natura", "Gruppo merceologico"]
+H_BASE = ["Codice", "Descrizione", "UM", "Ordine", "Cod. alternativo (EAN)", "Natura", "Gruppo merceologico"]
 H_SHOP = ["Nello shop", "Disponibile", "Prezzo EUR", "IVA %", "Nome inglese (shop)"] + [h for _, h in LINGUE]
-H_MASTER = H_EXPORT + H_SHOP
+H_MASTER = H_BASE + H_SHOP
 YELLOW = PatternFill("solid", fgColor="FFF2CC")
 GRAY = PatternFill("solid", fgColor="EDEDED")
 GOLD = PatternFill("solid", fgColor="D4AF37")
@@ -103,6 +104,10 @@ def _num(v, etichetta, campo):
         return None
 
 
+def ordine_txt(v):
+    return "" if v is None else f"{int(v):02d}"
+
+
 def leggi_master():
     """Foglio 'Codici Mexal' dell'Excel esistente: {codice: {campi}}. I campi shop sono None se la cella e' vuota
     o se il foglio e' ancora nel vecchio formato (senza colonne shop)."""
@@ -118,6 +123,7 @@ def leggi_master():
         code = _s(g("Codice"))
         etichetta = f"codice {code}"
         out[code] = {
+            "ordine": _num(g("Ordine"), etichetta, "Ordine"),
             "desc": _s(g("Descrizione")), "um": _s(g("UM")), "ean": _s(g("Cod. alternativo (EAN)")),
             "natura": _s(g("Natura")), "gruppo": _s(g("Gruppo merceologico")),
             "disp": _si_no(g("Disponibile"), etichetta),
@@ -223,7 +229,7 @@ def importa():
     if not master or not any(m["ha_colonne_shop"] for m in master.values()):
         sys.exit("Il foglio 'Codici Mexal' di " + OUT + " non ha ancora le colonne shop: lancia prima "
                  "'python aggiorna_codici_mexal.py' (senza opzioni) per rigenerarlo.")
-    c_disp, c_prezzo, c_nome, c_iva, c_nomi = [], [], [], [], []
+    c_disp, c_prezzo, c_nome, c_iva, c_nomi, c_ord = [], [], [], [], [], []
     for p in prods:
         pid = str(p["id"])
         gift = pid.endswith("_gift")
@@ -247,6 +253,11 @@ def importa():
             nota = "  <-- VARIAZIONE OLTRE IL 50%, controllare" if vecchio > 0 and abs(m["prezzo"] - vecchio) / vecchio > 0.5 else ""
             c_prezzo.append(f"{pid} {p['name']}: {vecchio:.2f} -> {m['prezzo']:.2f} EUR{nota}")
             p["price"] = float(m["prezzo"])
+        if not gift and m["ordine"] is not None:
+            nuovo = int(m["ordine"])
+            if p.get("sort") != nuovo:
+                c_ord.append(f"{pid} {p['name']}: ordine {p.get('sort')} -> {nuovo}")
+            p["sort"] = nuovo
         if m["name"] and p["name"] != m["name"]:
             c_nome.append(f"{pid} nome inglese: {p['name']} -> {m['name']}")
             p["name"] = m["name"]
@@ -257,7 +268,16 @@ def importa():
                 c_nomi.append(f"{pid} [{c}] {old_names.get(c, '(nessuno)')} -> {new_names[c]}")
         p["names"] = new_names
     salva_products(prods)
-    for titolo, lista in (("IVA", c_iva), ("Disponibilita'", c_disp), ("Prezzi", c_prezzo),
+    riservati = {p.get("sort") for p in prods if str(p["id"]).endswith("_gift")}
+    visti = {}
+    for p in prods:
+        if str(p["id"]).endswith("_gift") or p.get("sort") is None:
+            continue
+        if p["sort"] in riservati or p["sort"] in visti:
+            print(f"ATTENZIONE: ordine {p['sort']} duplicato o riservato a un omaggio: {p['id']} {p['name']}"
+                  + (f" e {visti[p['sort']]}" if p["sort"] in visti else ""))
+        visti[p["sort"]] = f"{p['id']} {p['name']}"
+    for titolo, lista in (("Ordine", c_ord), ("IVA", c_iva), ("Disponibilita'", c_disp), ("Prezzi", c_prezzo),
                           ("Nomi inglesi", c_nome), ("Nomi tradotti", c_nomi)):
         print(f"{titolo}: {len(lista)} cambiamenti")
         for x in lista:
@@ -319,11 +339,12 @@ def main():
     # --- foglio 1: Codici Mexal (UNICO foglio da modificare) ---
     ws = wb.active
     ws.title = "Codici Mexal"
-    intestazione(ws, H_MASTER, [12, 70, 6, 22, 9, 12, 10, 12, 12, 8, 52, 52, 52, 52, 52])
+    intestazione(ws, H_MASTER, [12, 70, 6, 8, 22, 9, 12, 10, 12, 12, 8, 52, 52, 52, 52, 52])
     finali = {}
     for r in export:
         code = r[0]
-        row = [code, desc[code], r[2], r[3], r[4], r[5], "si" if code in usati else ""]
+        row = [code, desc[code], r[2], ordine_txt(master.get(code, {}).get("ordine")), r[3], r[4], r[5],
+               "si" if code in usati else ""]
         if code in princ:
             v = valori_shop(code, princ[code], master, vecchi)
             finali[code] = v
@@ -332,16 +353,19 @@ def main():
             row += [""] * 8
         ws.append(row)
     for row in ws.iter_rows(min_row=2):
-        for c in list(row[:8]) + [row[10]] + list(row[11:]):
+        for c in list(row[:9]) + list(row[11:]):
             c.number_format = "@"
-        row[8].number_format = "0.00"
-        row[9].number_format = "General"
-        if row[6].value == "si":
-            for c in row[7:]:
+        row[9].number_format = "0.00"
+        row[10].number_format = "General"
+        if row[7].value == "si":
+            row[3].fill = YELLOW
+            for c in row[8:]:
                 c.fill = YELLOW
     ws.auto_filter.ref = ws.dimensions
-    ws["H1"].comment = Comment("Colonne da H a O: si compilano solo per i codici 'Nello shop = si'. Dopo la modifica "
+    ws["I1"].comment = Comment("Colonne da I a P: si compilano solo per i codici 'Nello shop = si'. Dopo la modifica "
                                "si lancia: python aggiorna_codici_mexal.py --importa", "Claude")
+    ws["D1"].comment = Comment("Ordine di visualizzazione nello shop (= campo 'sort' di products.json). Non usare i numeri "
+                               "riservati agli omaggi (il 5_gift sta a 8). Si compila per i codici 'Nello shop = si'.", "Claude")
 
     # --- foglio 2: Abbinamento shop (vista, riscritta dallo script) ---
     ws2 = wb.create_sheet("Abbinamento shop")

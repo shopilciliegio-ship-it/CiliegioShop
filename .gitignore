@@ -2,3 +2,7 @@ node_modules/
 .env
 .netlify/
 deno.lock
+
+# Excel interni (prezzi e codici): la cartella e pubblicata su Netlify, non devono finire online
+*.xlsx
+__pycache__/
