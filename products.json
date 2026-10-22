@@ -737,7 +737,7 @@
     "mexal": "51754",
     "img": "img/prod_41.jpg",
     "category": "SWEETS",
-    "available": false,
+    "available": true,
     "sort": 44,
     "vat": 10,
     "names": {
