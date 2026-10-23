@@ -714,7 +714,7 @@ async function handleEvent(stripeEvent, brevoKey) {
 
       const subjectShop     = isQuoteRequest
         ? '🔔 Order Request (no rate yet) — ' + customerName
-        : '🍷 New Order — ' + customerName + ' — ' + amount + ' ' + currency;
+        : '🍷 New Order ' + (orderNumber ? orderNumber + ' ' : '') + '— ' + customerName + ' — ' + amount + ' ' + currency;
       const mailLang        = mailLangOf(orderData);
       const subjectCustomer = isQuoteRequest ? MAIL_I18N[mailLang].subjQuote : MAIL_I18N[mailLang].subjPaid;
 
