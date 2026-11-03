@@ -86,19 +86,19 @@
   },
   {
     "id": 4,
-    "name": "PURPLE GRAPES - SWEET RED WINE IGT 2024",
+    "name": "PURPLE GRAPES - SWEET RED WINE IGT 2026",
     "price": 4.25,
     "mexal": "50245",
     "img": "img/prod_04.jpg",
     "category": "WINE",
-    "available": false,
+    "available": true,
     "sort": 6,
     "vat": 22,
     "names": {
-      "it": "PURPLE GRAPES - VINO ROSSO DOLCE IGT 2024",
-      "de": "PURPLE GRAPES - SÜSSER ROTWEIN IGT 2024",
-      "fr": "PURPLE GRAPES - VIN ROUGE DOUX IGT 2024",
-      "es": "PURPLE GRAPES - VINO TINTO DULCE IGT 2024"
+      "it": "PURPLE GRAPES - VINO ROSSO DOLCE IGT 2026",
+      "de": "PURPLE GRAPES - SÜSSER ROTWEIN IGT 2026",
+      "fr": "PURPLE GRAPES - VIN ROUGE DOUX IGT 2026",
+      "es": "PURPLE GRAPES - VINO TINTO DULCE IGT 2026"
     }
   },
   {
@@ -375,7 +375,7 @@
   },
   {
     "id": 20,
-    "name": "100 ML EXTRA VIRGIN OLIVE OIL 2025",
+    "name": "100 ML EXTRA VIRGIN OLIVE OIL 2026",
     "price": 5.0,
     "mexal": "50931",
     "img": "img/prod_20.jpg",
@@ -384,15 +384,15 @@
     "sort": 23,
     "vat": 4,
     "names": {
-      "it": "100 ML OLIO EXTRA VERGINE DI OLIVA 2025",
-      "de": "100 ML NATIVES OLIVENÖL EXTRA 2025",
-      "fr": "100 ML HUILE D'OLIVE EXTRA VIERGE 2025",
-      "es": "100 ML ACEITE DE OLIVA VIRGEN EXTRA 2025"
+      "it": "100 ML OLIO EXTRA VERGINE DI OLIVA 2026",
+      "de": "100 ML NATIVES OLIVENÖL EXTRA 2026",
+      "fr": "100 ML HUILE D'OLIVE EXTRA VIERGE 2026",
+      "es": "100 ML ACEITE DE OLIVA VIRGEN EXTRA 2026"
     }
   },
   {
     "id": 21,
-    "name": "250 ML EXTRA VIRGIN OLIVE OIL 2025",
+    "name": "250 ML EXTRA VIRGIN OLIVE OIL 2026",
     "price": 9.0,
     "mexal": "50306",
     "img": "img/prod_21.jpg",
@@ -401,15 +401,15 @@
     "sort": 24,
     "vat": 4,
     "names": {
-      "it": "250 ML OLIO EXTRA VERGINE DI OLIVA 2025",
-      "de": "250 ML NATIVES OLIVENÖL EXTRA 2025",
-      "fr": "250 ML HUILE D'OLIVE EXTRA VIERGE 2025",
-      "es": "250 ML ACEITE DE OLIVA VIRGEN EXTRA 2025"
+      "it": "250 ML OLIO EXTRA VERGINE DI OLIVA 2026",
+      "de": "250 ML NATIVES OLIVENÖL EXTRA 2026",
+      "fr": "250 ML HUILE D'OLIVE EXTRA VIERGE 2026",
+      "es": "250 ML ACEITE DE OLIVA VIRGEN EXTRA 2026"
     }
   },
   {
     "id": 22,
-    "name": "500 ML EXTRA VIRGIN OLIVE OIL 2025",
+    "name": "500 ML EXTRA VIRGIN OLIVE OIL 2026",
     "price": 11.5,
     "mexal": "50290",
     "img": "img/prod_22.jpg",
@@ -418,15 +418,15 @@
     "sort": 25,
     "vat": 4,
     "names": {
-      "it": "500 ML OLIO EXTRA VERGINE DI OLIVA 2025",
-      "de": "500 ML NATIVES OLIVENÖL EXTRA 2025",
-      "fr": "500 ML HUILE D'OLIVE EXTRA VIERGE 2025",
-      "es": "500 ML ACEITE DE OLIVA VIRGEN EXTRA 2025"
+      "it": "500 ML OLIO EXTRA VERGINE DI OLIVA 2026",
+      "de": "500 ML NATIVES OLIVENÖL EXTRA 2026",
+      "fr": "500 ML HUILE D'OLIVE EXTRA VIERGE 2026",
+      "es": "500 ML ACEITE DE OLIVA VIRGEN EXTRA 2026"
     }
   },
   {
     "id": 23,
-    "name": "1 LT EXTRA VIRGIN OLIVE OIL 2025",
+    "name": "1 LT EXTRA VIRGIN OLIVE OIL 2026",
     "price": 21.0,
     "mexal": "50252",
     "img": "img/prod_23.jpg",
@@ -435,15 +435,15 @@
     "sort": 26,
     "vat": 4,
     "names": {
-      "it": "1 LT OLIO EXTRA VERGINE DI OLIVA 2025",
-      "de": "1 LT NATIVES OLIVENÖL EXTRA 2025",
-      "fr": "1 LT HUILE D'OLIVE EXTRA VIERGE 2025",
-      "es": "1 LT ACEITE DE OLIVA VIRGEN EXTRA 2025"
+      "it": "1 LT OLIO EXTRA VERGINE DI OLIVA 2026",
+      "de": "1 LT NATIVES OLIVENÖL EXTRA 2026",
+      "fr": "1 LT HUILE D'OLIVE EXTRA VIERGE 2026",
+      "es": "1 LT ACEITE DE OLIVA VIRGEN EXTRA 2026"
     }
   },
   {
     "id": 24,
-    "name": "3 LT EXTRA VIRGIN OLIVE OIL 2025",
+    "name": "3 LT EXTRA VIRGIN OLIVE OIL 2026",
     "price": 58.0,
     "mexal": "50276",
     "img": "img/prod_24.jpg",
@@ -452,15 +452,15 @@
     "sort": 27,
     "vat": 4,
     "names": {
-      "it": "3 LT OLIO EXTRA VERGINE DI OLIVA 2025",
-      "de": "3 LT NATIVES OLIVENÖL EXTRA 2025",
-      "fr": "3 LT HUILE D'OLIVE EXTRA VIERGE 2025",
-      "es": "3 LT ACEITE DE OLIVA VIRGEN EXTRA 2025"
+      "it": "3 LT OLIO EXTRA VERGINE DI OLIVA 2026",
+      "de": "3 LT NATIVES OLIVENÖL EXTRA 2026",
+      "fr": "3 LT HUILE D'OLIVE EXTRA VIERGE 2026",
+      "es": "3 LT ACEITE DE OLIVA VIRGEN EXTRA 2026"
     }
   },
   {
     "id": 25,
-    "name": "5 LT EXTRA VIRGIN OLIVE OIL 2025",
+    "name": "5 LT EXTRA VIRGIN OLIVE OIL 2026",
     "price": 90.0,
     "mexal": "50283",
     "img": "img/prod_25.jpg",
@@ -469,10 +469,10 @@
     "sort": 28,
     "vat": 4,
     "names": {
-      "it": "5 LT OLIO EXTRA VERGINE DI OLIVA 2025",
-      "de": "5 LT NATIVES OLIVENÖL EXTRA 2025",
-      "fr": "5 LT HUILE D'OLIVE EXTRA VIERGE 2025",
-      "es": "5 LT ACEITE DE OLIVA VIRGEN EXTRA 2025"
+      "it": "5 LT OLIO EXTRA VERGINE DI OLIVA 2026",
+      "de": "5 LT NATIVES OLIVENÖL EXTRA 2026",
+      "fr": "5 LT HUILE D'OLIVE EXTRA VIERGE 2026",
+      "es": "5 LT ACEITE DE OLIVA VIRGEN EXTRA 2026"
     }
   },
   {
