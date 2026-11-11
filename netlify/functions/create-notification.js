@@ -233,7 +233,7 @@ const MAIL_I18N = {
     customer: 'Customer', products: 'Products', orderNo: 'Order No.', name: 'Name', email: 'Email', phone: 'Phone',
     taxCode: 'Codice Fiscale', address: 'Address', payment: 'Payment', gift: 'FREE GIFT',
     payCard: 'Credit Card', payDirect: 'Direct Sale (Paid at Farm)', payQuote: 'Quote Requested (Not Paid)',
-    tProducts: 'Products Total', tDiscount: 'Discount', tDuties: 'Import Duties', tShipping: 'Shipping', tFinal: 'FINAL TOTAL',
+    tProducts: 'Products Total', tDiscount: 'Discount', tDuties: 'Import Duties', tExtra: 'Additional charges', tShipping: 'Shipping', tFinal: 'FINAL TOTAL',
     subjPaid: '\uD83C\uDF77 Order confirmed \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Order request received \u2014 Il Ciliegio Shop'
   },
   it: {
@@ -243,7 +243,7 @@ const MAIL_I18N = {
     customer: 'Cliente', products: 'Prodotti', orderNo: 'N. ordine', name: 'Nome', email: 'Email', phone: 'Telefono',
     taxCode: 'Codice Fiscale', address: 'Indirizzo', payment: 'Pagamento', gift: 'OMAGGIO',
     payCard: 'Carta di credito', payDirect: 'Vendita diretta (pagato in azienda)', payQuote: 'Preventivo richiesto (non pagato)',
-    tProducts: 'Totale prodotti', tDiscount: 'Sconto', tDuties: 'Dazi di importazione', tShipping: 'Spedizione', tFinal: 'TOTALE FINALE',
+    tProducts: 'Totale prodotti', tDiscount: 'Sconto', tDuties: 'Dazi di importazione', tExtra: 'Spese aggiuntive', tShipping: 'Spedizione', tFinal: 'TOTALE FINALE',
     subjPaid: '\uD83C\uDF77 Ordine confermato \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Richiesta d\'ordine ricevuta \u2014 Il Ciliegio Shop'
   },
   de: {
@@ -253,7 +253,7 @@ const MAIL_I18N = {
     customer: 'Kunde', products: 'Produkte', orderNo: 'Bestellnr.', name: 'Name', email: 'E-Mail', phone: 'Telefon',
     taxCode: 'Codice Fiscale', address: 'Adresse', payment: 'Zahlung', gift: 'GESCHENK',
     payCard: 'Kreditkarte', payDirect: 'Direktverkauf (im Betrieb bezahlt)', payQuote: 'Angebot angefragt (nicht bezahlt)',
-    tProducts: 'Produkte gesamt', tDiscount: 'Rabatt', tDuties: 'Einfuhrzoll', tShipping: 'Versand', tFinal: 'GESAMTSUMME',
+    tProducts: 'Produkte gesamt', tDiscount: 'Rabatt', tDuties: 'Einfuhrzoll', tExtra: 'Zus\u00E4tzliche Geb\u00FChren', tShipping: 'Versand', tFinal: 'GESAMTSUMME',
     subjPaid: '\uD83C\uDF77 Bestellung best\u00E4tigt \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Bestellanfrage erhalten \u2014 Il Ciliegio Shop'
   },
   fr: {
@@ -263,7 +263,7 @@ const MAIL_I18N = {
     customer: 'Client', products: 'Produits', orderNo: 'N\u00B0 de commande', name: 'Nom', email: 'E-mail', phone: 'T\u00E9l\u00E9phone',
     taxCode: 'Codice Fiscale', address: 'Adresse', payment: 'Paiement', gift: 'CADEAU',
     payCard: 'Carte de cr\u00E9dit', payDirect: 'Vente directe (pay\u00E9 \u00E0 l\'exploitation)', payQuote: 'Devis demand\u00E9 (non pay\u00E9)',
-    tProducts: 'Total produits', tDiscount: 'Remise', tDuties: 'Droits d\'importation', tShipping: 'Exp\u00E9dition', tFinal: 'TOTAL FINAL',
+    tProducts: 'Total produits', tDiscount: 'Remise', tDuties: 'Droits d\'importation', tExtra: 'Frais supplémentaires', tShipping: 'Exp\u00E9dition', tFinal: 'TOTAL FINAL',
     subjPaid: '\uD83C\uDF77 Commande confirm\u00E9e \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Demande de commande re\u00E7ue \u2014 Il Ciliegio Shop'
   },
   es: {
@@ -273,7 +273,7 @@ const MAIL_I18N = {
     customer: 'Cliente', products: 'Productos', orderNo: 'N.\u00BA de pedido', name: 'Nombre', email: 'Correo electr\u00F3nico', phone: 'Tel\u00E9fono',
     taxCode: 'Codice Fiscale', address: 'Direcci\u00F3n', payment: 'Pago', gift: 'REGALO',
     payCard: 'Tarjeta de cr\u00E9dito', payDirect: 'Venta directa (pagado en la finca)', payQuote: 'Presupuesto solicitado (no pagado)',
-    tProducts: 'Total productos', tDiscount: 'Descuento', tDuties: 'Aranceles de importaci\u00F3n', tShipping: 'Env\u00EDo', tFinal: 'TOTAL FINAL',
+    tProducts: 'Total productos', tDiscount: 'Descuento', tDuties: 'Aranceles de importaci\u00F3n', tExtra: 'Gastos adicionales', tShipping: 'Env\u00EDo', tFinal: 'TOTAL FINAL',
     subjPaid: '\uD83C\uDF77 Pedido confirmado \u2014 Il Ciliegio Shop', subjQuote: '\uD83C\uDF77 Solicitud de pedido recibida \u2014 Il Ciliegio Shop'
   }
 };
@@ -301,8 +301,36 @@ function localizeTotalRow(t, L) {
   return t.replace(/^Products Total:/, L.tProducts + ':')
     .replace(/^Discount \(/, L.tDiscount + ' (')
     .replace(/^Import Duties \(/, L.tDuties + ' (')
+    .replace(/^Additional charges:/, (L.tExtra || 'Additional charges') + ':')
     .replace(/^Shipping \(/, L.tShipping + ' (')
     .replace(/^FINAL TOTAL:/, L.tFinal + ':');
+}
+
+// Commissione PayPal (+5%): il cliente paga piu' del totale mostrato nello shop. Nei totali della mail
+// aggiungiamo la riga neutra "Additional charges" (mai la parola PayPal ne' la percentuale: la mail e' identica
+// per noi e per il cliente) e il FINAL TOTAL diventa l'importo realmente incassato.
+function addPaypalFeeToTotals(totals, fee, paid) {
+  if (!totals || !(fee > 0)) return totals;
+  const rows = totals.split('|');
+  const out = [];
+  rows.forEach(function(r) {
+    if (r.indexOf('FINAL TOTAL') >= 0) {
+      out.push('Additional charges: \u20AC' + fee.toFixed(2));
+      out.push('FINAL TOTAL: \u20AC' + Number(paid).toFixed(2));
+    } else out.push(r);
+  });
+  return out.join('|');
+}
+
+// Indirizzo per le mail degli ordini USA: via, CAP, citta', stato, sigla, paese (senza la contea).
+// Per gli altri paesi si lascia l'indirizzo com'era.
+function emailAddressOf(od, fallback) {
+  try {
+    const a = od && !od._error ? (od.shipTo || od.customer) : null;
+    if (!a || a.countryCode !== 'US') return fallback;
+    const parts = [a.address, a.zip, a.city, a.state, a.stateCode, a.country].map(function(x) { return String(x || '').trim().toUpperCase(); }).filter(Boolean);
+    return parts.length >= 5 ? parts.join(', ') : fallback;
+  } catch (e) { return fallback; }
 }
 
 function buildEmailHtml(isShop, customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuote, customerTaxCode, orderNumber, mexalNote, lang) {
@@ -667,7 +695,7 @@ async function handleEvent(stripeEvent, brevoKey) {
     const isQuoteRequest  = paymentMethod === 'quote_request';
     const amount          = (s.amount_total / 100).toFixed(2);
     const currency        = (s.currency || 'eur').toUpperCase();
-    const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal (+5%)' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : isQuoteRequest ? 'Quote Requested (Not Paid)' : 'Credit Card';
+    const paymentLabel    = paymentMethod === 'paypal' ? 'PayPal' : paymentMethod === 'direct_sale' ? 'Direct Sale (Paid at Farm)' : isQuoteRequest ? 'Quote Requested (Not Paid)' : 'Credit Card';
 
     // Le vendite dal tablet (direct_sale) arrivano senza id Stripe: gliene diamo uno nostro,
     // altrimenti il record non avrebbe chiave per essere salvato.
@@ -698,12 +726,27 @@ async function handleEvent(stripeEvent, brevoKey) {
         'Chiave ordine: ' + orderKey + String.fromCharCode(10) + 'Numero: ' + (orderNumber || '(nessuno)') + String.fromCharCode(10) + 'Cliente: ' + customerName);
     }
 
+    // Commissione PayPal: importo incassato - totale dello shop. Resta nei dati ordine (paypalFee) e
+    // il CSV Mexal la somma ai dazi; nelle mail compare come riga a parte e il totale finale e' quello pagato.
+    let orderTotalsOut = orderTotals;
+    let emailAddress = customerAddress;
+    if (!isQuoteRequest && orderData && !orderData._error) {
+      emailAddress = emailAddressOf(orderData, customerAddress);
+      if (paymentMethod === 'paypal') {
+        const fee = Math.round((Number(amount) - Number(orderData.total)) * 100) / 100;
+        if (fee > 0 && fee < Number(orderData.total) * 0.2) {
+          orderData.paypalFee = fee;
+          orderTotalsOut = addPaypalFeeToTotals(orderTotals, fee, Number(amount));
+        }
+      }
+    }
+
     // Persisted immediately, before promo/PDF/email work below — so a paid
     // order is never lost even if everything after this point throws.
     await saveOrderRecord(orderKey, {
       receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
       customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
-      orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
+      orderProducts: orderProducts, orderTotals: orderTotalsOut, amount: amount, currency: currency,
       paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, orderData: orderData, orderDataProblems: orderDataProblems, emailsSent: false
     });
 
@@ -739,10 +782,10 @@ async function handleEvent(stripeEvent, brevoKey) {
         }
       }
 
-      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, customerAddress, paymentLabel, amount, currency, orderProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber, mexalNoteHtml(mexal));
+      const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, emailAddress, paymentLabel, amount, currency, orderProducts, orderTotalsOut, isQuoteRequest, customerTaxCode, orderNumber, mexalNoteHtml(mexal));
       const customerProducts = localizeProductLines(orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [], orderData, mailLang).join('|');
       const customerPayLabel = paymentMethod === 'paypal' ? paymentLabel : paymentMethod === 'direct_sale' ? MAIL_I18N[mailLang].payDirect : isQuoteRequest ? MAIL_I18N[mailLang].payQuote : MAIL_I18N[mailLang].payCard;
-      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, customerAddress, customerPayLabel, amount, currency, customerProducts, orderTotals, isQuoteRequest, customerTaxCode, orderNumber, '', mailLang);
+      const customerHtml = buildEmailHtml(false, customerName, customerEmail, customerPhone, emailAddress, customerPayLabel, amount, currency, customerProducts, orderTotalsOut, isQuoteRequest, customerTaxCode, orderNumber, '', mailLang);
 
       // Generate MOS Fieramente PDF attachment — skipped for quote requests since
       // shipping (and therefore the shipment paperwork) isn't confirmed yet.
@@ -766,7 +809,7 @@ async function handleEvent(stripeEvent, brevoKey) {
       await saveOrderRecord(orderKey, {
         receivedAt: new Date().toISOString(), isQuoteRequest: isQuoteRequest,
         customerName: customerName, customerEmail: customerEmail, customerPhone: customerPhone, customerAddress: customerAddress, customerTaxCode: customerTaxCode,
-        orderProducts: orderProducts, orderTotals: orderTotals, amount: amount, currency: currency,
+        orderProducts: orderProducts, orderTotals: orderTotalsOut, amount: amount, currency: currency,
         paymentMethod: paymentMethod, promoCode: promoCode, orderNumber: orderNumber, orderData: orderData, orderDataProblems: orderDataProblems, mexalCsv: mexal, emailsSent: true
       });
       console.log('Done:', customerName, amount, currency);

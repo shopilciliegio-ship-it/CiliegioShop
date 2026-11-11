@@ -158,7 +158,15 @@ function buildExpenseLines(od, zone, problems) {
   const domestic = zone !== 'EXTRA-EU';
   const rows = [];
   const ship = Number(od.shipping) || 0;
-  const duties = Number(od.duties) || 0;
+  // Commissione PayPal (+5%): il cliente ha pagato anche questa, la fattura deve essere dell'importo
+  // incassato. Fuori UE la sommiamo ai dazi (stessa riga, stesso trattamento); per Italia/UE sarebbe
+  // fiscalmente sbagliato, quindi li' resta fuori e viene segnalata come problema.
+  const paypalFee = Number(od.paypalFee) || 0;
+  let duties = Number(od.duties) || 0;
+  if (paypalFee > 0) {
+    if (domestic) problems.push('commissione PayPal di ' + paypalFee.toFixed(2) + ' EUR NON inclusa nei CSV (destinazione Italia/UE): decidere come fatturarla');
+    else duties = r2(duties + paypalFee);
+  }
   let n = 0, mexalTotal = 0;
   if (ship > 0) {
     const base = { line: ++n, code: RULES.code.shipping, description: od.shippingLabel ? 'Spese di spedizione - ' + od.shippingLabel : 'Spese di spedizione', qty: 1, disc: 0 };
