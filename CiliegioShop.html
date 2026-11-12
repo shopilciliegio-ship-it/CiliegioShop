@@ -1606,9 +1606,6 @@ function App(){
     const msg1 = L.duty.genericUnknown;
     if(code==='US' && !hasWine) return msg1;
     if(code==='CA') return msg1;
-    if(code==='GB') return L.duty.gb;
-    if(code==='CH') return L.duty.ch;
-    if(code==='NO') return L.duty.no;
     // All other non-EU extra countries
     const EU_AND_ITALY = ['IT','DE','BE','NL','LU','FR','DK','AT','ES','SE','PT','IE','SI','FI','HR','GR','CY','MT','PL','CZ','SK','HU','BG','EE','LV','LT','RO'];
     if(!EU_AND_ITALY.includes(code) && code!=='US') return msg1;
@@ -1801,7 +1798,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.115</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.116</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
@@ -2958,9 +2955,6 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     if(natCode==='US' && hasWine) return null; // US wine: duties already shown in cart
     if(natCode==='US') return L.duty.genericUnknown;
     if(natCode==='CA') return L.duty.genericUnknown;
-    if(natCode==='GB') return L.duty.gb;
-    if(natCode==='CH') return L.duty.ch;
-    if(natCode==='NO') return L.duty.no;
     return L.duty.genericUnknown;
   })();
 
