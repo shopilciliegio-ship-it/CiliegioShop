@@ -463,17 +463,19 @@ const COUNTRIES = [
   {name:'BRAZIL',         code:'BR', prefix:'+55',  flag:'🇧🇷'},
   {name:'CHINA',          code:'CN', prefix:'+86',  flag:'🇨🇳'},
   {name:'HONG KONG',      code:'HK', prefix:'+852', flag:'🇭🇰'},
+  {name:'MACAU',          code:'MO', prefix:'+853', flag:'🇲🇴'},
   {name:'INDIA',          code:'IN', prefix:'+91',  flag:'🇮🇳'},
   {name:'ISRAEL',         code:'IL', prefix:'+972', flag:'🇮🇱'},
   {name:'JAPAN',          code:'JP', prefix:'+81',  flag:'🇯🇵'},
   {name:'MEXICO',         code:'MX', prefix:'+52',  flag:'🇲🇽'},
   {name:'NEW ZEALAND',    code:'NZ', prefix:'+64',  flag:'🇳🇿'},
+  {name:'PHILIPPINES',    code:'PH', prefix:'+63',  flag:'🇵🇭'},
   {name:'SINGAPORE',      code:'SG', prefix:'+65',  flag:'🇸🇬'},
   {name:'SOUTH AFRICA',   code:'ZA', prefix:'+27',  flag:'🇿🇦'},
   {name:'SOUTH KOREA',    code:'KR', prefix:'+82',  flag:'🇰🇷'},
   {name:'TAIWAN',         code:'TW', prefix:'+886', flag:'🇹🇼'},
   {name:'UNITED ARAB EMIRATES', code:'AE', prefix:'+971', flag:'🇦🇪'},
-];
+].sort((a,b)=>a.name.localeCompare(b.name)); // elenco sempre in ordine alfabetico
 
 const ZONE_MAP = {
   IT:'ITALIA',GB:'UK',CH:'SWITZERLAND',NO:'NORWAY',
@@ -485,6 +487,8 @@ const ZONE_MAP = {
   CY:'EU_ZONE_7',MT:'EU_ZONE_7',
   PL:'EU_ZONE_8',CZ:'EU_ZONE_8',SK:'EU_ZONE_8',HU:'EU_ZONE_8',
   BG:'EU_ZONE_9',EE:'EU_ZONE_9',LV:'EU_ZONE_9',LT:'EU_ZONE_9',RO:'EU_ZONE_9',
+  // Resto del mondo (no superalcolici); la Cina ha tariffa propria con tetto di 2 bottiglie
+  KR:'ROTW',HK:'ROTW',MO:'ROTW',JP:'ROTW',SG:'ROTW',TW:'ROTW',PH:'ROTW',AU:'ROTW',NZ:'ROTW',CN:'ROTW_CINA',
 };
 
 const USA_SPECIAL = ['HI','AK','PR','AL','AR','UT','MS','VI'];
@@ -647,6 +651,7 @@ const I18N = {
       cartTitle:'🛒 Cart', reset:'✕ Reset',
       maxItems:(n)=>`⚠️ Maximum ${n} items per order for this destination.`,
       maxCans:(n)=>`⚠️ Maximum ${n} oil cans (3L/5L) per order.`,
+      noSpirits:'🚫 Spirits/distillates cannot be shipped to this country.',
       caMix:'🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.',
       caBlocked:(province)=>`🚫 Wine/Sparkling cannot be shipped to ${province}.`,
       orderPopup:{
@@ -654,14 +659,14 @@ const I18N = {
         completed:'Your order has been completed.',
         choosePayment:'Please proceed to the payment of your order using one of the options below:',
         choosePaymentQuote:"We don't have a shipping rate for your country yet. Send your order request now — no payment required. We'll check feasibility and contact you by email with a shipping quote and payment link.",
-        sendWA:'📲 Send Order via WhatsApp', payCard:'💳 Pay by Card', payPaypal:'🅿️ PayPal (+5% comm.)',
+        sendWA:'📲 Send Order via WhatsApp', payCard:'💳 Pay by Card', payPaypal:'🅿️ PayPal (+5%)',
         sendQuote:'📩 Send Order Request (no payment)',
         goBack:'← Go Back',
       },
       dutyWarn:{goBack:'← Go Back', understand:'I understand →'},
     },
     duty:{
-      genericUnknown:"Please note that any taxes or duties on your order must be paid before delivery to your address — We're sorry, but we don't know how much this will cost.",
+      genericUnknown:"Attention! We don't know IF the customs of the destination country will apply taxes or duties to your order. Any charges must be paid by the recipient before delivery. We're sorry, but we can't know in advance whether any charges will apply, nor the amount. Thank you for your understanding.",
       gb:'Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 40% of the total value.',
       ch:'Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around 5% of the total value + VAT 7.7%.',
       no:'Please note that any taxes or duties on your order must be paid before delivery to your address — This cost will be around €1 per bottle + VAT 15%.',
@@ -760,6 +765,7 @@ const I18N = {
       cartTitle:'🛒 Carrello', reset:'✕ Reset',
       maxItems:(n)=>`⚠️ Massimo ${n} pezzi per ordine per questa destinazione.`,
       maxCans:(n)=>`⚠️ Massimo ${n} lattine di olio (3L/5L) per ordine.`,
+      noSpirits:'🚫 Liquori/distillati non possono essere spediti in questo paese.',
       caMix:'🍷 In Canada, vino/spumante non può essere spedito con altri prodotti. Effettua un ordine separato.',
       caBlocked:(province)=>`🚫 Vino/Spumante non può essere spedito a ${province}.`,
       orderPopup:{
@@ -767,14 +773,14 @@ const I18N = {
         completed:'Il tuo ordine è stato completato.',
         choosePayment:"Procedi al pagamento del tuo ordine usando una delle opzioni qui sotto:",
         choosePaymentQuote:"Non abbiamo ancora una tariffa di spedizione per il tuo paese. Invia subito la tua richiesta d'ordine — nessun pagamento richiesto ora. Verificheremo la fattibilità e ti contatteremo via email con il preventivo di spedizione e il link per pagare.",
-        sendWA:"📲 Invia l'ordine via WhatsApp", payCard:'💳 Paga con carta', payPaypal:'🅿️ PayPal (+5% comm.)',
+        sendWA:"📲 Invia l'ordine via WhatsApp", payCard:'💳 Paga con carta', payPaypal:'🅿️ PayPal (+5%)',
         sendQuote:"📩 Invia richiesta d'ordine (senza pagamento)",
         goBack:'← Torna indietro',
       },
       dutyWarn:{goBack:'← Torna indietro', understand:'Ho capito →'},
     },
     duty:{
-      genericUnknown:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — siamo spiacenti, non sappiamo indicare in anticipo l'importo.",
+      genericUnknown:"Attenzione! Non sappiamo SE la dogana del paese di destinazione applicherà tasse o dazi sull'ordine che stai facendo. Eventuali spese andranno pagate dal destinatario dell'ordine prima della consegna. Ci dispiace, ma non sappiamo in anticipo se verranno applicate tasse né quale sarebbe l'importo. Grazie per la tua comprensione.",
       gb:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — il costo sarà di circa il 40% del valore totale.",
       ch:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — il costo sarà di circa il 5% del valore totale + IVA 7,7%.",
       no:"Attenzione: eventuali tasse o dazi sul tuo ordine dovranno essere pagati prima della consegna — il costo sarà di circa €1 a bottiglia + IVA 15%.",
@@ -873,6 +879,7 @@ const I18N = {
       cartTitle:'🛒 Warenkorb', reset:'✕ Zurücksetzen',
       maxItems:(n)=>`⚠️ Maximal ${n} Artikel pro Bestellung für dieses Ziel.`,
       maxCans:(n)=>`⚠️ Maximal ${n} Öldosen (3L/5L) pro Bestellung.`,
+      noSpirits:'🚫 Spirituosen/Destillate können nicht in dieses Land versendet werden.',
       caMix:'🍷 In Kanada können Wein/Sekt nicht zusammen mit anderen Produkten versendet werden. Bitte separat bestellen.',
       caBlocked:(province)=>`🚫 Wein/Sekt kann nicht nach ${province} versendet werden.`,
       orderPopup:{
@@ -880,14 +887,14 @@ const I18N = {
         completed:'Ihre Bestellung wurde abgeschlossen.',
         choosePayment:'Bitte fahren Sie mit der Zahlung Ihrer Bestellung fort, indem Sie eine der folgenden Optionen wählen:',
         choosePaymentQuote:'Für Ihr Land liegt uns noch kein Versandtarif vor. Senden Sie jetzt Ihre Bestellanfrage — keine Zahlung erforderlich. Wir prüfen die Machbarkeit und melden uns per E-Mail mit einem Versandangebot und Zahlungslink.',
-        sendWA:'📲 Bestellung per WhatsApp senden', payCard:'💳 Mit Karte zahlen', payPaypal:'🅿️ PayPal (+5% Gebühr)',
+        sendWA:'📲 Bestellung per WhatsApp senden', payCard:'💳 Mit Karte zahlen', payPaypal:'🅿️ PayPal (+5%)',
         sendQuote:'📩 Bestellanfrage senden (ohne Zahlung)',
         goBack:'← Zurück',
       },
       dutyWarn:{goBack:'← Zurück', understand:'Verstanden →'},
     },
     duty:{
-      genericUnknown:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — wir können die Höhe leider nicht im Voraus angeben.',
+      genericUnknown:"Achtung! Wir wissen nicht, OB der Zoll des Ziellandes Steuern oder Zölle auf Ihre Bestellung erhebt. Etwaige Kosten müssen vom Empfänger vor der Lieferung bezahlt werden. Es tut uns leid, aber wir können im Voraus weder wissen, ob Abgaben anfallen, noch in welcher Höhe. Vielen Dank für Ihr Verständnis.",
       gb:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — die Kosten betragen etwa 40% des Gesamtwerts.',
       ch:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — die Kosten betragen etwa 5% des Gesamtwerts + 7,7% MwSt.',
       no:'Bitte beachten Sie, dass Steuern oder Zölle auf Ihre Bestellung vor der Lieferung an Ihre Adresse bezahlt werden müssen — die Kosten betragen etwa €1 pro Flasche + 15% MwSt.',
@@ -986,6 +993,7 @@ const I18N = {
       cartTitle:'🛒 Panier', reset:'✕ Réinitialiser',
       maxItems:(n)=>`⚠️ Maximum ${n} articles par commande pour cette destination.`,
       maxCans:(n)=>`⚠️ Maximum ${n} bidons d'huile (3L/5L) par commande.`,
+      noSpirits:"🚫 Les spiritueux/distillats ne peuvent pas être expédiés vers ce pays.",
       caMix:"🍷 Au Canada, le vin/mousseux ne peut pas être expédié avec d'autres produits. Veuillez passer une commande séparée.",
       caBlocked:(province)=>`🚫 Le vin/mousseux ne peut pas être expédié vers ${province}.`,
       orderPopup:{
@@ -993,14 +1001,14 @@ const I18N = {
         completed:'Votre commande a été finalisée.',
         choosePayment:'Veuillez procéder au paiement de votre commande en utilisant une des options ci-dessous :',
         choosePaymentQuote:"Nous n'avons pas encore de tarif de livraison pour votre pays. Envoyez votre demande de commande dès maintenant — aucun paiement requis. Nous vérifierons la faisabilité et vous contacterons par email avec un devis de livraison et un lien de paiement.",
-        sendWA:'📲 Envoyer la commande via WhatsApp', payCard:'💳 Payer par carte', payPaypal:'🅿️ PayPal (+5% de frais)',
+        sendWA:'📲 Envoyer la commande via WhatsApp', payCard:'💳 Payer par carte', payPaypal:'🅿️ PayPal (+5%)',
         sendQuote:'📩 Envoyer la demande (sans paiement)',
         goBack:'← Retour',
       },
       dutyWarn:{goBack:'← Retour', understand:'Compris →'},
     },
     duty:{
-      genericUnknown:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — nous sommes désolés, nous ne connaissons pas le montant à l'avance.",
+      genericUnknown:"Attention ! Nous ne savons pas SI la douane du pays de destination appliquera des taxes ou des droits de douane sur votre commande. Les éventuels frais devront être payés par le destinataire avant la livraison. Nous sommes désolés, mais nous ne pouvons pas savoir à l'avance si des taxes seront appliquées, ni leur montant. Merci de votre compréhension.",
       gb:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — ce coût sera d'environ 40% de la valeur totale.",
       ch:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — ce coût sera d'environ 5% de la valeur totale + TVA 7,7%.",
       no:"Veuillez noter que les taxes ou droits de douane sur votre commande doivent être payés avant la livraison à votre adresse — ce coût sera d'environ 1€ par bouteille + TVA 15%.",
@@ -1099,6 +1107,7 @@ const I18N = {
       cartTitle:'🛒 Carrito', reset:'✕ Reiniciar',
       maxItems:(n)=>`⚠️ Máximo ${n} artículos por pedido para este destino.`,
       maxCans:(n)=>`⚠️ Máximo ${n} latas de aceite (3L/5L) por pedido.`,
+      noSpirits:'🚫 Los licores/destilados no se pueden enviar a este país.',
       caMix:'🍷 En Canadá, el vino/espumoso no se puede enviar con otros productos. Realiza un pedido separado.',
       caBlocked:(province)=>`🚫 El vino/espumoso no se puede enviar a ${province}.`,
       orderPopup:{
@@ -1106,14 +1115,14 @@ const I18N = {
         completed:'Tu pedido se ha completado.',
         choosePayment:'Procede al pago de tu pedido usando una de las opciones a continuación:',
         choosePaymentQuote:'Todavía no tenemos una tarifa de envío para tu país. Envía tu solicitud de pedido ahora — no se requiere pago. Verificaremos la viabilidad y te contactaremos por correo con un presupuesto de envío y un enlace de pago.',
-        sendWA:'📲 Enviar pedido por WhatsApp', payCard:'💳 Pagar con tarjeta', payPaypal:'🅿️ PayPal (+5% comisión)',
+        sendWA:'📲 Enviar pedido por WhatsApp', payCard:'💳 Pagar con tarjeta', payPaypal:'🅿️ PayPal (+5%)',
         sendQuote:'📩 Enviar solicitud (sin pago)',
         goBack:'← Volver',
       },
       dutyWarn:{goBack:'← Volver', understand:'Entendido →'},
     },
     duty:{
-      genericUnknown:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — lo sentimos, no sabemos indicar el importe de antemano.',
+      genericUnknown:"¡Atención! No sabemos SI la aduana del país de destino aplicará impuestos o aranceles a tu pedido. Los posibles gastos deberá pagarlos el destinatario antes de la entrega. Lo sentimos, pero no podemos saber de antemano si se aplicarán impuestos ni a cuánto ascenderían. Gracias por tu comprensión.",
       gb:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — el coste será de aproximadamente el 40% del valor total.',
       ch:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — el coste será de aproximadamente el 5% del valor total + IVA 7,7%.',
       no:'Ten en cuenta que los impuestos o aranceles de tu pedido deben pagarse antes de la entrega en tu dirección — el coste será de aproximadamente €1 por botella + IVA 15%.',
@@ -1165,6 +1174,73 @@ function rateKey(code,speed,wine){
   }
   if(code==='CA') return speed==='EXPRESS'?'CANADA_EXPRESS':'CANADA_STANDARD';
   return ZONE_MAP[code]||null;
+}
+// Giappone: Nominatim non ha i CAP giapponesi -> fallback su zipcloud (CORS aperto), con romanizzazione
+const JP_PREF=['HOKKAIDO','AOMORI','IWATE','MIYAGI','AKITA','YAMAGATA','FUKUSHIMA','IBARAKI','TOCHIGI','GUNMA','SAITAMA','CHIBA','TOKYO','KANAGAWA','NIIGATA','TOYAMA','ISHIKAWA','FUKUI','YAMANASHI','NAGANO','GIFU','SHIZUOKA','AICHI','MIE','SHIGA','KYOTO','OSAKA','HYOGO','NARA','WAKAYAMA','TOTTORI','SHIMANE','OKAYAMA','HIROSHIMA','YAMAGUCHI','TOKUSHIMA','KAGAWA','EHIME','KOCHI','FUKUOKA','SAGA','NAGASAKI','KUMAMOTO','OITA','MIYAZAKI','KAGOSHIMA','OKINAWA'];
+const JP_KANA={'ア':'A','イ':'I','ウ':'U','エ':'E','オ':'O','カ':'KA','キ':'KI','ク':'KU','ケ':'KE','コ':'KO','サ':'SA','シ':'SHI','ス':'SU','セ':'SE','ソ':'SO','タ':'TA','チ':'CHI','ツ':'TSU','テ':'TE','ト':'TO','ナ':'NA','ニ':'NI','ヌ':'NU','ネ':'NE','ノ':'NO','ハ':'HA','ヒ':'HI','フ':'FU','ヘ':'HE','ホ':'HO','マ':'MA','ミ':'MI','ム':'MU','メ':'ME','モ':'MO','ヤ':'YA','ユ':'YU','ヨ':'YO','ラ':'RA','リ':'RI','ル':'RU','レ':'RE','ロ':'RO','ワ':'WA','ヲ':'O','ガ':'GA','ギ':'GI','グ':'GU','ゲ':'GE','ゴ':'GO','ザ':'ZA','ジ':'JI','ズ':'ZU','ゼ':'ZE','ゾ':'ZO','ダ':'DA','ヂ':'JI','ヅ':'ZU','デ':'DE','ド':'DO','バ':'BA','ビ':'BI','ブ':'BU','ベ':'BE','ボ':'BO','パ':'PA','ピ':'PI','プ':'PU','ペ':'PE','ポ':'PO','ヴ':'VU','ァ':'A','ィ':'I','ゥ':'U','ェ':'E','ォ':'O'};
+const JP_SMALL={'ャ':'A','ュ':'U','ョ':'O'};
+function jpKanaToRomaji(k){
+  const s=(k||'').normalize('NFKC'); let out='',i=0,dbl=false;
+  while(i<s.length){
+    const c=s[i];
+    if(c==='ッ'){dbl=true;i++;continue;}
+    if(c==='ン'){out+=(/[AIUEOY]/.test(s[i+1]?(JP_KANA[s[i+1]]||'')[0]||'':'')?"N'":'N');i++;continue;}
+    if(c==='ー'){i++;continue;}
+    let r=JP_KANA[c];
+    if(r===undefined){i++;continue;}
+    if(JP_SMALL[s[i+1]]){ const base=r.replace(/I$/,''); r=(r==='SHI'||r==='CHI'||r==='JI')?base.replace(/^(SH|CH|J).*/,'$1')+JP_SMALL[s[i+1]]:base+'Y'+JP_SMALL[s[i+1]]; i++; }
+    if(dbl){ out+=(r[0]==='C'?'T':r[0]); dbl=false; }
+    out+=r; i++;
+  }
+  return out;
+}
+async function lookupJapanZip(z){
+  const d=z.replace(/\D/g,'');
+  if(d.length!==7) return null;
+  const r=await fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode='+d);
+  if(!r.ok) return null;
+  const j=await r.json();
+  const a=j&&j.results&&j.results[0];
+  if(!a) return null;
+  const pref=JP_PREF[(parseInt(a.prefcode,10)||0)-1]||'';
+  let city=jpKanaToRomaji(a.kana2);
+  const suf={'市':'SHI','区':'KU'}[(a.address2||'').slice(-1)];
+  if(suf&&city.endsWith(suf)&&city.length>suf.length) city=city.slice(0,-suf.length)+'-'+suf;
+  return {city,province:pref,state:pref};
+}
+
+// Completa citta'/provincia/regione dopo la ricerca del CAP su Nominatim (hit, puo' essere null o incompleto).
+// Giappone: zipcloud e' la fonte migliore. Altri paesi: se manca provincia o regione, si prova zippopotam.us
+// (da' lo stato/regione). Se ne resta solo una delle due, la si copia nell'altra: sono entrambe obbligatorie.
+async function resolveZip(natCode,z,hit){
+  if(natCode==='JP'){
+    try{ const jp=await lookupJapanZip(z); if(jp) return jp; }catch(e){}
+  }
+  let city='',province='',region='';
+  if(hit&&hit.address){
+    const a=hit.address;
+    city=(a.municipality||a.city||a.town||a.village||a.hamlet||'').toUpperCase();
+    province=(a.county||a.state_district||a.region||'').toUpperCase();
+    region=(a.state||'').toUpperCase();
+  }
+  if(!province||!region||!city){
+    try{
+      const t=z.trim();
+      const q=natCode==='US'?t.slice(0,5):natCode==='CA'?t.replace(/\s/g,'').slice(0,3):natCode==='GB'?t.split(/\s+/)[0]:t;
+      const r=await fetch('https://api.zippopotam.us/'+natCode.toLowerCase()+'/'+encodeURIComponent(q));
+      if(r.ok){
+        const pl=((await r.json()).places||[])[0];
+        if(pl){
+          if(!region) region=(pl.state||'').toUpperCase();
+          if(!city) city=(pl['place name']||'').toUpperCase();
+        }
+      }
+    }catch(e){}
+  }
+  if(!province&&region) province=region;
+  if(!region&&province) region=province;
+  if(!city&&!province&&!region) return null;
+  return {city,province,state:region};
 }
 function validDomain(d){ return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(d); }
 function filled(v){ return !!(v&&v.trim()); }
@@ -1725,7 +1801,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.114</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.115</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
@@ -1865,12 +1941,8 @@ function FormStep({form,setForm,natTxt,setNat,onNext,lang}){
         const routingKey=z.replace(/\s+/g,'').slice(0,3);
         if(routingKey.length===3) hit=await lookup(routingKey);
       }
-      if(!hit) return;
-      const a=hit.address;
-      const city=(a.municipality||a.city||a.town||a.village||a.hamlet||'').toUpperCase();
-      const province=(a.county||a.state_district||a.region||'').toUpperCase();
-      const region=(a.state||'').toUpperCase();
-      setForm(f=>({...f,city,province,state:region}));
+      const res=await resolveZip(form.natCode,z,hit);
+      if(res) setForm(f=>({...f,...res}));
     }catch(e){ notifyAdminError('zip-autofill-failed',{zip:z,natCode:form.natCode,error:String(e&&e.message||e)}); }
   };
 
@@ -2082,12 +2154,8 @@ function DestFormStep({form,setForm,natTxt,setNat,onBack,onNext,lang}){
         const routingKey=z.replace(/\s+/g,'').slice(0,3);
         if(routingKey.length===3) hit=await lookup(routingKey);
       }
-      if(!hit) return;
-      const a=hit.address;
-      const city=(a.municipality||a.city||a.town||a.village||a.hamlet||'').toUpperCase();
-      const province=(a.county||a.state_district||a.region||'').toUpperCase();
-      const region=(a.state||'').toUpperCase();
-      setForm(f=>({...f,city,province,state:region}));
+      const res=await resolveZip(form.natCode,z,hit);
+      if(res) setForm(f=>({...f,...res}));
     }catch(e){ notifyAdminError('zip-autofill-failed',{zip:z,natCode:form.natCode,error:String(e&&e.message||e)}); }
   };
 
@@ -2423,7 +2491,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
         {italyFreeShip
           ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>{L.cart.shipping}</span><span>{L.cart.freeShip}</span></div>
           :<div className="flex justify-between text-gray-400"><span>{L.cart.shipping}</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.shipQty,lang)}</span>€{totals.ship.toFixed(2)}</span></div>}
-        {!italyFreeShip&&aRate&&(()=>{const h=shippingTierHint(totals.shipQty);return h>0?<p className="text-right" style={{color:'#60a5fa',fontSize:'10px',marginTop:'2px'}}>{L.cart.addMoreItems(h)}</p>:null;})()}
+        {!italyFreeShip&&aRate&&!aRate.max_items&&(()=>{const h=shippingTierHint(totals.shipQty);return h>0?<p className="text-right" style={{color:'#60a5fa',fontSize:'10px',marginTop:'2px'}}>{L.cart.addMoreItems(h)}</p>:null;})()}
         {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>{L.cart.noRate}</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
           <span>{L.cart.total}</span><span>€{totals.final.toFixed(2)}</span>
@@ -2677,6 +2745,26 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const [promoLoading,setPromoLoading] = useState(false);
   const [pendingBottlePromo,setPendingBottlePromo] = useState(null); // {code,bottles}
 
+  // Pulizia automatica se la destinazione cambia con un carrello gia' pieno:
+  // paesi ROTW = niente superalcolici; Cina = tetto di 2 unita' (si tolgono gli ultimi articoli aggiunti).
+  useEffect(()=>{
+    if(!aRate||!cart.length) return;
+    let next=cart, msg='';
+    if(aRate.no_spirits && next.some(i=>i.category==='DISTILLATES')){
+      next=next.filter(i=>i.category!=='DISTILLATES');
+      msg=L.catalog.noSpirits;
+    }
+    if(aRate.max_items){
+      const units=arr=>arr.reduce((s,i)=>s+effectiveUnits(i),0);
+      if(units(next)>aRate.max_items){
+        next=[...next];
+        while(next.length&&units(next)>aRate.max_items) next.pop();
+        msg=L.catalog.maxItems(aRate.max_items);
+      }
+    }
+    if(next.length!==cart.length){ setCart(next); setCartErr(msg); }
+  },[aRate,cart]);
+
   const isUSCA = ['US','CA'].includes(natCode);
   const isCA   = natCode==='CA';
   // Check province AND state fields, full names AND abbreviations
@@ -2778,8 +2866,18 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
           return;
         }
       }
+    } else if(rateMaxItems){
+      // Destinazione con tetto proprio (es. Cina: max 2 bottiglie; la lattina d'olio pesa 3 e non entra)
+      if(currentShipQty + effectiveUnits({...prod,qty:1}) > rateMaxItems){
+        setCartErr(L.catalog.maxItems(rateMaxItems));
+        return;
+      }
     } else if(currentShipQty>=maxItems){
       setCartErr(L.catalog.maxItems(maxItems));
+      return;
+    }
+    if(aRate && aRate.no_spirits && prod.category==='DISTILLATES'){
+      setCartErr(L.catalog.noSpirits);
       return;
     }
     if(isCA){
