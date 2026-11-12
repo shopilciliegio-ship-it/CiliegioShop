@@ -373,6 +373,39 @@
     }
   },
 
+  "ROTW": {
+    "label": "Rest of the World",
+    "applies_to": "South Korea, Hong Kong, Macau, Japan, Singapore, Taiwan, Philippines, Australia, New Zealand (China: see ROTW_CINA). No spirits/distillates.",
+    "countries": ["KR","HK","MO","JP","SG","TW","PH","AU","NZ"],
+    "no_spirits": true,
+    "delivery": "Delivery within 5-7 working days",
+    "rates": {
+      "3":  89.00,
+      "6":  124.00,
+      "12": 189.00,
+      "18": 296.00,
+      "24": 361.00,
+      "30": 441.00,
+      "36": 521.00,
+      "42": 602.00,
+      "48": 683.00,
+      "54": 764.00,
+      "60": 844.00
+    }
+  },
+
+  "ROTW_CINA": {
+    "label": "China (max 2 bottles)",
+    "applies_to": "China - maximum 2 bottles per order (no oil cans). No spirits/distillates.",
+    "countries": ["CN"],
+    "no_spirits": true,
+    "max_items": 2,
+    "delivery": "Delivery within 5-7 working days",
+    "rates": {
+      "3":   89.00
+    }
+  },
+
   "ITALIA": {
     "label": "Italia - Gratis oltre 100 €",
     "applies_to": "Italia",
