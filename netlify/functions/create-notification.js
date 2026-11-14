@@ -158,7 +158,7 @@ function bundleNoteHtml(b) {
   if (!b) return '';
   const esc = function(x) { return String(x).replace(/[&<>]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
   return '<div style="margin-top:16px;padding:10px 12px;background:#fff8e1;border:1px solid #e0b200;color:#7a5c00;font-size:12px;line-height:1.5">' +
-    '<strong>OFFERTA ' + (Number(b.n) > 1 ? esc(b.n) + ' x ' : '') + esc(b.name) + '</strong>: le righe di questo ordine sono i prodotti della Ciliegio Selection, ' +
+    '<strong>OFFERTA ' + esc(b.name) + '</strong>: le righe di questo ordine sono i prodotti della Ciliegio Selection, ' +
     'venduti a prezzo speciale di ' + Number(b.price).toFixed(2) + ' EUR invece di ' + Number(b.listPrice).toFixed(2) + ' EUR ' +
     '(lo sconto e gia applicato su ogni riga). Niente altri sconti, omaggi o spedizione gratuita.</div>';
 }
@@ -494,8 +494,17 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
     if (!m) return null;
     const qty = parseInt(m[1]);
     const unitPrice = m[3].startsWith('€') ? parseFloat(m[3].slice(1)) || 0 : 0;
-    return { qty: qty, name: m[2], lineValue: qty * unitPrice };
+    return { qty: qty, name: m[2], price: m[3], lineValue: qty * unitPrice };
   }).filter(Boolean);
+  // Lo stesso prodotto allo stesso prezzo (ad es. in due Ciliegio Selection diverse) e' una riga sola sul MOS:
+  // il modulo ha 8 righe e questo evita di finire inutilmente nella riga "resto".
+  const mergedProducts = [];
+  products.forEach(function(p) {
+    const m = mergedProducts.find(function(x) { return x.name === p.name && x.price === p.price; });
+    if (m) { m.qty += p.qty; m.lineValue += p.lineValue; } else mergedProducts.push(Object.assign({}, p));
+  });
+  products.length = 0;
+  mergedProducts.forEach(function(p) { products.push(p); });
 
   // Shipping type and cost from totals
   let shippingType = 'STANDARD', shippingCost = '0.00';
@@ -589,6 +598,7 @@ async function buildMosPdf(customerName, customerEmail, customerPhone, customerA
 }
 
 exports._allocateOrderNumber = allocateOrderNumber; // solo per i test
+exports._buildMosPdf = buildMosPdf;         // solo per i test
 exports._checkOrderData = checkOrderData;
 exports._readOrderData = readOrderData;
 exports.handler = async (event) => {

@@ -1574,13 +1574,19 @@ function App(){
   const giftActive  = giftChoice===true;
   // Ciliegio Selection: le righe restano ai prezzi di listino, lo sconto e' la differenza col prezzo dell'offerta.
   // Esclude 5% da 12 pezzi, bottiglia omaggio, codici promo e spedizione gratuita Italia.
-  const selItem       = cart.find(i=>i.selId);
-  const activeSel     = selItem ? {id:selItem.selId,name:selItem.selName,n:selItem.selN||1,unit:selItem.selPrice,price:selItem.selPrice*(selItem.selN||1)} : null;
+  const selGroups     = [];
+  cart.forEach(i=>{ if(!i.selId) return;
+    let g=selGroups.find(x=>x.id===i.selId);
+    if(!g){ g={id:i.selId,name:i.selName,n:i.selN||1,unit:i.selPrice,list:0}; selGroups.push(g); }
+    g.list+=i.price*i.qty; });
+  const activeSel     = selGroups.length ? {groups:selGroups,
+    name:selGroups.map(g=>(g.n>1?g.n+' x ':'')+g.name).join(' + '),
+    price:selGroups.reduce((t,g)=>t+g.unit*g.n,0)} : null;
   const discount      = activeSel ? Math.max(0,Math.round((prod-activeSel.price)*100)/100)
                        : activePromo&&activePromo.type==='percent' ? prod*(activePromo.percent/100)
                        : (!giftActive && !activePromo && qty>=12) ? prod*0.05 : 0;
   const selPct        = activeSel&&prod>0 ? discount/prod*100 : 0;
-  const discLabel     = activeSel ? activeSel.name+(activeSel.n>1?' x'+activeSel.n:'')+' (-'+selPct.toFixed(1)+'%)'
+  const discLabel     = activeSel ? activeSel.name+' (-'+selPct.toFixed(1)+'%)'
                        : activePromo&&activePromo.type==='percent' ? 'Promo '+activePromo.code+' (-'+activePromo.percent+'%)' : 'Discount (5%)';
   const discounted    = prod - discount;
   const italyFree     = !activeSel && shipForm.natCode==='IT' && discounted>100;
@@ -1614,14 +1620,14 @@ function App(){
         const base=prods.find(p=>String(p.id)===baseId);
         return {code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),...(pName(i,lang)!==i.name?{nl:pName(i,lang)}:{}),qty:i.qty,unit:r2(i.price),
           ...(i.vat!==undefined?{vat:i.vat}:{}),
-          ...(i.selId?{bundle:i.selName}:{}),
+          ...(i.selId?(()=>{const g=selGroups.find(x=>x.id===i.selId);return {bundle:i.selName,discPct:r2(g&&g.list>0?(g.list-g.unit*g.n)/g.list*100:0)};})():{}),
           ...(i.price===0?{gift:1,listPrice:r2(base?base.price:0)}:{})};
       }),
       prodTotal:r2(prod),
       discount:r2(discount),
       discountPct:activeSel?r2(selPct):activePromo?(activePromo.type==='percent'?Number(activePromo.percent)||0:0):(discount>0?5:0),
       discountLabel:activeSel?discLabel:activePromo?(activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Promo '+activePromo.code):(discount>0?'Discount (5%)':''),
-      ...(activeSel?{bundle:{id:activeSel.id,name:activeSel.name,n:activeSel.n,price:r2(activeSel.price),listPrice:r2(prod)}}:{}),
+      ...(activeSel?{bundle:{name:activeSel.name,price:r2(activeSel.price),listPrice:r2(prod)}}:{}),
       duties:r2(duty),
       shipping:isQuote?null:r2(effectiveSc),
       shippingLabel:isQuote?'':(aRate?aRate.label:''),
@@ -1663,7 +1669,7 @@ function App(){
     }
     m+=nl+b('PRODUCTS:')+nl;
     cart.forEach(function(i){m+='- '+i.qty+'x '+i.name+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'+nl;});
-    if(activeSel) m+=nl+'NOTE: these '+qty+' items are part of '+(activeSel.n>1?activeSel.n+' x ':'')+activeSel.name+' (offer price €'+activeSel.price.toFixed(2)+' instead of €'+prod.toFixed(2)+')'+nl;
+    if(activeSel) m+=nl+'NOTE: these '+qty+' items are part of '+activeSel.name+' (offer price €'+activeSel.price.toFixed(2)+' instead of €'+prod.toFixed(2)+')'+nl;
     m+=nl+'Products Total: €'+prod.toFixed(2);
     if(discount>0) m+=nl+discLabel+': -€'+discount.toFixed(2);
     if(duty>0) m+=nl+'Import Duties (10%): €'+duty.toFixed(2);
@@ -1827,7 +1833,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.118</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.119</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
@@ -2522,24 +2528,24 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
         </div>)}
 
       <div className="cart-inner"><div className="space-y-1">
-        {totals.sel&&(
-          <div className="rounded px-2 py-1" style={{border:'1px solid #D4AF37',background:'#14110a'}}>
+        {totals.sel&&totals.sel.groups.map(g=>(
+          <div key={g.id} className="rounded px-2 py-1" style={{border:'1px solid #D4AF37',background:'#14110a'}}>
             <div className="flex justify-between items-start gap-2">
-              <p className="font-bold gold-text" style={{fontSize:'11px'}}>{totals.sel.name}{totals.sel.n>1?' ×'+totals.sel.n:''}</p>
+              <p className="font-bold gold-text" style={{fontSize:'11px'}}>{g.name}</p>
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={()=>onChangeSel(-1)} className="w-5 h-5 bg-gray-800 rounded hover:bg-red-700 font-bold" style={{fontSize:'12px'}}>−</button>
-                <span className="text-gray-200 font-bold" style={{fontSize:'11px',minWidth:'12px',textAlign:'center'}}>{totals.sel.n}</span>
-                <button onClick={()=>onChangeSel(1)} className="w-5 h-5 gold-bg rounded font-bold" style={{fontSize:'12px'}}>+</button>
-                <button onClick={onRemoveSel} className="text-red-400 hover:text-red-300" style={{fontSize:'10px',marginLeft:'4px'}}>✕</button>
+                <button onClick={()=>onChangeSel(g.id,-1)} className="w-5 h-5 bg-gray-800 rounded hover:bg-red-700 font-bold" style={{fontSize:'12px'}}>−</button>
+                <span className="text-gray-200 font-bold" style={{fontSize:'11px',minWidth:'12px',textAlign:'center'}}>{g.n}</span>
+                <button onClick={()=>onChangeSel(g.id,1)} className="w-5 h-5 gold-bg rounded font-bold" style={{fontSize:'12px'}}>+</button>
+                <button onClick={()=>onRemoveSel(g.id)} className="text-red-400 hover:text-red-300" style={{fontSize:'10px',marginLeft:'4px'}}>✕</button>
               </div>
             </div>
-            <p className="text-gray-300" style={{fontSize:'10px'}}>€{totals.sel.price.toFixed(2)} {OT.was} €{totals.sel.list.toFixed(2)} (-{totals.sel.pct.toFixed(1)}%)</p>
-            <p className="text-gray-500" style={{fontSize:'8px',lineHeight:'1.2'}}>{OT.note}</p>
-          </div>)}
+            <p className="text-gray-300" style={{fontSize:'10px'}}>€{(g.unit*g.n).toFixed(2)} {OT.was} €{g.list.toFixed(2)} (-{((g.list-g.unit*g.n)/g.list*100).toFixed(1)}%)</p>
+          </div>))}
+        {totals.sel&&<p className="text-gray-500" style={{fontSize:'8px',lineHeight:'1.2'}}>{OT.note}</p>}
         {cart.length===0
           ?<p className="text-gray-500 italic text-center py-4" style={{fontSize:'12px'}}>{L.cart.empty}</p>
           :cart.map(c=>(
-            <div key={c.id} className="flex items-center bg-black rounded px-2 py-1 gap-2">
+            <div key={c.id+'|'+(c.selId||'')} className="flex items-center bg-black rounded px-2 py-1 gap-2">
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-gray-200 truncate" style={{fontSize:'10px'}}>{pName(c,lang)}</p>
                 <p className="text-gray-400" style={{fontSize:'10px'}}>
@@ -2577,7 +2583,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
       <div className="cart-send">
       <div className="border-t border-gray-800 pt-2" style={{fontSize:'11px'}}>
         <div className="flex justify-between text-gray-400"><span>{L.cart.products(totals.qty)}</span><span>€{totals.prod.toFixed(2)}</span></div>
-        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>{totals.sel?totals.sel.name+(totals.sel.n>1?' x'+totals.sel.n:'')+' (-'+totals.sel.pct.toFixed(1)+'%)':activePromo&&activePromo.type==='percent'?L.cart.promo.discountLabel(activePromo.code,activePromo.percent):L.cart.discount}</span><span>-€{totals.discount.toFixed(2)}</span></div>}
+        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>{totals.sel?totals.sel.name+' (-'+totals.sel.pct.toFixed(1)+'%)':activePromo&&activePromo.type==='percent'?L.cart.promo.discountLabel(activePromo.code,activePromo.percent):L.cart.discount}</span><span>-€{totals.discount.toFixed(2)}</span></div>}
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>{L.cart.duties}</span><span>€{totals.duty.toFixed(2)}</span></div>}
         {italyFreeShip
           ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>{L.cart.shipping}</span><span>{L.cart.freeShip}</span></div>
@@ -3022,36 +3028,38 @@ function CatalogStep({products,offers,cart,setCart,speed,setSpeed,spSel,
       }
     }
   };
+  const selMaxUnits=()=> natCode==='IT' ? 18
+    : (aRate&&aRate.max_items) ? aRate.max_items
+    : (!aRate||!aRate.rates) ? 60
+    : (()=>{const ks=Object.keys(aRate.rates).map(Number).filter(n=>!isNaN(n));return ks.length?Math.max(...ks):60;})();
   const addSelection=(offer,info)=>{
     setCartErr('');
-    const cur = cart.find(i=>i.selId);
-    if(cart.length>0 && !(cur && cur.selId===offer.id)){ setCartErr(L.catalog.selOnly); return; }
+    if(cart.some(i=>!i.selId)){ setCartErr(L.catalog.selOnly); return; }
     if(activePromo){ setCartErr(L.catalog.selPromo); return; }
-    const n = cur ? (cur.selN||1)+1 : 1;
-    const selMax = natCode==='IT' ? 18
-      : (aRate&&aRate.max_items) ? aRate.max_items
-      : (!aRate||!aRate.rates) ? 60
-      : (()=>{const ks=Object.keys(aRate.rates).map(Number).filter(n=>!isNaN(n));return ks.length?Math.max(...ks):60;})();
-    if(info.units*n>selMax){ setCartErr(L.catalog.maxItems(selMax)); return; }
+    const cartUnits=cart.reduce((t,i)=>t+i.qty,0);
+    if(cartUnits+info.units>selMaxUnits()){ setCartErr(L.catalog.maxItems(selMaxUnits())); return; }
     setGiftChoice(false);
-    setCart(info.items.map(x=>({...x.prod,qty:x.qty*n,selId:offer.id,selName:offer.name,selPrice:offer.price,selN:n})));
+    const cur=cart.find(i=>i.selId===offer.id);
+    if(cur){
+      const n=(cur.selN||1)+1;
+      setCart(prev=>prev.map(i=>i.selId===offer.id?{...i,qty:i.qty/(i.selN||1)*n,selN:n}:i));
+    } else {
+      setCart(prev=>[...prev,...info.items.map(x=>({...x.prod,qty:x.qty,selId:offer.id,selName:offer.name,selPrice:offer.price,selN:1}))]);
+    }
   };
-  const changeSelection=(delta)=>{
-    const cur = cart.find(i=>i.selId); if(!cur) return;
-    const n = (cur.selN||1)+delta;
-    if(n<1){ removeSelection(); return; }
-    const per = cart.filter(i=>i.selId).reduce((t,i)=>t+i.qty/(i.selN||1),0);
+  const changeSelection=(selId,delta)=>{
+    const cur=cart.find(i=>i.selId===selId); if(!cur) return;
+    const n=(cur.selN||1)+delta;
+    if(n<1){ removeSelection(selId); return; }
     if(delta>0){
-      const selMax = natCode==='IT' ? 18
-        : (aRate&&aRate.max_items) ? aRate.max_items
-        : (!aRate||!aRate.rates) ? 60
-        : (()=>{const ks=Object.keys(aRate.rates).map(Number).filter(x=>!isNaN(x));return ks.length?Math.max(...ks):60;})();
-      if(per*n>selMax){ setCartErr(L.catalog.maxItems(selMax)); return; }
+      const per=cart.filter(i=>i.selId===selId).reduce((t,i)=>t+i.qty/(i.selN||1),0);
+      const cartUnits=cart.reduce((t,i)=>t+i.qty,0);
+      if(cartUnits+per>selMaxUnits()){ setCartErr(L.catalog.maxItems(selMaxUnits())); return; }
     }
     setCartErr('');
-    setCart(prev=>prev.map(i=>i.selId?{...i,qty:i.qty/(i.selN||1)*n,selN:n}:i));
+    setCart(prev=>prev.map(i=>i.selId===selId?{...i,qty:i.qty/(i.selN||1)*n,selN:n}:i));
   };
-  const removeSelection=()=>{ setCartErr(''); setCart([]); setGiftChoice(null); };
+  const removeSelection=(selId)=>{ setCartErr(''); setCart(prev=>prev.filter(i=>i.selId!==selId)); setGiftChoice(null); };
   const removeItem=(id)=>{
     setCartErr('');
     setCart(prev=>{

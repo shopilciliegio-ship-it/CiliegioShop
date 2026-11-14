@@ -116,7 +116,9 @@ function buildProductLines(od, zone, problems) {
   (od.lines || []).forEach(function(l, i) {
     const qty = Number(l.qty) || 0;
     const isGift = l.gift === 1 || Number(l.unit) === 0;
-    const base = { line: i + 1, code: l.code || '', description: CODES[l.code] || l.name || '', qty: qty };
+    // Sconto per riga: le righe di una Ciliegio Selection hanno il loro % (discPct), le altre quello dell'ordine.
+    const ld = typeof l.discPct === 'number' ? l.discPct : d;
+    const base = { line: i + 1, code: l.code || '', description: CODES[l.code] || l.name || '', qty: qty, bundle: l.bundle || '' };
     if (isGift) {
       const list = Number(l.listPrice);
       if (!(list > 0)) problems.push('omaggio senza prezzo di listino: ' + (l.code || l.id));
@@ -124,20 +126,20 @@ function buildProductLines(od, zone, problems) {
       return;
     }
     const unitGross = Number(l.unit);
-    const shopTotal = r2(qty * unitGross * (1 - d / 100));
+    const shopTotal = r2(qty * unitGross * (1 - ld / 100));
     if (!domestic) {
-      rows.push(Object.assign(base, { unit: r2(unitGross), disc: d, vatRate: '', exemption: RULES.exemption.extraProducts, shopTotal: shopTotal }));
+      rows.push(Object.assign(base, { unit: r2(unitGross), disc: ld, vatRate: '', exemption: RULES.exemption.extraProducts, shopTotal: shopTotal }));
       return;
     }
     const rate = Number(l.vat);
     if (l.vat === undefined || l.vat === null || l.vat === '' || !(rate >= 0)) {
       problems.push('manca l\'aliquota IVA del prodotto ' + (l.code || l.id));
-      rows.push(Object.assign(base, { unit: '', disc: d, vatRate: '', exemption: '', shopTotal: shopTotal }));
+      rows.push(Object.assign(base, { unit: '', disc: ld, vatRate: '', exemption: '', shopTotal: shopTotal }));
       return;
     }
-    const row = Object.assign(base, { unit: 0, disc: d, vatRate: rate, exemption: '', shopTotal: shopTotal });
+    const row = Object.assign(base, { unit: 0, disc: ld, vatRate: rate, exemption: '', shopTotal: shopTotal });
     rows.push(row);
-    domItems.push({ row: row, qty: qty, unitGross: unitGross, rate: rate, disc: d });
+    domItems.push({ row: row, qty: qty, unitGross: unitGross, rate: rate, disc: ld });
   });
 
   const shopProducts = r2(Number(od.prodTotal) - Number(od.discount || 0));
@@ -201,7 +203,7 @@ const money = (n) => (n === '' || n === null || n === undefined || Number.isNaN(
 
 const DOC_COLUMNS = ['OrderNumber', 'DocType', 'OrderDate', 'PaymentMethod', 'Causale', 'Serie', 'Warehouse', 'CostCenter',
   'CustomerSurname', 'CustomerName', 'FiscalId', 'PriceList', 'Line', 'Code', 'Description', 'Qty', 'UnitPrice', 'DiscountPct',
-  'VatRate', 'Exemption', 'ShopLineTotal', 'DocPaidByCustomer', 'DocTotalMexal', 'Abbuono'];
+  'VatRate', 'Exemption', 'ShopLineTotal', 'DocPaidByCustomer', 'DocTotalMexal', 'Abbuono', 'Selection'];
 
 const ANAG_COLUMNS = ['OrderNumber', 'OrderDate', 'Surname', 'Name', 'FiscalId', 'TaxCode', 'Email', 'Phone', 'Address', 'Zip', 'City',
   'Province', 'State', 'StateCode', 'Country', 'CountryCode', 'FiscalZone', 'PriceList', 'DefaultExemption', 'Language',
@@ -216,7 +218,7 @@ function docRows(kind, doc, ctx) {
       CustomerSurname: ctx.od.customer.surname, CustomerName: ctx.od.customer.name, FiscalId: ctx.od.customer.fiscalId,
       PriceList: ctx.priceList, Line: r.line, Code: r.code, Description: r.description, Qty: r.qty, UnitPrice: money(r.unit),
       DiscountPct: r.disc, VatRate: r.vatRate, Exemption: r.exemption, ShopLineTotal: money(r.shopTotal),
-      DocPaidByCustomer: money(doc.paid), DocTotalMexal: money(doc.mexalTotal), Abbuono: abb };
+      DocPaidByCustomer: money(doc.paid), DocTotalMexal: money(doc.mexalTotal), Abbuono: abb, Selection: r.bundle || '' };
   });
 }
 
