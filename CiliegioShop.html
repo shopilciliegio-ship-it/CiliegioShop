@@ -168,6 +168,7 @@
 <script>
   window.CFG = {
     products : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/products.json",
+    offers   : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/offers.json",
     shipping : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/shipping.json",
     imgBase  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/",
     privacy  : "https://raw.githubusercontent.com/shopilciliegio-ship-it/CiliegioShop/refs/heads/main/privacy.json",
@@ -567,11 +568,11 @@ function detectLang(){
   return 'en';
 }
 const CAT_LABEL = {
-  en:{ALL:'ALL',WINE:'WINE',SPARKLING:'SPARKLING',BEER:'BEER',DISTILLATES:'DISTILLATES','EVO OIL':'EVO OIL',FLOURS:'FLOURS',CEREALS:'CEREALS',LEGUMES:'LEGUMES',SWEETS:'SWEETS'},
-  it:{ALL:'TUTTI',WINE:'VINI',SPARKLING:'SPUMANTI',BEER:'BIRRA',DISTILLATES:'DISTILLATI','EVO OIL':'OLIO EVO',FLOURS:'FARINE',CEREALS:'CEREALI',LEGUMES:'LEGUMI',SWEETS:'DOLCI'},
-  de:{ALL:'ALLE',WINE:'WEIN',SPARKLING:'SCHAUMWEIN',BEER:'BIER',DISTILLATES:'SPIRITUOSEN','EVO OIL':'OLIVENÖL',FLOURS:'MEHL',CEREALS:'GETREIDE',LEGUMES:'HÜLSENFRÜCHTE',SWEETS:'SÜSSWAREN'},
-  fr:{ALL:'TOUS',WINE:'VINS',SPARKLING:'MOUSSEUX',BEER:'BIÈRE',DISTILLATES:'SPIRITUEUX','EVO OIL':"HUILE D'OLIVE",FLOURS:'FARINES',CEREALS:'CÉRÉALES',LEGUMES:'LÉGUMINEUSES',SWEETS:'DOUCEURS'},
-  es:{ALL:'TODOS',WINE:'VINOS',SPARKLING:'ESPUMOSOS',BEER:'CERVEZA',DISTILLATES:'DESTILADOS','EVO OIL':'ACEITE DE OLIVA',FLOURS:'HARINAS',CEREALS:'CEREALES',LEGUMES:'LEGUMBRES',SWEETS:'DULCES'},
+  en:{ALL:'ALL',OFFERS:'OFFERS',WINE:'WINE',SPARKLING:'SPARKLING',BEER:'BEER',DISTILLATES:'DISTILLATES','EVO OIL':'EVO OIL',FLOURS:'FLOURS',CEREALS:'CEREALS',LEGUMES:'LEGUMES',SWEETS:'SWEETS'},
+  it:{ALL:'TUTTI',OFFERS:'OFFERTE',WINE:'VINI',SPARKLING:'SPUMANTI',BEER:'BIRRA',DISTILLATES:'DISTILLATI','EVO OIL':'OLIO EVO',FLOURS:'FARINE',CEREALS:'CEREALI',LEGUMES:'LEGUMI',SWEETS:'DOLCI'},
+  de:{ALL:'ALLE',OFFERS:'ANGEBOTE',WINE:'WEIN',SPARKLING:'SCHAUMWEIN',BEER:'BIER',DISTILLATES:'SPIRITUOSEN','EVO OIL':'OLIVENÖL',FLOURS:'MEHL',CEREALS:'GETREIDE',LEGUMES:'HÜLSENFRÜCHTE',SWEETS:'SÜSSWAREN'},
+  fr:{ALL:'TOUS',OFFERS:'OFFRES',WINE:'VINS',SPARKLING:'MOUSSEUX',BEER:'BIÈRE',DISTILLATES:'SPIRITUEUX','EVO OIL':"HUILE D'OLIVE",FLOURS:'FARINES',CEREALS:'CÉRÉALES',LEGUMES:'LÉGUMINEUSES',SWEETS:'DOUCEURS'},
+  es:{ALL:'TODOS',OFFERS:'OFERTAS',WINE:'VINOS',SPARKLING:'ESPUMOSOS',BEER:'CERVEZA',DISTILLATES:'DESTILADOS','EVO OIL':'ACEITE DE OLIVA',FLOURS:'HARINAS',CEREALS:'CEREALES',LEGUMES:'LEGUMBRES',SWEETS:'DULCES'},
 };
 const I18N = {
   en:{
@@ -652,6 +653,9 @@ const I18N = {
       maxItems:(n)=>`⚠️ Maximum ${n} items per order for this destination.`,
       maxCans:(n)=>`⚠️ Maximum ${n} oil cans (3L/5L) per order.`,
       noSpirits:'🚫 Spirits/distillates cannot be shipped to this country.',
+      selBlocked:"Ciliegio Selection cannot be combined with other products. Remove the selection to add other items.",
+      selOnly:"Ciliegio Selection can only be ordered on its own. Empty the cart first.",
+      selPromo:"Promo codes cannot be combined with a Ciliegio Selection.",
       caMix:'🍷 In Canada, wine/sparkling cannot be shipped with other products. Place a separate order.',
       caBlocked:(province)=>`🚫 Wine/Sparkling cannot be shipped to ${province}.`,
       orderPopup:{
@@ -766,6 +770,9 @@ const I18N = {
       maxItems:(n)=>`⚠️ Massimo ${n} pezzi per ordine per questa destinazione.`,
       maxCans:(n)=>`⚠️ Massimo ${n} lattine di olio (3L/5L) per ordine.`,
       noSpirits:'🚫 Liquori/distillati non possono essere spediti in questo paese.',
+      selBlocked:"La Ciliegio Selection non è cumulabile con altri prodotti. Rimuovi la selezione per aggiungere altro.",
+      selOnly:"La Ciliegio Selection si ordina da sola. Svuota prima il carrello.",
+      selPromo:"I codici promo non sono cumulabili con la Ciliegio Selection.",
       caMix:'🍷 In Canada, vino/spumante non può essere spedito con altri prodotti. Effettua un ordine separato.',
       caBlocked:(province)=>`🚫 Vino/Spumante non può essere spedito a ${province}.`,
       orderPopup:{
@@ -880,6 +887,9 @@ const I18N = {
       maxItems:(n)=>`⚠️ Maximal ${n} Artikel pro Bestellung für dieses Ziel.`,
       maxCans:(n)=>`⚠️ Maximal ${n} Öldosen (3L/5L) pro Bestellung.`,
       noSpirits:'🚫 Spirituosen/Destillate können nicht in dieses Land versendet werden.',
+      selBlocked:"Die Ciliegio Selection kann nicht mit anderen Produkten kombiniert werden. Entfernen Sie die Selection, um andere Artikel hinzuzufügen.",
+      selOnly:"Die Ciliegio Selection kann nur allein bestellt werden. Leeren Sie zuerst den Warenkorb.",
+      selPromo:"Promo-Codes können nicht mit einer Ciliegio Selection kombiniert werden.",
       caMix:'🍷 In Kanada können Wein/Sekt nicht zusammen mit anderen Produkten versendet werden. Bitte separat bestellen.',
       caBlocked:(province)=>`🚫 Wein/Sekt kann nicht nach ${province} versendet werden.`,
       orderPopup:{
@@ -994,6 +1004,9 @@ const I18N = {
       maxItems:(n)=>`⚠️ Maximum ${n} articles par commande pour cette destination.`,
       maxCans:(n)=>`⚠️ Maximum ${n} bidons d'huile (3L/5L) par commande.`,
       noSpirits:"🚫 Les spiritueux/distillats ne peuvent pas être expédiés vers ce pays.",
+      selBlocked:"La Ciliegio Selection ne peut pas être combinée avec d'autres produits. Retirez la sélection pour ajouter d'autres articles.",
+      selOnly:"La Ciliegio Selection se commande seule. Videz d'abord le panier.",
+      selPromo:"Les codes promo ne peuvent pas être combinés avec une Ciliegio Selection.",
       caMix:"🍷 Au Canada, le vin/mousseux ne peut pas être expédié avec d'autres produits. Veuillez passer une commande séparée.",
       caBlocked:(province)=>`🚫 Le vin/mousseux ne peut pas être expédié vers ${province}.`,
       orderPopup:{
@@ -1108,6 +1121,9 @@ const I18N = {
       maxItems:(n)=>`⚠️ Máximo ${n} artículos por pedido para este destino.`,
       maxCans:(n)=>`⚠️ Máximo ${n} latas de aceite (3L/5L) por pedido.`,
       noSpirits:'🚫 Los licores/destilados no se pueden enviar a este país.',
+      selBlocked:"La Ciliegio Selection no se puede combinar con otros productos. Quite la selección para añadir otros artículos.",
+      selOnly:"La Ciliegio Selection solo se puede pedir por separado. Vacíe primero el carrito.",
+      selPromo:"Los códigos promocionales no se pueden combinar con una Ciliegio Selection.",
       caMix:'🍷 En Canadá, el vino/espumoso no se puede enviar con otros productos. Realiza un pedido separado.',
       caBlocked:(province)=>`🚫 El vino/espumoso no se puede enviar a ${province}.`,
       orderPopup:{
@@ -1500,6 +1516,7 @@ function App(){
   const [destNatTxt,setDestNat]    = useState('');
   const [useDestForm,setUseDestForm] = useState(false);
   const [giftChoice,setGiftChoice] = useState(null);
+  const [offers,setOffers] = useState([]);
   const [isVendita,setIsVendita]   = useState(()=>localStorage.getItem('ciliegio_vendita')==='1');
   const [clubTest,setClubTest]     = useState(()=>localStorage.getItem('ciliegio_clubtest')==='1');
   const [clubLinked]               = useState(false); // pubblico disattivato: il Wine Club si vede solo con login staff (vedi LoginPopup)
@@ -1537,7 +1554,8 @@ function App(){
       fetch(window.CFG.shipping).then(r=>{if(!r.ok)throw 0;return r.json();}),
       fetch(window.CFG.privacy).then(r=>r.ok?r.json():null).catch(()=>null),
       fetch(window.CFG.modules).then(r=>r.ok?r.json():null).catch(()=>null),
-    ]).then(([p,s,prv,mod])=>{setProds(p.sort((a,b)=>(a.sort||999)-(b.sort||999)));setShip(s);if(prv)setPrivacyJson(prv);if(mod)setModules(mod);setLoad(false);})
+      fetch(window.CFG.offers).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]).then(([p,s,prv,mod,off])=>{setProds(p.sort((a,b)=>(a.sort||999)-(b.sort||999)));setShip(s);if(prv)setPrivacyJson(prv);if(mod)setModules(mod);if(Array.isArray(off))setOffers(off);setLoad(false);})
       .catch(()=>{setErr(L.error.msg);setLoad(false);});
     return ()=>clearTimeout(splashTimer);
   },[]);
@@ -1554,16 +1572,24 @@ function App(){
   const aRate = ship&&aKey?ship[aKey]:null;
   const sc    = shipQty>0&&aRate?shipRate(aRate,shipQty):0;
   const giftActive  = giftChoice===true;
-  const discount      = activePromo&&activePromo.type==='percent' ? prod*(activePromo.percent/100)
+  // Ciliegio Selection: le righe restano ai prezzi di listino, lo sconto e' la differenza col prezzo dell'offerta.
+  // Esclude 5% da 12 pezzi, bottiglia omaggio, codici promo e spedizione gratuita Italia.
+  const selItem       = cart.find(i=>i.selId);
+  const activeSel     = selItem ? {id:selItem.selId,name:selItem.selName,n:selItem.selN||1,unit:selItem.selPrice,price:selItem.selPrice*(selItem.selN||1)} : null;
+  const discount      = activeSel ? Math.max(0,Math.round((prod-activeSel.price)*100)/100)
+                       : activePromo&&activePromo.type==='percent' ? prod*(activePromo.percent/100)
                        : (!giftActive && !activePromo && qty>=12) ? prod*0.05 : 0;
+  const selPct        = activeSel&&prod>0 ? discount/prod*100 : 0;
+  const discLabel     = activeSel ? activeSel.name+(activeSel.n>1?' x'+activeSel.n:'')+' (-'+selPct.toFixed(1)+'%)'
+                       : activePromo&&activePromo.type==='percent' ? 'Promo '+activePromo.code+' (-'+activePromo.percent+'%)' : 'Discount (5%)';
   const discounted    = prod - discount;
-  const italyFree     = shipForm.natCode==='IT' && discounted>100;
+  const italyFree     = !activeSel && shipForm.natCode==='IT' && discounted>100;
   const effectiveSc   = italyFree ? 0 : sc;
   const duty          = shipForm.natCode==='US'?discounted*0.1:0;
   const total         = discounted + effectiveSc + duty;
   const dl    = deliveryLabel(dLabel(aKey,speed,aRate),lang);
   const spSel = ['US','CA'].includes(shipForm.natCode);
-  const totals= {qty,shipQty,prod,discount,ship:effectiveSc,duty,final:total};
+  const totals= {qty,shipQty,prod,discount,ship:effectiveSc,duty,final:total,sel:activeSel?{...activeSel,list:prod,pct:selPct}:null};
 
   // Dati strutturati dell'ordine per l'export Mexal (CSV): stessi numeri mostrati al cliente,
   // ma come campi separati invece che nel testo di riepilogo. Per i preventivi (paese senza
@@ -1588,12 +1614,14 @@ function App(){
         const base=prods.find(p=>String(p.id)===baseId);
         return {code:i.mexal||'',id:String(i.id),...(i.mexal?{}:{name:i.name}),...(pName(i,lang)!==i.name?{nl:pName(i,lang)}:{}),qty:i.qty,unit:r2(i.price),
           ...(i.vat!==undefined?{vat:i.vat}:{}),
+          ...(i.selId?{bundle:i.selName}:{}),
           ...(i.price===0?{gift:1,listPrice:r2(base?base.price:0)}:{})};
       }),
       prodTotal:r2(prod),
       discount:r2(discount),
-      discountPct:activePromo?(activePromo.type==='percent'?Number(activePromo.percent)||0:0):(discount>0?5:0),
-      discountLabel:activePromo?(activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Promo '+activePromo.code):(discount>0?'Discount (5%)':''),
+      discountPct:activeSel?r2(selPct):activePromo?(activePromo.type==='percent'?Number(activePromo.percent)||0:0):(discount>0?5:0),
+      discountLabel:activeSel?discLabel:activePromo?(activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Promo '+activePromo.code):(discount>0?'Discount (5%)':''),
+      ...(activeSel?{bundle:{id:activeSel.id,name:activeSel.name,n:activeSel.n,price:r2(activeSel.price),listPrice:r2(prod)}}:{}),
       duties:r2(duty),
       shipping:isQuote?null:r2(effectiveSc),
       shippingLabel:isQuote?'':(aRate?aRate.label:''),
@@ -1635,8 +1663,9 @@ function App(){
     }
     m+=nl+b('PRODUCTS:')+nl;
     cart.forEach(function(i){m+='- '+i.qty+'x '+i.name+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'+nl;});
+    if(activeSel) m+=nl+'NOTE: these '+qty+' items are part of '+(activeSel.n>1?activeSel.n+' x ':'')+activeSel.name+' (offer price €'+activeSel.price.toFixed(2)+' instead of €'+prod.toFixed(2)+')'+nl;
     m+=nl+'Products Total: €'+prod.toFixed(2);
-    if(discount>0) m+=nl+(activePromo&&activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Discount (5%)')+': -€'+discount.toFixed(2);
+    if(discount>0) m+=nl+discLabel+': -€'+discount.toFixed(2);
     if(duty>0) m+=nl+'Import Duties (10%): €'+duty.toFixed(2);
     m+=nl+'Shipping ('+(aRate?aRate.label:'N/A - to be quoted')+'): €'+effectiveSc.toFixed(2);
     m+=nl+b('FINAL TOTAL: €'+total.toFixed(2));
@@ -1648,7 +1677,7 @@ function App(){
     const stateAbbr=_shipAddr.province&&_shipAddr.state&&_shipAddr.province!==_shipAddr.state?' ('+_shipAddr.province+')':'';
     var prodLines=cart.map(function(i){var n=i.name.length>38?i.name.substring(0,38)+'..':i.name;return i.qty+'x '+n+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|');
     var totalLines='Products Total: €'+prod.toFixed(2);
-    if(discount>0) totalLines+='|'+(activePromo&&activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Discount (5%)')+': -€'+discount.toFixed(2);
+    if(discount>0) totalLines+='|'+discLabel+': -€'+discount.toFixed(2);
     if(duty>0) totalLines+='|Import Duties (10%): €'+duty.toFixed(2);
     totalLines+='|Shipping ('+(aRate?aRate.label:'N/A')+('): €'+effectiveSc.toFixed(2));
     totalLines+='|FINAL TOTAL: €'+total.toFixed(2);
@@ -1691,7 +1720,7 @@ function App(){
     const stateAbbr=_shipAddr.province&&_shipAddr.state&&_shipAddr.province!==_shipAddr.state?' ('+_shipAddr.province+')':'';
     var prodLines=cart.map(function(i){var n=i.name.length>38?i.name.substring(0,38)+'..':i.name;return i.qty+'x '+n+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|');
     var totalLines='Products Total: €'+prod.toFixed(2);
-    if(discount>0) totalLines+='|'+(activePromo&&activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Discount (5%)')+': -€'+discount.toFixed(2);
+    if(discount>0) totalLines+='|'+discLabel+': -€'+discount.toFixed(2);
     if(duty>0) totalLines+='|Import Duties (10%): €'+duty.toFixed(2);
     totalLines+='|Shipping: to be quoted';
     totalLines+='|ESTIMATED TOTAL (excl. shipping): €'+discounted.toFixed(2);
@@ -1750,7 +1779,7 @@ function App(){
           customerTaxCode:form.natCode==='IT'?(form.taxCode||''):'',
           customerAddress:shipForm.address+', '+shipForm.zip+' '+shipForm.city+', '+shipForm.state+(shipForm.province&&shipForm.province!==shipForm.state?' ('+shipForm.province+')':''),
           orderProducts:cart.map(function(i){var n=i.name.length>38?i.name.substring(0,38)+'..':i.name;return i.qty+'x '+n+' ('+(i.price===0?'FREE GIFT':'€'+i.price.toFixed(2))+')'}).join('|').substring(0,490),
-          orderTotals:('Products Total: €'+prod.toFixed(2)+(discount>0?'|'+(activePromo&&activePromo.type==='percent'?'Promo '+activePromo.code+' (-'+activePromo.percent+'%)':'Discount (5%)')+': -€'+discount.toFixed(2):'')+(duty>0?'|Import Duties (10%): €'+duty.toFixed(2):'')+('|Shipping ('+(aRate?aRate.label:'N/A')+'): €'+effectiveSc.toFixed(2))+'|FINAL TOTAL: €'+total.toFixed(2)).substring(0,490),
+          orderTotals:('Products Total: €'+prod.toFixed(2)+(discount>0?'|'+discLabel+': -€'+discount.toFixed(2):'')+(duty>0?'|Import Duties (10%): €'+duty.toFixed(2):'')+('|Shipping ('+(aRate?aRate.label:'N/A')+'): €'+effectiveSc.toFixed(2))+'|FINAL TOTAL: €'+total.toFixed(2)).substring(0,490),
           method:method,
           promoCode: activePromo ? activePromo.code : '',
           orderData: buildOrderData(false),
@@ -1798,7 +1827,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.117</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.118</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
@@ -1887,7 +1916,7 @@ function App(){
             if(typeof gtag!=='undefined') gtag('event','step_catalog',{event_category:'funnel'});
             setStep(3);
           }}/>}
-        {step===3 && <CatalogStep products={prods} cart={cart} setCart={setCart} lang={lang}
+        {step===3 && <CatalogStep products={prods} offers={offers} cart={cart} setCart={setCart} lang={lang}
           speed={speed} setSpeed={setSpeed} spSel={spSel}
           aRate={aRate} aKey={aKey} hasDuty={duty>0} dl={dl}
           totals={totals} onSend={handleSendOrder} onDirectSend={sendWA} onEmail={sendEmail} onSMS={sendSMS} onStripe={goToStripe} onQuoteRequest={sendQuoteRequest} getMailtoUrl={getMailtoUrl} isVendita={isVendita} natCode={shipForm.natCode} province={shipForm.province} state={shipForm.state}
@@ -2377,6 +2406,56 @@ function SummaryStep({form,onEdit,onConfirm,onDestForm,onPrivacy,cookieConsent,o
    Gli ordini, le mail interne, i CSV Mexal e il CRM usano sempre il nome inglese. */
 const pName=(p,lang)=>(p&&p.names&&p.names[lang])||(p&&p.name)||'';
 
+/* ── Ciliegio Selection (offerte) ───────────────────────────
+   Le offerte stanno in offers.json: {id,name,names,price,items:[{id,qty}]}. Il prezzo "normale" e' la somma dei
+   prezzi correnti dei prodotti, quindi segue products.json. L'offerta sparisce se un prodotto non e' disponibile. */
+const OFFER_T = {
+  en:{inc:'Includes',was:'instead of',add:'Add offer',off:'OFF',bt:'bottles',note:'Special price. Cannot be combined with other products, discounts, free shipping or gift bottles.'},
+  it:{inc:'Comprende',was:'invece di',add:'Aggiungi offerta',off:'DI SCONTO',bt:'bottiglie',note:'Prezzo speciale. Non cumulabile con altri prodotti, sconti, spedizione gratuita o bottiglie omaggio.'},
+  de:{inc:'Enthält',was:'statt',add:'Angebot hinzufügen',off:'RABATT',bt:'Flaschen',note:'Sonderpreis. Nicht kombinierbar mit anderen Produkten, Rabatten, kostenlosem Versand oder Geschenkflaschen.'},
+  fr:{inc:'Comprend',was:'au lieu de',add:"Ajouter l'offre",off:'DE REMISE',bt:'bouteilles',note:"Prix spécial. Non cumulable avec d'autres produits, remises, livraison gratuite ou bouteilles offertes."},
+  es:{inc:'Incluye',was:'en lugar de',add:'Añadir oferta',off:'DE DESCUENTO',bt:'botellas',note:'Precio especial. No acumulable con otros productos, descuentos, envío gratuito o botellas de regalo.'}
+};
+function offerInfo(offer,products){
+  const items=(offer.items||[]).map(it=>({prod:products.find(p=>String(p.id)===String(it.id)),qty:it.qty}));
+  const ok=offer.active!==false&&items.length>0&&items.every(x=>x.prod&&x.prod.available!==false);
+  const list=items.reduce((t,x)=>t+(x.prod?x.prod.price*x.qty:0),0);
+  const units=items.reduce((t,x)=>t+x.qty,0);
+  const pct=list>0?(list-offer.price)/list*100:0;
+  return {items,ok,list,units,pct};
+}
+function OfferCard({offer,info,onAdd,blocked,lang}){
+  const L = I18N[lang];
+  const T = OFFER_T[lang]||OFFER_T.en;
+  const pct = info.pct.toFixed(1).replace('.',lang==='en'?'.':',');
+  const name = (offer.names&&offer.names[lang])||offer.name;
+  const seen = {};
+  const thumbs = info.items.filter(x=>x.prod.img&&!seen[x.prod.id]&&(seen[x.prod.id]=1)).slice(0,5);
+  return(
+    <div className={`rounded border flex flex-col gap-1${blocked?' opacity-50':''}`} style={{padding:'8px',borderColor:'#D4AF37',background:'#14110a'}}>
+      <div className="flex justify-between items-start gap-2">
+        <p className="font-bold gold-text leading-tight" style={{fontSize:'12px'}}>{name}</p>
+        <span className="font-bold rounded shrink-0" style={{background:'#16a34a',color:'#fff',fontSize:'10px',padding:'1px 5px'}}>-{pct}%</span>
+      </div>
+      <div className="flex gap-1" style={{height:'46px'}}>
+        {thumbs.map(x=><img key={x.prod.id} src={window.CFG.imgBase+x.prod.img} alt="" style={{height:'46px',width:'auto',objectFit:'contain'}} onError={e=>{e.target.style.display='none';}}/>)}
+      </div>
+      <p className="text-gray-400" style={{fontSize:'9px'}}>{T.inc} · {info.units} {T.bt}:</p>
+      <ul className="text-gray-300" style={{fontSize:'10px',lineHeight:'1.3',listStyle:'none',padding:0,margin:0}}>
+        {info.items.map(x=><li key={x.prod.id}>{x.qty}× {pName(x.prod,lang)}</li>)}
+      </ul>
+      <div className="flex items-baseline gap-2" style={{marginTop:'2px'}}>
+        <span className="gold-text font-bold" style={{fontSize:'16px'}}>€{offer.price.toFixed(2)}</span>
+        <span className="text-gray-500" style={{fontSize:'11px',textDecoration:'line-through'}}>€{info.list.toFixed(2)}</span>
+      </div>
+      <p className="text-gray-500" style={{fontSize:'8px',lineHeight:'1.2'}}>{T.note}</p>
+      {blocked
+        ?<div className="w-full rounded uppercase text-gray-500 border border-gray-700 text-center" style={{fontSize:'10px',padding:'3px 0'}}>{L.product.notAvailable}</div>
+        :<button onClick={onAdd} className="w-full border gold-border gold-text rounded uppercase hover:bg-[#D4AF37] hover:text-black transition" style={{fontSize:'10px',padding:'3px 0'}}>{T.add}</button>}
+    </div>
+  );
+}
+
 /* ── ProductCard ───────────────────────────────────────────── */
 function ProductCard({p,onAdd,blocked,lang}){
   const L = I18N[lang];
@@ -2406,9 +2485,10 @@ function ProductCard({p,onAdd,blocked,lang}){
 
 /* ── CartPanel ─────────────────────────────────────────────── */
 function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDirectSend,onEmail,onSMS,onStripe,onPlaceOrder,speed,setSpeed,spSel,noRate,natCode,lang,
-  activePromo,promoInput,setPromoInput,promoMsg,promoLoading,onApplyPromo,onRemovePromo}){
+  activePromo,promoInput,setPromoInput,promoMsg,promoLoading,onApplyPromo,onRemovePromo,onRemoveSel,onChangeSel}){
   const L = I18N[lang];
-  const italyFreeShip = natCode==='IT' && (totals.prod - totals.discount) > 100;
+  const OT = OFFER_T[lang]||OFFER_T.en;
+  const italyFreeShip = !totals.sel && natCode==='IT' && (totals.prod - totals.discount) > 100;
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',gap:'4px',overflow:'hidden'}}>
 
@@ -2442,6 +2522,20 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
         </div>)}
 
       <div className="cart-inner"><div className="space-y-1">
+        {totals.sel&&(
+          <div className="rounded px-2 py-1" style={{border:'1px solid #D4AF37',background:'#14110a'}}>
+            <div className="flex justify-between items-start gap-2">
+              <p className="font-bold gold-text" style={{fontSize:'11px'}}>{totals.sel.name}{totals.sel.n>1?' ×'+totals.sel.n:''}</p>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={()=>onChangeSel(-1)} className="w-5 h-5 bg-gray-800 rounded hover:bg-red-700 font-bold" style={{fontSize:'12px'}}>−</button>
+                <span className="text-gray-200 font-bold" style={{fontSize:'11px',minWidth:'12px',textAlign:'center'}}>{totals.sel.n}</span>
+                <button onClick={()=>onChangeSel(1)} className="w-5 h-5 gold-bg rounded font-bold" style={{fontSize:'12px'}}>+</button>
+                <button onClick={onRemoveSel} className="text-red-400 hover:text-red-300" style={{fontSize:'10px',marginLeft:'4px'}}>✕</button>
+              </div>
+            </div>
+            <p className="text-gray-300" style={{fontSize:'10px'}}>€{totals.sel.price.toFixed(2)} {OT.was} €{totals.sel.list.toFixed(2)} (-{totals.sel.pct.toFixed(1)}%)</p>
+            <p className="text-gray-500" style={{fontSize:'8px',lineHeight:'1.2'}}>{OT.note}</p>
+          </div>)}
         {cart.length===0
           ?<p className="text-gray-500 italic text-center py-4" style={{fontSize:'12px'}}>{L.cart.empty}</p>
           :cart.map(c=>(
@@ -2452,7 +2546,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
                   €{c.price.toFixed(2)} ×{c.qty} = <span className="text-gray-300">€{(c.price*c.qty).toFixed(2)}</span>
                 </p>
               </div>
-              {c.id!=='5_gift'&&!c.promoGift&&<div className="flex gap-1 shrink-0">
+              {c.id!=='5_gift'&&!c.promoGift&&!c.selId&&<div className="flex gap-1 shrink-0">
                 <button onClick={()=>removeItem(c.id)} className="w-6 h-6 bg-gray-800 rounded hover:bg-red-700 font-bold text-sm">−</button>
                 <button onClick={()=>addItem(c)} className="w-6 h-6 gold-bg rounded font-bold text-sm">+</button>
               </div>}
@@ -2483,12 +2577,12 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
       <div className="cart-send">
       <div className="border-t border-gray-800 pt-2" style={{fontSize:'11px'}}>
         <div className="flex justify-between text-gray-400"><span>{L.cart.products(totals.qty)}</span><span>€{totals.prod.toFixed(2)}</span></div>
-        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>{activePromo&&activePromo.type==='percent'?L.cart.promo.discountLabel(activePromo.code,activePromo.percent):L.cart.discount}</span><span>-€{totals.discount.toFixed(2)}</span></div>}
+        {totals.discount>0&&<div className="flex justify-between" style={{color:'#4ade80'}}><span>{totals.sel?totals.sel.name+(totals.sel.n>1?' x'+totals.sel.n:'')+' (-'+totals.sel.pct.toFixed(1)+'%)':activePromo&&activePromo.type==='percent'?L.cart.promo.discountLabel(activePromo.code,activePromo.percent):L.cart.discount}</span><span>-€{totals.discount.toFixed(2)}</span></div>}
         {hasDuty&&<div className="flex justify-between text-gray-400"><span>{L.cart.duties}</span><span>€{totals.duty.toFixed(2)}</span></div>}
         {italyFreeShip
           ?<div className="flex justify-between" style={{color:'#4ade80'}}><span>{L.cart.shipping}</span><span>{L.cart.freeShip}</span></div>
           :<div className="flex justify-between text-gray-400"><span>{L.cart.shipping}</span><span className="text-white"><span className="text-gray-300 mr-1" style={{fontSize:'10px'}}>{tierLabel(totals.shipQty,lang)}</span>€{totals.ship.toFixed(2)}</span></div>}
-        {!italyFreeShip&&aRate&&!aRate.max_items&&(()=>{const h=shippingTierHint(totals.shipQty);return h>0?<p className="text-right" style={{color:'#60a5fa',fontSize:'10px',marginTop:'2px'}}>{L.cart.addMoreItems(h)}</p>:null;})()}
+        {!italyFreeShip&&!totals.sel&&aRate&&!aRate.max_items&&(()=>{const h=shippingTierHint(totals.shipQty);return h>0?<p className="text-right" style={{color:'#60a5fa',fontSize:'10px',marginTop:'2px'}}>{L.cart.addMoreItems(h)}</p>:null;})()}
         {totals.qty>0&&!aRate&&<p className="text-yellow-600 text-right" style={{fontSize:'10px'}}>{L.cart.noRate}</p>}
         <div className="flex justify-between font-bold gold-text border-t border-gray-800 pt-1 mt-1" style={{fontSize:'13px'}}>
           <span>{L.cart.total}</span><span>€{totals.final.toFixed(2)}</span>
@@ -2729,7 +2823,7 @@ function WineClubSignupStep({form,ship,lang,onBack}){
 }
 
 /* ── CatalogStep ───────────────────────────────────────────── */
-function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
+function CatalogStep({products,offers,cart,setCart,speed,setSpeed,spSel,
   aRate,aKey,hasDuty,dl,totals,onSend,onDirectSend,onEmail,onSMS,onStripe,onQuoteRequest,getMailtoUrl,isVendita,natCode,province,state,
   resetCart,giftChoice,setGiftChoice,showGiftPopup,setShowGiftPopup,activePromo,setActivePromo,lang}){
   const L = I18N[lang];
@@ -2759,7 +2853,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
         msg=L.catalog.maxItems(aRate.max_items);
       }
     }
-    if(next.length!==cart.length){ setCart(next); setCartErr(msg); }
+    if(next.length!==cart.length){ if(cart.some(i=>i.selId)) next=[]; setCart(next); setCartErr(msg); }
   },[aRate,cart]);
 
   const isUSCA = ['US','CA'].includes(natCode);
@@ -2784,7 +2878,8 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
       : products
   ).filter(p=>p.id!=='5_gift');
   const visCats = (!canSeeDistillates)?CATEGORIES.filter(c=>c!=='DISTILLATES'):CATEGORIES;
-  const tabs    = ['ALL',...visCats];
+  const offerList = (offers||[]).map(o=>({o,info:offerInfo(o,products)})).filter(x=>x.info.ok&&x.info.list>x.o.price);
+  const tabs    = [...(offerList.length?['OFFERS']:[]),'ALL',...visCats];
   const filtered= tab==='ALL'?avail:avail.filter(p=>p.category===tab);
   const dCats   = tab==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tab];
 
@@ -2792,6 +2887,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
   const applyPromoCode = async ()=>{
     const code = promoInput.trim().toUpperCase();
     if(!code) return;
+    if(cart.some(i=>i.selId)){ setPromoMsg(L.catalog.selPromo); return; }
     setPromoMsg(''); setPromoLoading(true);
     try{
       const res = await fetch('/.netlify/functions/redeem-promo',{
@@ -2835,6 +2931,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
 
   const addItem=(prod)=>{
     setCartErr('');
+    if(cart.some(i=>i.selId)){ setCartErr(L.catalog.selBlocked); return; }
     // Max 36 articoli totali
     const currentQty=cart.reduce((s,i)=>s+i.qty,0);
     const isItaly = natCode==='IT';
@@ -2925,6 +3022,36 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
       }
     }
   };
+  const addSelection=(offer,info)=>{
+    setCartErr('');
+    const cur = cart.find(i=>i.selId);
+    if(cart.length>0 && !(cur && cur.selId===offer.id)){ setCartErr(L.catalog.selOnly); return; }
+    if(activePromo){ setCartErr(L.catalog.selPromo); return; }
+    const n = cur ? (cur.selN||1)+1 : 1;
+    const selMax = natCode==='IT' ? 18
+      : (aRate&&aRate.max_items) ? aRate.max_items
+      : (!aRate||!aRate.rates) ? 60
+      : (()=>{const ks=Object.keys(aRate.rates).map(Number).filter(n=>!isNaN(n));return ks.length?Math.max(...ks):60;})();
+    if(info.units*n>selMax){ setCartErr(L.catalog.maxItems(selMax)); return; }
+    setGiftChoice(false);
+    setCart(info.items.map(x=>({...x.prod,qty:x.qty*n,selId:offer.id,selName:offer.name,selPrice:offer.price,selN:n})));
+  };
+  const changeSelection=(delta)=>{
+    const cur = cart.find(i=>i.selId); if(!cur) return;
+    const n = (cur.selN||1)+delta;
+    if(n<1){ removeSelection(); return; }
+    const per = cart.filter(i=>i.selId).reduce((t,i)=>t+i.qty/(i.selN||1),0);
+    if(delta>0){
+      const selMax = natCode==='IT' ? 18
+        : (aRate&&aRate.max_items) ? aRate.max_items
+        : (!aRate||!aRate.rates) ? 60
+        : (()=>{const ks=Object.keys(aRate.rates).map(Number).filter(x=>!isNaN(x));return ks.length?Math.max(...ks):60;})();
+      if(per*n>selMax){ setCartErr(L.catalog.maxItems(selMax)); return; }
+    }
+    setCartErr('');
+    setCart(prev=>prev.map(i=>i.selId?{...i,qty:i.qty/(i.selN||1)*n,selN:n}:i));
+  };
+  const removeSelection=()=>{ setCartErr(''); setCart([]); setGiftChoice(null); };
   const removeItem=(id)=>{
     setCartErr('');
     setCart(prev=>{
@@ -2970,7 +3097,7 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
     else{setShowOrderPopup(true);}
   };
   const panelProps={cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend:handleSend,onDirectSend:onDirectSend,onEmail:handleEmail,onSMS:onSMS,onStripe:onStripe,onPlaceOrder:handlePlaceOrder,speed,setSpeed,spSel,noRate,natCode,lang,
-    activePromo,promoInput,setPromoInput,promoMsg,promoLoading,onApplyPromo:applyPromoCode,onRemovePromo:removePromo};
+    activePromo,promoInput,setPromoInput,promoMsg,promoLoading,onApplyPromo:applyPromoCode,onRemovePromo:removePromo,onRemoveSel:removeSelection,onChangeSel:changeSelection};
 
   const handleGiftYes = () => {
     setGiftChoice(true);
@@ -3070,6 +3197,14 @@ function CatalogStep({products,cart,setCart,speed,setSpeed,spSel,
                 {CAT_LABEL[lang][t]}
               </button>))}
           </div>
+
+          {(tab==='ALL'||tab==='OFFERS')&&offerList.length>0&&(
+            <div className="mb-4">
+              <h2 className="font-bold gold-text border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>{CAT_LABEL[lang].OFFERS}</h2>
+              <div className="grid gap-2" style={{gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))'}}>
+                {offerList.map(x=><OfferCard key={x.o.id} offer={x.o} info={x.info} onAdd={()=>addSelection(x.o,x.info)} blocked={caBlockedCats.includes('WINE')} lang={lang}/>)}
+              </div>
+            </div>)}
 
           {dCats.map(cat=>{
             const ps=filtered.filter(p=>p.category===cat);

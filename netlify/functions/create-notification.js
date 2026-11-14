@@ -153,7 +153,21 @@ function romeDate() {
 
 // Nota mostrata nella mail interna. Attenzione: il CRM legge queste mail con delle espressioni regolari,
 // quindi niente righe che comincino con Name/Email/Phone/Address e niente "Shipping (", "FINAL TOTAL", "3x ...".
+// Avviso per chi inserisce l'ordine in Mexal: i pezzi appartengono a una Ciliegio Selection (sconto sulle righe).
+function bundleNoteHtml(b) {
+  if (!b) return '';
+  const esc = function(x) { return String(x).replace(/[&<>]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
+  return '<div style="margin-top:16px;padding:10px 12px;background:#fff8e1;border:1px solid #e0b200;color:#7a5c00;font-size:12px;line-height:1.5">' +
+    '<strong>OFFERTA ' + (Number(b.n) > 1 ? esc(b.n) + ' x ' : '') + esc(b.name) + '</strong>: le righe di questo ordine sono i prodotti della Ciliegio Selection, ' +
+    'venduti a prezzo speciale di ' + Number(b.price).toFixed(2) + ' EUR invece di ' + Number(b.listPrice).toFixed(2) + ' EUR ' +
+    '(lo sconto e gia applicato su ogni riga). Niente altri sconti, omaggi o spedizione gratuita.</div>';
+}
+
 function mexalNoteHtml(mx) {
+  return bundleNoteHtml(mx && mx.bundle) + mexalNoteHtmlBase(mx);
+}
+
+function mexalNoteHtmlBase(mx) {
   const box = function(bg, border, color, inner) {
     return '<div style="margin-top:16px;padding:10px 12px;background:' + bg + ';border:1px solid ' + border + ';color:' + color + ';font-size:12px;line-height:1.5">' + inner + '</div>';
   };
@@ -782,6 +796,7 @@ async function handleEvent(stripeEvent, brevoKey) {
         }
       }
 
+      if (orderData && orderData.bundle) mexal.bundle = orderData.bundle;
       const shopHtml     = buildEmailHtml(true,  customerName, customerEmail, customerPhone, emailAddress, paymentLabel, amount, currency, orderProducts, orderTotalsOut, isQuoteRequest, customerTaxCode, orderNumber, mexalNoteHtml(mexal));
       const customerProducts = localizeProductLines(orderProducts ? orderProducts.split('|').map(function(p){ return p.trim(); }).filter(Boolean) : [], orderData, mailLang).join('|');
       const customerPayLabel = paymentMethod === 'paypal' ? paymentLabel : paymentMethod === 'direct_sale' ? MAIL_I18N[mailLang].payDirect : isQuoteRequest ? MAIL_I18N[mailLang].payQuote : MAIL_I18N[mailLang].payCard;

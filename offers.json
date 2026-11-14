@@ -1,0 +1,35 @@
+[
+  {
+    "id": "sel_base",
+    "name": "Ciliegio Selection Base",
+    "price": 42,
+    "items": [
+      { "id": 6, "qty": 1 },
+      { "id": 7, "qty": 1 },
+      { "id": 8, "qty": 1 }
+    ]
+  },
+  {
+    "id": "sel_medium",
+    "name": "Ciliegio Selection Medium",
+    "price": 64,
+    "items": [
+      { "id": 6, "qty": 2 },
+      { "id": 7, "qty": 1 },
+      { "id": 8, "qty": 1 },
+      { "id": 3, "qty": 2 }
+    ]
+  },
+  {
+    "id": "sel_big",
+    "name": "Ciliegio Selection Big",
+    "price": 122,
+    "items": [
+      { "id": 6, "qty": 3 },
+      { "id": 7, "qty": 2 },
+      { "id": 8, "qty": 2 },
+      { "id": 3, "qty": 3 },
+      { "id": 10, "qty": 2 }
+    ]
+  }
+]
