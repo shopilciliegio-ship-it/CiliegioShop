@@ -516,7 +516,7 @@ const IT_CAN_SLOT_COST = 3;
 function italyShipUnits(item){
   return IT_OIL_CAN_IDS.includes(item.id) ? item.qty * IT_CAN_SLOT_COST : item.qty;
 }
-const CATEGORIES  = ['WINE','SPARKLING','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
+const CATEGORIES  = ['WINE','SPARKLING','BEER','DISTILLATES','EVO OIL','FLOURS','CEREALS','LEGUMES','SWEETS'];
 const US_CA_BLOCK = []; // IDs 24,25 now available everywhere
 const BLANK = {nationality:'',natCode:'',name:'',surname:'',address:'',
   zip:'',city:'',province:'',state:'',mobile:'',emailUser:'',emailDomain:'',taxCode:''};
@@ -567,11 +567,11 @@ function detectLang(){
   return 'en';
 }
 const CAT_LABEL = {
-  en:{ALL:'ALL',WINE:'WINE',SPARKLING:'SPARKLING',DISTILLATES:'DISTILLATES','EVO OIL':'EVO OIL',FLOURS:'FLOURS',CEREALS:'CEREALS',LEGUMES:'LEGUMES',SWEETS:'SWEETS'},
-  it:{ALL:'TUTTI',WINE:'VINI',SPARKLING:'SPUMANTI',DISTILLATES:'DISTILLATI','EVO OIL':'OLIO EVO',FLOURS:'FARINE',CEREALS:'CEREALI',LEGUMES:'LEGUMI',SWEETS:'DOLCI'},
-  de:{ALL:'ALLE',WINE:'WEIN',SPARKLING:'SCHAUMWEIN',DISTILLATES:'SPIRITUOSEN','EVO OIL':'OLIVENÖL',FLOURS:'MEHL',CEREALS:'GETREIDE',LEGUMES:'HÜLSENFRÜCHTE',SWEETS:'SÜSSWAREN'},
-  fr:{ALL:'TOUS',WINE:'VINS',SPARKLING:'MOUSSEUX',DISTILLATES:'SPIRITUEUX','EVO OIL':"HUILE D'OLIVE",FLOURS:'FARINES',CEREALS:'CÉRÉALES',LEGUMES:'LÉGUMINEUSES',SWEETS:'DOUCEURS'},
-  es:{ALL:'TODOS',WINE:'VINOS',SPARKLING:'ESPUMOSOS',DISTILLATES:'DESTILADOS','EVO OIL':'ACEITE DE OLIVA',FLOURS:'HARINAS',CEREALS:'CEREALES',LEGUMES:'LEGUMBRES',SWEETS:'DULCES'},
+  en:{ALL:'ALL',WINE:'WINE',SPARKLING:'SPARKLING',BEER:'BEER',DISTILLATES:'DISTILLATES','EVO OIL':'EVO OIL',FLOURS:'FLOURS',CEREALS:'CEREALS',LEGUMES:'LEGUMES',SWEETS:'SWEETS'},
+  it:{ALL:'TUTTI',WINE:'VINI',SPARKLING:'SPUMANTI',BEER:'BIRRA',DISTILLATES:'DISTILLATI','EVO OIL':'OLIO EVO',FLOURS:'FARINE',CEREALS:'CEREALI',LEGUMES:'LEGUMI',SWEETS:'DOLCI'},
+  de:{ALL:'ALLE',WINE:'WEIN',SPARKLING:'SCHAUMWEIN',BEER:'BIER',DISTILLATES:'SPIRITUOSEN','EVO OIL':'OLIVENÖL',FLOURS:'MEHL',CEREALS:'GETREIDE',LEGUMES:'HÜLSENFRÜCHTE',SWEETS:'SÜSSWAREN'},
+  fr:{ALL:'TOUS',WINE:'VINS',SPARKLING:'MOUSSEUX',BEER:'BIÈRE',DISTILLATES:'SPIRITUEUX','EVO OIL':"HUILE D'OLIVE",FLOURS:'FARINES',CEREALS:'CÉRÉALES',LEGUMES:'LÉGUMINEUSES',SWEETS:'DOUCEURS'},
+  es:{ALL:'TODOS',WINE:'VINOS',SPARKLING:'ESPUMOSOS',BEER:'CERVEZA',DISTILLATES:'DESTILADOS','EVO OIL':'ACEITE DE OLIVA',FLOURS:'HARINAS',CEREALS:'CEREALES',LEGUMES:'LEGUMBRES',SWEETS:'DULCES'},
 };
 const I18N = {
   en:{
@@ -1798,7 +1798,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.116</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.117</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
