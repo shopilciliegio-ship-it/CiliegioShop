@@ -746,5 +746,90 @@
       "fr": "CIAMBELLINE AL CHIANTI GR 200",
       "es": "CIAMBELLINE AL CHIANTI GR 200"
     }
+  },
+  {
+    "id": 44,
+    "name": "BORLOTTI BEANS 500 GR",
+    "price": 4.5,
+    "mexal": "50405",
+    "img": "img/prod_44.jpg",
+    "category": "LEGUMES",
+    "available": true,
+    "sort": 45,
+    "vat": 4,
+    "names": {
+      "it": "FAGIOLI BORLOTTI 500 GR",
+      "de": "BORLOTTI-BOHNEN 500 GR",
+      "fr": "HARICOTS BORLOTTI 500 GR",
+      "es": "ALUBIAS BORLOTTI 500 GR"
+    }
+  },
+  {
+    "id": 45,
+    "name": "BORLOTTI BEANS 1 KG",
+    "price": 7.5,
+    "mexal": "50412",
+    "img": "img/prod_45.jpg",
+    "category": "LEGUMES",
+    "available": true,
+    "sort": 46,
+    "vat": 4,
+    "names": {
+      "it": "FAGIOLI BORLOTTI 1 KG",
+      "de": "BORLOTTI-BOHNEN 1 KG",
+      "fr": "HARICOTS BORLOTTI 1 KG",
+      "es": "ALUBIAS BORLOTTI 1 KG"
+    }
+  },
+  {
+    "id": 46,
+    "name": "MAYA BLONDE BEER 330 ML",
+    "price": 5.0,
+    "mexal": "50726",
+    "img": "img/prod_46.jpg",
+    "category": "BEER",
+    "available": true,
+    "sort": 47,
+    "vat": 22,
+    "names": {
+      "it": "MAYA BIRRA BIONDA 330 ML",
+      "de": "MAYA HELLES BIER 330 ML",
+      "fr": "BIÈRE BLONDE MAYA 330 ML",
+      "es": "CERVEZA RUBIA MAYA 330 ML"
+    }
+  },
+  {
+    "id": 47,
+    "name": "SPELT FLOUR 1 KG",
+    "price": 4.0,
+    "mexal": "50832",
+    "img": "img/prod_47.jpg",
+    "category": "FLOURS",
+    "available": true,
+    "sort": 48,
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI FARRO 1 KG",
+      "de": "DINKELMEHL 1 KG",
+      "fr": "FARINE D'ÉPEAUTRE 1 KG",
+      "es": "HARINA DE ESPELTA 1 KG"
+    }
+  },
+  {
+    "id": 48,
+    "name": "CHESTNUT FLOUR 500 GR",
+    "price": 7.5,
+    "mexal": "50849",
+    "img": "img/prod_48.jpg",
+    "category": "FLOURS",
+    "available": true,
+    "sort": 49,
+    "vat": 4,
+    "names": {
+      "it": "FARINA DI CASTAGNE 500 GR",
+      "de": "KASTANIENMEHL 500 GR",
+      "fr": "FARINE DE CHÂTAIGNE 500 GR",
+      "es": "HARINA DE CASTAÑA 500 GR"
+    }
   }
 ]
