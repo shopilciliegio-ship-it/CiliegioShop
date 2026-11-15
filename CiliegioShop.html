@@ -154,11 +154,27 @@
       .catalog-page    { height:calc(var(--vh,1vh)*100 - 84px); display:flex; flex-direction:column; }
       .catalog-layout  { flex:1; display:flex; flex-direction:column; min-height:0; }
       .catalog-col     { flex:1; min-height:0; overflow-y:auto; padding-bottom:4px; }
-      /* Cart area: fixed 44% of viewport, split internally */
-      .cart-col        { flex:0 0 44vh; border-top:2px solid #D4AF37; display:flex;
-                         flex-direction:column; min-height:0; padding-top:6px; }
+      /* Cart (mobile): barra compatta in basso; toccandola il carrello si apre a schermo intero */
+      .catalog-col     { padding-bottom:64px; }
+      .cart-col        { position:fixed; left:0; right:0; bottom:0; z-index:40; background:#111;
+                         border-top:2px solid #D4AF37; padding:0 !important; border-radius:0 !important;
+                         padding-bottom:env(safe-area-inset-bottom) !important; }
+      .cart-mobilebar  { display:flex; align-items:center; justify-content:space-between; gap:8px;
+                         padding:10px 14px; min-height:52px; cursor:pointer; }
+      .cart-body       { display:none; }
+      .cart-col.cart-open { top:0; height:calc(var(--vh,1vh)*100); z-index:60; display:flex; flex-direction:column; }
+      .cart-col.cart-open .cart-mobilebar { display:none; }
+      .cart-col.cart-open .cart-body { display:flex; flex-direction:column; flex:1; min-height:0; padding:8px; }
       .cart-inner      { flex:1; overflow-y:auto; min-height:0; }
       .cart-send       { flex-shrink:0; padding-top:6px; }
+      /* Categorie: una sola riga scorrevole in orizzontale */
+      .cat-tabs        { flex-wrap:nowrap !important; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:2px; }
+      .cat-tabs::-webkit-scrollbar { display:none; }
+      .cat-tabs button { flex-shrink:0; white-space:nowrap; }
+    }
+    @media (min-width: 768px) {
+      .cart-mobilebar  { display:none; }
+      .cart-close      { display:none; }
     }
   </style>
 </head>
@@ -660,7 +676,7 @@ const I18N = {
       caBlocked:(province)=>`🚫 Wine/Sparkling cannot be shipped to ${province}.`,
       orderPopup:{
         thanks:'Thank you for choosing', brand:'IL CILIEGIO!',
-        completed:'Your order has been completed.',
+        completed:'Your order is ready.',
         choosePayment:'Please proceed to the payment of your order using one of the options below:',
         choosePaymentQuote:"We don't have a shipping rate for your country yet. Send your order request now — no payment required. We'll check feasibility and contact you by email with a shipping quote and payment link.",
         sendWA:'📲 Send Order via WhatsApp', payCard:'💳 Pay by Card', payPaypal:'🅿️ PayPal (+5%)',
@@ -777,7 +793,7 @@ const I18N = {
       caBlocked:(province)=>`🚫 Vino/Spumante non può essere spedito a ${province}.`,
       orderPopup:{
         thanks:'Grazie per aver scelto', brand:'IL CILIEGIO!',
-        completed:'Il tuo ordine è stato completato.',
+        completed:'Il tuo ordine è pronto.',
         choosePayment:"Procedi al pagamento del tuo ordine usando una delle opzioni qui sotto:",
         choosePaymentQuote:"Non abbiamo ancora una tariffa di spedizione per il tuo paese. Invia subito la tua richiesta d'ordine — nessun pagamento richiesto ora. Verificheremo la fattibilità e ti contatteremo via email con il preventivo di spedizione e il link per pagare.",
         sendWA:"📲 Invia l'ordine via WhatsApp", payCard:'💳 Paga con carta', payPaypal:'🅿️ PayPal (+5%)',
@@ -894,7 +910,7 @@ const I18N = {
       caBlocked:(province)=>`🚫 Wein/Sekt kann nicht nach ${province} versendet werden.`,
       orderPopup:{
         thanks:'Danke, dass Sie sich für', brand:'IL CILIEGIO entschieden haben!',
-        completed:'Ihre Bestellung wurde abgeschlossen.',
+        completed:'Ihre Bestellung ist bereit.',
         choosePayment:'Bitte fahren Sie mit der Zahlung Ihrer Bestellung fort, indem Sie eine der folgenden Optionen wählen:',
         choosePaymentQuote:'Für Ihr Land liegt uns noch kein Versandtarif vor. Senden Sie jetzt Ihre Bestellanfrage — keine Zahlung erforderlich. Wir prüfen die Machbarkeit und melden uns per E-Mail mit einem Versandangebot und Zahlungslink.',
         sendWA:'📲 Bestellung per WhatsApp senden', payCard:'💳 Mit Karte zahlen', payPaypal:'🅿️ PayPal (+5%)',
@@ -1011,7 +1027,7 @@ const I18N = {
       caBlocked:(province)=>`🚫 Le vin/mousseux ne peut pas être expédié vers ${province}.`,
       orderPopup:{
         thanks:"Merci d'avoir choisi", brand:'IL CILIEGIO !',
-        completed:'Votre commande a été finalisée.',
+        completed:'Votre commande est prête.',
         choosePayment:'Veuillez procéder au paiement de votre commande en utilisant une des options ci-dessous :',
         choosePaymentQuote:"Nous n'avons pas encore de tarif de livraison pour votre pays. Envoyez votre demande de commande dès maintenant — aucun paiement requis. Nous vérifierons la faisabilité et vous contacterons par email avec un devis de livraison et un lien de paiement.",
         sendWA:'📲 Envoyer la commande via WhatsApp', payCard:'💳 Payer par carte', payPaypal:'🅿️ PayPal (+5%)',
@@ -1128,7 +1144,7 @@ const I18N = {
       caBlocked:(province)=>`🚫 El vino/espumoso no se puede enviar a ${province}.`,
       orderPopup:{
         thanks:'Gracias por elegir', brand:'¡IL CILIEGIO!',
-        completed:'Tu pedido se ha completado.',
+        completed:'Tu pedido está listo.',
         choosePayment:'Procede al pago de tu pedido usando una de las opciones a continuación:',
         choosePaymentQuote:'Todavía no tenemos una tarifa de envío para tu país. Envía tu solicitud de pedido ahora — no se requiere pago. Verificaremos la viabilidad y te contactaremos por correo con un presupuesto de envío y un enlace de pago.',
         sendWA:'📲 Enviar pedido por WhatsApp', payCard:'💳 Pagar con tarjeta', payPaypal:'🅿️ PayPal (+5%)',
@@ -1833,7 +1849,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.119</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.120</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
@@ -2597,7 +2613,7 @@ function CartPanel({cart,totals,aRate,hasDuty,dl,addItem,removeItem,onSend,onDir
       <button onClick={onPlaceOrder} disabled={cart.length===0}
         className={`w-full rounded font-bold uppercase transition
           ${cart.length>0?'gold-bg hover:bg-yellow-600':'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
-        style={{fontSize:'12px',padding:'9px 0',letterSpacing:'0.05em'}}>
+        style={{fontSize:'12px',padding:'9px 0',letterSpacing:'0.05em',marginTop:'10px'}}>
         {L.cart.placeOrder}
       </button></div>
     </div>
@@ -2835,7 +2851,7 @@ function CatalogStep({products,offers,cart,setCart,speed,setSpeed,spSel,
   const L = I18N[lang];
   const noRate = totals.qty>0 && !aRate;
 
-  const [tab,setTab]         = useState('ALL');
+  const [tab,setTab]         = useState('OFFERS');
   const [cartErr,setCartErr] = useState('');
   const [promoInput,setPromoInput]   = useState('');
   const [promoMsg,setPromoMsg]       = useState('');
@@ -2886,8 +2902,9 @@ function CatalogStep({products,offers,cart,setCart,speed,setSpeed,spSel,
   const visCats = (!canSeeDistillates)?CATEGORIES.filter(c=>c!=='DISTILLATES'):CATEGORIES;
   const offerList = (offers||[]).map(o=>({o,info:offerInfo(o,products)})).filter(x=>x.info.ok&&x.info.list>x.o.price);
   const tabs    = [...(offerList.length?['OFFERS']:[]),'ALL',...visCats];
-  const filtered= tab==='ALL'?avail:avail.filter(p=>p.category===tab);
-  const dCats   = tab==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tab];
+  const tabEff  = (tab==='OFFERS'&&!offerList.length)?'ALL':tab;
+  const filtered= tabEff==='ALL'?avail:avail.filter(p=>p.category===tabEff);
+  const dCats   = tabEff==='ALL'?visCats.filter(c=>avail.some(p=>p.category===c)):[tabEff];
 
   // ── Promo / coupon ──────────────────────────────────────────
   const applyPromoCode = async ()=>{
@@ -3100,6 +3117,7 @@ function CatalogStep({products,offers,cart,setCart,speed,setSpeed,spSel,
   const handleEmail=()=>{ if(getDutyWarning){setShowDutyWarn(true);setPendingAction('email');}else{onEmail();} };
 
   const [showOrderPopup,setShowOrderPopup] = useState(false);
+  const [cartOpen,setCartOpen] = useState(false);
   const handlePlaceOrder=()=>{
     if(getDutyWarning){setShowDutyWarn(true);}
     else{setShowOrderPopup(true);}
@@ -3196,17 +3214,17 @@ function CatalogStep({products,offers,cart,setCart,speed,setSpeed,spSel,
         {/* ── Catalog column ── */}
         <div className="catalog-col">
           {/* Category tabs */}
-          <div className="flex gap-1 flex-wrap mb-2">
+          <div className="cat-tabs flex gap-1 flex-wrap mb-2">
             {tabs.map(t=>(
               <button key={t} onClick={()=>setTab(t)}
                 className={`px-2 py-1 rounded font-bold uppercase border transition
-                  ${tab===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}
+                  ${tabEff===t?'gold-bg border-[#D4AF37]':'border-gray-700 text-gray-400 hover:border-[#D4AF37]'}`}
                 style={{fontSize:'10px'}}>
                 {CAT_LABEL[lang][t]}
               </button>))}
           </div>
 
-          {(tab==='ALL'||tab==='OFFERS')&&offerList.length>0&&(
+          {(tabEff==='ALL'||tabEff==='OFFERS')&&offerList.length>0&&(
             <div className="mb-4">
               <h2 className="font-bold gold-text border-b border-gray-800 pb-1 mb-2" style={{fontSize:'13px'}}>{CAT_LABEL[lang].OFFERS}</h2>
               <div className="grid gap-2" style={{gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))'}}>
@@ -3230,14 +3248,24 @@ function CatalogStep({products,offers,cart,setCart,speed,setSpeed,spSel,
         </div>
 
         {/* ── Cart column ── */}
-        <div className="cart-col bg-[#111] rounded border gold-border" style={{padding:'8px'}}>
+        <div className={"cart-col bg-[#111] rounded border gold-border"+(cartOpen?" cart-open":"")} style={{padding:'8px'}}>
+          <div className="cart-mobilebar" onClick={()=>setCartOpen(true)}>
+            <span className="gold-text font-bold" style={{fontSize:'14px'}}>{L.catalog.cartTitle}{totals.qty>0?' · '+totals.qty:''}</span>
+            <span className="font-bold" style={{fontSize:'15px',color:totals.qty>0?'#D4AF37':'#6b7280'}}>€{totals.final.toFixed(2)} ▲</span>
+          </div>
+          <div className="cart-body">
           <div className="flex justify-between items-center border-b border-gray-800 pb-1 mb-2">
             <h2 className="gold-text font-bold" style={{fontSize:'13px'}}>{L.catalog.cartTitle}</h2>
+            <div className="flex items-center gap-2">
             {cart.length>0&&<button onClick={doResetCart}
               className="border border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-400 rounded transition"
               style={{fontSize:'9px',padding:'2px 6px'}}>{L.catalog.reset}</button>}
+            <button className="cart-close gold-border border rounded gold-text" onClick={()=>setCartOpen(false)}
+              style={{fontSize:'13px',padding:'4px 12px'}}>▼ ✕</button>
+            </div>
           </div>
           <CartPanel {...panelProps}/>
+          </div>
         </div>
       </div>
     </div>
