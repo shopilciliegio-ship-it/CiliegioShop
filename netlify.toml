@@ -5,6 +5,93 @@
 [functions]
   included_files = ["netlify/functions/mexal-codes.json"]
 
+# File interni: la cartella e pubblicata per intero, quindi questi percorsi vanno
+# nascosti (404 forzato, anche se il file esiste). Lo shop non li usa mai dal browser:
+# le funzioni leggono mexal-codes.json e mos-template.js dal proprio pacchetto.
+[[redirects]]
+  from = "/files.zip"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/MOS/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/playwright-report/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/test-results/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/tests/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/scripts/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/__pycache__/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package-lock.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/deno.lock"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/playwright.config.js"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/README.md"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/aggiorna_codici_mexal.py"
+  to = "/404.html"
+  status = 404
+  force = true
+
 # /wineclub non sblocca più automaticamente il modulo Wine Club:
 # la visibilità ora dipende solo dal login staff (Admin/Admin02 o Luca/Luca02).
 [[redirects]]

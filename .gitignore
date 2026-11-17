@@ -6,3 +6,13 @@ deno.lock
 # Excel interni (prezzi e codici): la cartella e pubblicata su Netlify, non devono finire online
 *.xlsx
 __pycache__/
+
+# Report dei test, archivi e file interni: non vanno in un repo pubblico ne sul sito
+playwright-report/
+test-results/
+files.zip
+MOS/
+Ordini rigenerati/
+products.backup-*.json
+products-LucaVeronaPc.json
+stp000001.pdf
