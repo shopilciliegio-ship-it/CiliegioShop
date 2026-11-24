@@ -224,6 +224,7 @@
         '→ <b style="color:#D4AF37">Schermata Home</b>',
       samsungAfter:'Poi apri l\'icona <b style="color:#fff">IL CILIEGIO</b> dalla tua Schermata Home.',
       install:'⬇ Installa',
+      already:"Hai già installato l'app Il Ciliegio sul tuo telefono. Per un'esperienza migliore, aprila dalla Schermata Home.",
       pressX:'Premi ✕ per continuare sul sito',
       installedTitle:'App Installata!',
       installedMsg:'Vai alla tua <b style="color:#fff">Schermata Home</b><br>e tocca l\'icona<br><b style="color:#D4AF37">IL CILIEGIO</b><br>per aprire l\'app.',
@@ -238,6 +239,7 @@
         '→ <b style="color:#D4AF37">Home screen</b>',
       samsungAfter:'Then open the <b style="color:#fff">IL CILIEGIO</b> icon from your Home Screen.',
       install:'⬇ Install',
+      already:'To ensure a better App experience, use the app you have already installed: open it from your Home Screen.',
       pressX:'Press ✕ to continue in the website',
       installedTitle:'App Installed!',
       installedMsg:'Go to your <b style="color:#fff">Home Screen</b><br>and tap the<br><b style="color:#D4AF37">IL CILIEGIO</b> icon<br>to open the app.',
@@ -252,6 +254,7 @@
         '→ <b style="color:#D4AF37">Startbildschirm</b>',
       samsungAfter:'Öffnen Sie dann das Symbol <b style="color:#fff">IL CILIEGIO</b> von Ihrem Startbildschirm.',
       install:'⬇ Installieren',
+      already:'Für ein besseres App-Erlebnis nutzen Sie die bereits installierte App: öffnen Sie sie über Ihren Startbildschirm.',
       pressX:'Tippen Sie auf ✕, um auf der Website fortzufahren',
       installedTitle:'App installiert!',
       installedMsg:'Gehen Sie zu Ihrem <b style="color:#fff">Startbildschirm</b><br>und tippen Sie auf das Symbol<br><b style="color:#D4AF37">IL CILIEGIO</b><br>um die App zu öffnen.',
@@ -266,6 +269,7 @@
         '→ <b style="color:#D4AF37">Écran d\'accueil</b>',
       samsungAfter:'Ouvrez ensuite l\'icône <b style="color:#fff">IL CILIEGIO</b> depuis votre écran d\'accueil.',
       install:'⬇ Installer',
+      already:"Pour une meilleure expérience, utilisez l'application déjà installée : ouvrez-la depuis votre écran d'accueil.",
       pressX:'Appuyez sur ✕ pour continuer sur le site',
       installedTitle:'Application installée !',
       installedMsg:'Allez sur votre <b style="color:#fff">écran d\'accueil</b><br>et appuyez sur l\'icône<br><b style="color:#D4AF37">IL CILIEGIO</b><br>pour ouvrir l\'application.',
@@ -280,6 +284,7 @@
         '→ <b style="color:#D4AF37">Pantalla de inicio</b>',
       samsungAfter:'Luego abre el icono <b style="color:#fff">IL CILIEGIO</b> desde tu pantalla de inicio.',
       install:'⬇ Instalar',
+      already:'Para una mejor experiencia, usa la app que ya tienes instalada: ábrela desde tu pantalla de inicio.',
       pressX:'Toca ✕ para continuar en el sitio web',
       installedTitle:'¡App instalada!',
       installedMsg:'Ve a tu <b style="color:#fff">pantalla de inicio</b><br>y toca el icono<br><b style="color:#D4AF37">IL CILIEGIO</b><br>para abrir la app.',
@@ -383,6 +388,17 @@
       btn.style.display = 'none';
       popup.appendChild(btn);
 
+      // Messaggio di installazione solo se Chrome offre davvero l'installazione; se dopo 2,5 s non arriva,
+      // l'app è già installata sul telefono -> messaggio "usa l'app che hai già installato"
+      msg.style.visibility = 'hidden';
+      var _isChromeAndroid = /Chrome\//.test(navigator.userAgent) && !/OPR|Edg|SamsungBrowser|Firefox|FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+      setTimeout(function(){
+        if(deferredPrompt) return;
+        if(!_isChromeAndroid){ overlay.remove(); popup.remove(); return; }
+        msg.textContent = IP.already;
+        msg.style.visibility = 'visible';
+      }, 2500);
+
       var xhint = document.createElement('div');
       xhint.style.cssText = 'color:#555;font-size:11px;margin-top:10px;text-align:center;line-height:1.4';
       xhint.textContent = IP.pressX;
@@ -391,6 +407,8 @@
       window.addEventListener('beforeinstallprompt', function(e){
         e.preventDefault();
         deferredPrompt = e;
+        msg.textContent = IP.msg;
+        msg.style.visibility = 'visible';
         btn.style.display = 'block';
         btn.onclick = function(){
           deferredPrompt.prompt();
@@ -1849,7 +1867,7 @@ function App(){
                 ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_vendita');setIsVendita(false);}}>🏪 VENDITA</span>
                 :clubTest
                   ?<span className="gold-text font-bold" style={{cursor:"pointer"}} onClick={()=>{localStorage.removeItem('ciliegio_clubtest');setClubTest(false);}}>🍷 CLUB TEST</span>
-                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.120</span>}
+                  :<span style={{color:"#fff",opacity:0.4,cursor:"pointer"}} onClick={()=>setShowLogin(true)}>v.121</span>}
             </span>
             <LanguageSelector lang={lang} setLang={setLang}/>
           </span>
